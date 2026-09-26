@@ -6,6 +6,7 @@ import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { getBoostForSoloPitch, requestBoost, BOOST_PRICE_CENTS, BOOST_DURATION_MS } from "@/lib/boost";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
+import { BOOST_ENABLED } from "@/lib/feature-flags";
 
 /** Current boost status for one of the viewer's own Solo-Pitches — used by BoostButton when its sheet opens. */
 export async function GET(request: NextRequest) {
@@ -33,6 +34,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Phase 48: Boost pausiert, bis wir monetarisieren wollen — siehe feature-flags.ts.
+  if (!BOOST_ENABLED) {
+    return NextResponse.json({ error: "Boost ist aktuell nicht verfügbar." }, { status: 403 });
+  }
+
   const viewer = await getOptionalUser();
   if (!viewer) {
     return NextResponse.json({ error: "Bitte melde dich an." }, { status: 401 });
