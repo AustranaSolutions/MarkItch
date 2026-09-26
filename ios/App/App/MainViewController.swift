@@ -10,9 +10,20 @@ import Capacitor
 // the meta tag alone isn't enough here.
 class MainViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
-        guard let scrollView = bridge?.webView?.scrollView else { return }
-        scrollView.pinchGestureRecognizer?.isEnabled = false
-        scrollView.bounces = false
-        scrollView.bouncesZoom = false
+        guard let webView = bridge?.webView else { return }
+        webView.scrollView.pinchGestureRecognizer?.isEnabled = false
+        webView.scrollView.bounces = false
+        webView.scrollView.bouncesZoom = false
+
+        // Phase 48: Luca — "die Funktion die Apple sowieso hat, wenn man
+        // eine Seite zurück möchte, swipet man vom linken Bildrand nach
+        // rechts". WKWebView bringt genau das schon eingebaut mit, getrieben
+        // von der echten Browser-History (die Next.js' Router beim
+        // Navigieren sowieso per pushState füllt) — kein selbstgebautes
+        // Gesture nötig. Kollidiert nicht mit dem Duell-Card-eigenen
+        // Seiten-Swipe: das ist ein UIScreenEdgePanGestureRecognizer, der
+        // nur in einem schmalen Rand von der Kante aus überhaupt anspringt,
+        // ein Duell-Swipe beginnt praktisch immer weiter in der Mitte.
+        webView.allowsBackForwardNavigationGestures = true
     }
 }
