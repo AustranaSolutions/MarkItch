@@ -10,6 +10,7 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import { generateRawToken, hashToken, expiresInHours } from "@/lib/tokens";
 import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
+import { uploadImage, ALLOWED_IMAGE_TYPES } from "@/lib/storage";
 import {
   RegisterSchema,
   LoginSchema,
@@ -167,8 +168,15 @@ export async function resendVerificationEmail(): Promise<FormState> {
  * verification (same token flow as registration/resend), since the old
  * verification no longer proves you own the new address.
  */
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // 2 MB — gleiche Grenze wie ein Markenlogo
+
 export async function updateProfile(_prevState: FormState, formData: FormData): Promise<FormState> {
   const sessionUser = await requireUser();
+  // Phase 48: die Avatar-Datei muss vor dem Zod-Parse raus — UpdateProfileSchema
+  // erwartet nur Strings, Object.fromEntries(formData) würde ein File-Objekt sonst
+  // unverändert durchreichen und an z.email()/z.string() scheitern.
+  const avatarFile = formData.get("avatar");
+  formData.delete("avatar");
   const parsed = UpdateProfileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return { errors: parsed.error.flatten().fieldErrors };
@@ -184,11 +192,24 @@ export async function updateProfile(_prevState: FormState, formData: FormData): 
     if (existing) return { errors: { email: ["Für diese E-Mail-Adresse existiert bereits ein Account."] } };
   }
 
+  let avatarUrl = dbUser.avatarUrl;
+  if (avatarFile instanceof File && avatarFile.size > 0) {
+    if (avatarFile.size > MAX_AVATAR_BYTES) {
+      return { errors: { avatar: ["Profilbild darf maximal 2 MB groß sein."] } };
+    }
+    if (!ALLOWED_IMAGE_TYPES.includes(avatarFile.type)) {
+      return { errors: { avatar: ["Erlaubt: PNG, JPEG, WEBP oder SVG."] } };
+    }
+    const uploaded = await uploadImage(avatarFile, "avatars");
+    avatarUrl = uploaded.url;
+  }
+
   await db
     .update(users)
     .set({
       name: name || null,
       email,
+      avatarUrl,
       emailVerifiedAt: emailChanged ? null : dbUser.emailVerifiedAt,
       updatedAt: new Date(),
     })

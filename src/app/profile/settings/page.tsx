@@ -64,7 +64,7 @@ export default async function ProfileSettingsPage() {
           )}
         </div>
         <p className="mb-4 text-xs text-zinc-500">Mitglied seit {user.createdAt.toLocaleDateString("de-AT")}</p>
-        <EditProfileForm initialName={user.name ?? ""} initialEmail={user.email} />
+        <EditProfileForm initialName={user.name ?? ""} initialEmail={user.email} initialAvatarUrl={user.avatarUrl} />
         {!user.emailVerifiedAt && (
           <div className="mt-4 border-t border-zinc-800 pt-4">
             <ResendVerificationButton />

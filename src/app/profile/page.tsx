@@ -105,9 +105,14 @@ export default async function ProfilePage() {
         </div>
       ) : (
         <div className="py-8 text-center">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-zinc-800 text-3xl font-bold text-zinc-500">
-            {(user.name || user.email).charAt(0).toUpperCase()}
-          </div>
+          {user.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary source
+            <img src={user.avatarUrl} alt="" className="mx-auto h-24 w-24 rounded-full object-cover" />
+          ) : (
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-zinc-800 text-3xl font-bold text-zinc-500">
+              {(user.name || user.email).charAt(0).toUpperCase()}
+            </div>
+          )}
           <h2 className="mt-3 text-lg font-semibold text-white">{user.name || user.email}</h2>
           <p className="mt-2 text-sm text-zinc-400">Als Assent schaust du zu, folgst und stimmst ab.</p>
           <div className="mt-4 flex justify-center gap-4 text-sm">

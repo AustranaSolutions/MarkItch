@@ -17,6 +17,12 @@ export const users = pgTable(
     // backfilled by the migration: anyone already in brand_members becomes
     // 'acro', everyone else 'assent' — see drizzle/ for the backfill UPDATE.
     accountType: text("account_type").notNull().default("assent"),
+    // Phase 48: persönliches Profilbild — vorher gab es dafür überhaupt
+    // keine Spalte, ein Assent-Account (kein eigenes Markenprofil) zeigte
+    // nur einen generierten Buchstaben-Platzhalter ohne jede Möglichkeit,
+    // ihn zu ersetzen (Luca: "man kann sein Profilbild garnicht ändern").
+    // Getrennt von brands.logoUrl — das bleibt das Markenlogo.
+    avatarUrl: text("avatar_url"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     // Phase 24: moderation. Set by an admin via /admin/moderation — checked
     // at login (auth.ts) and on every requireUser()/getOptionalUser() call
