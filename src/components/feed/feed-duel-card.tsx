@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  EyeOff,
   Heart,
   MessageCircle,
   Play,
@@ -143,27 +144,34 @@ function VoteState({
     );
   }
 
+  // Phase 48: Luca — "ein Drittel vom Bildschirm voll mit Dingen". Die
+  // Erklärung ("wer führt, bleibt geheim bis...") war eine eigene Zeile für
+  // sich, obwohl sie neben dem Button Platz gehabt hätte — jetzt ein
+  // einziges kompaktes Häppchen direkt neben dem Stimmen-Button statt einer
+  // zusätzlichen Zeile darunter.
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       {officialResult}
       {liveDrift}
       {isFinished && <p className="text-xs text-zinc-500">Die Frist ist zwar um, du kannst aber trotzdem noch abstimmen:</p>}
-      <button
-        onClick={onVote}
-        disabled={voting}
-        className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
-      >
-        {voting ? "…" : (
-          <>
-            <Trophy size={14} /> Für {side.brandName} stimmen
-          </>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onVote}
+          disabled={voting}
+          className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
+        >
+          {voting ? "…" : (
+            <>
+              <Trophy size={14} /> Für {side.brandName} stimmen
+            </>
+          )}
+        </button>
+        {!isFinished && votingEndsAt && (
+          <span className="text-[11px] text-zinc-500">Noch {timeLeftLabel(votingEndsAt)}</span>
         )}
-      </button>
-      {!isFinished && (
-        <p className="text-xs text-zinc-500">
-          {tally.total > 0 ? `${tally.total} ${tally.total === 1 ? "Stimme" : "Stimmen"} bisher · ` : ""}
-          wer führt, bleibt geheim bis {votingEndsAt ? new Date(votingEndsAt).toLocaleDateString("de-DE") : "Fristende"}
-        </p>
+      </div>
+      {!isFinished && tally.total > 0 && (
+        <p className="text-[11px] text-zinc-500">{tally.total} {tally.total === 1 ? "Stimme" : "Stimmen"} bisher</p>
       )}
     </div>
   );
@@ -208,6 +216,12 @@ export function FeedDuelCard({
   const [showLikePop, setShowLikePop] = useState(false);
   const lastTapAt = useRef(0);
   const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Phase 48: Luca — "ein Drittel vom Bildschirm voll mit Dingen... eine
+  // Möglichkeit den ganzen Screen leer zu machen, wie bei TikTok/Insta mit
+  // Zoomen". Ein echtes Pinch-Zoom-Gesture würde mit dem bestehenden
+  // Seiten-Swipe/Tap-Pause kollidieren — ein kleiner, dezenter Knopf erreicht
+  // dasselbe Ergebnis (kompletter leerer Bildschirm) ohne dieses Risiko.
+  const [uiHidden, setUiHidden] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -401,12 +415,6 @@ export function FeedDuelCard({
     }
   }
 
-  const stageLabel = duel.isFinished
-    ? "Beendet"
-    : duel.votingEndsAt
-      ? `Noch ${timeLeftLabel(duel.votingEndsAt)}`
-      : "Live";
-
   return (
     <div
       ref={containerRef}
@@ -472,46 +480,80 @@ export function FeedDuelCard({
         </div>
       )}
 
-      {/* Two-sides indicator + edge chevrons. top-4 alone (fixed 16px) sat in
-          the same band as feed-client.tsx's safe-area-aware "Feed"/"Folge
-          ich" tabs on any notch/Dynamic-Island phone, overlapping them —
-          matches that tab bar's own inset instead. */}
-      <div
-        className="pointer-events-none absolute inset-x-0 flex justify-center gap-1.5"
-        style={{ top: "calc(env(safe-area-inset-top) + 44px)" }}
+      {!uiHidden && (
+        <>
+          {/* Two-sides indicator + edge chevrons. top-4 alone (fixed 16px) sat in
+              the same band as feed-client.tsx's safe-area-aware "Feed"/"Folge
+              ich" tabs on any notch/Dynamic-Island phone, overlapping them —
+              matches that tab bar's own inset instead. */}
+          <div
+            className="pointer-events-none absolute inset-x-0 flex justify-center gap-1.5"
+            style={{ top: "calc(env(safe-area-inset-top) + 44px)" }}
+          >
+            {([0, 1] as const).map((i) => (
+              <span key={i} className={`h-1.5 w-1.5 rounded-full ${i === sideIndex ? "bg-white" : "bg-white/30"}`} />
+            ))}
+          </div>
+          {sideIndex === 1 && (
+            <div className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-white/50">
+              <ChevronLeft size={28} />
+            </div>
+          )}
+          {sideIndex === 0 && (
+            <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white/50">
+              <ChevronRight size={28} />
+            </div>
+          )}
+
+          {/* Phase 48: Luca — "Anzeige kann man sicher links oben in die Ecke
+              geben, klein" statt mitten in der ohnehin vollen unteren Zeile. */}
+          <div
+            className="pointer-events-none absolute left-2 flex flex-col items-start gap-1"
+            style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
+          >
+            <AdLabel />
+            {side.containsAiContent && <AiContentLabel />}
+          </div>
+        </>
+      )}
+
+      {/* Phase 48: "Wir brauchen eine Möglichkeit den ganzen Screen leer zu
+          machen ... entweder einen Button mit ausblenden" — dieser Knopf
+          bleibt als einzige Ausnahme sichtbar, damit man die Ansicht wieder
+          zurückholen kann. Oben links, unter dem Anzeige/KI-Badge (das beim
+          Ausblenden ohnehin verschwindet) — oben rechts drängen sich schon
+          die globale Glocke und (in anderen Kontexten) ein Schließen-Button,
+          unten links/rechts sind Info-Text bzw. Action-Leiste belegt. */}
+      <button
+        onClick={() => setUiHidden((h) => !h)}
+        aria-label={uiHidden ? "Bedienelemente einblenden" : "Bedienelemente ausblenden"}
+        className="pointer-events-auto absolute left-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/70"
+        style={{ top: "calc(env(safe-area-inset-top) + 56px)" }}
       >
-        {([0, 1] as const).map((i) => (
-          <span key={i} className={`h-1.5 w-1.5 rounded-full ${i === sideIndex ? "bg-white" : "bg-white/30"}`} />
-        ))}
-      </div>
-      {sideIndex === 1 && (
-        <div className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-white/50">
-          <ChevronLeft size={28} />
-        </div>
-      )}
-      {sideIndex === 0 && (
-        <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white/50">
-          <ChevronRight size={28} />
-        </div>
-      )}
+        {uiHidden ? <Eye size={16} /> : <EyeOff size={16} />}
+      </button>
 
       {/* Bottom info + vote — the card itself now already stops right above
           the BottomNav (--bottom-nav-h), so this just needs a small edge
           margin, not the old large offset that used to clear a translucent
           nav floating on top of a full-height video. */}
+      {!uiHidden && (
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 pb-4 pr-20">
         <div className="pointer-events-auto mb-2 flex items-center gap-2">
           <Link href={`/brands/${side.brandSlug}`} className="text-sm font-bold text-white hover:underline">
             {side.brandName}
           </Link>
           {!side.viewerOwnsThisBrand && isLoggedIn && (
-            <FollowButton brandId={side.brandId} isFollowing={side.viewerFollowsBrand} />
+            // Phase 48: key={brandId} — ohne das behält der Button beim
+            // Swipe zur anderen Duell-Seite seinen alten "folge ich"-Zustand
+            // (React tauscht sonst nur die Props, das Bauteil bleibt
+            // dasselbe), Luca: "steht dass ich beiden folge, obwohl ich nur
+            // einem folge". Der key erzwingt einen frischen Mount pro Seite.
+            <FollowButton key={side.brandId} brandId={side.brandId} isFollowing={side.viewerFollowsBrand} />
           )}
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
-            {stageLabel}
-          </span>
-          <AdLabel />
-          {side.containsAiContent && <AiContentLabel />}
+          {duel.isFinished && (
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">Beendet</span>
+          )}
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-400">
             <Eye size={11} /> {duel.viewCount}
           </span>
@@ -539,6 +581,7 @@ export function FeedDuelCard({
           <VoteState duel={duel} sideIndex={sideIndex} isLoggedIn={isLoggedIn} onVote={handleVote} voting={voting} />
         </div>
       </div>
+      )}
 
       {/* Right action rail — pointer-events-none on the wrapper, auto only
           on each button, so the gaps between icons (and, on a duel card,
@@ -546,6 +589,7 @@ export function FeedDuelCard({
           gesture layer instead of being silently swallowed by empty space.
           Luca: the last icon (Melden) should sit in the card's bottom-right
           corner — same small edge margin as the text block on the left. */}
+      {!uiHidden && (
       <div className="pointer-events-none absolute bottom-4 right-3 flex flex-col items-center gap-5">
         <button
           onClick={() => (isLoggedIn ? onToggleLike(duel, sideIndex) : (window.location.href = "/login"))}
@@ -572,6 +616,7 @@ export function FeedDuelCard({
           isLoggedIn={isLoggedIn}
         />
       </div>
+      )}
     </div>
   );
 }

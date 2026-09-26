@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Flag, X } from "lucide-react";
 import type { ReportTargetType } from "@/lib/moderation";
 
@@ -72,8 +73,14 @@ export function ReportButton({
         </button>
       )}
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setOpen(false)}>
+      {open &&
+        // Same nested-position:fixed stacking bug as the old Bearbeiten/
+        // Löschen-Menü (see solo-pitch-owner-menu-button.tsx) — a card
+        // nested inside another fixed overlay (e.g. StandaloneSoloPitchFeed,
+        // ReactionsOverlay) doesn't reliably stack this sheet above
+        // everything on every engine. Portal to document.body sidesteps it.
+        createPortal(
+        <div className="fixed inset-0 z-[60] flex items-end bg-black/60" onClick={() => setOpen(false)}>
           <div
             className="w-full rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"
             onClick={(e) => e.stopPropagation()}
@@ -129,7 +136,8 @@ export function ReportButton({
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

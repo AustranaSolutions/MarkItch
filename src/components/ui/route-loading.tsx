@@ -11,7 +11,12 @@ import { useEffect } from "react";
 // segment shows this immediately on navigation while the real page streams
 // in behind it — doesn't make the data faster, but the app now visibly
 // reacts to every tap instantly instead of appearing frozen.
-const STUCK_RELOAD_MS = 6000;
+// Phase 48: 6000 → 2500 — Luca hängt an diesem Bug öfter als beim
+// ursprünglichen Test in Phase 43 ("allein wenn ich auf ein Profil möchte,
+// lädt er nur"), 6 Sekunden gefühlter Stillstand ist zu lang. Kürzer riskiert
+// höchstens einen unnötigen Reload bei einer echt langsamen Verbindung, die
+// sowieso noch gerechtfertigt fertig geladen hätte — kein echter Datenverlust.
+const STUCK_RELOAD_MS = 2500;
 
 /**
  * Phase 43: found a real, reproducible bug behind Luca's "lädt nur, erst

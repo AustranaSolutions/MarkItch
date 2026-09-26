@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Eye, Heart, MessageCircle, Repeat2, Rocket, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
+import { Eye, EyeOff, Heart, MessageCircle, Repeat2, Rocket, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
 import { FollowButton } from "@/components/brand/follow-button";
 import { PitchChallengeButton } from "@/components/pitches/pitch-challenge-button";
 import { BoostButton } from "@/components/pitches/boost-button";
@@ -11,6 +11,7 @@ import { SoloPitchOwnerMenuButton } from "@/components/pitches/solo-pitch-owner-
 import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { FeedSoloPitch } from "@/lib/feed";
 import { trackAnalyticsEvent } from "@/lib/analytics-client";
+import { BOOST_ENABLED } from "@/lib/feature-flags";
 
 export function FeedSoloPitchCard({
   pitch,
@@ -57,6 +58,8 @@ export function FeedSoloPitchCard({
   const [showLikePop, setShowLikePop] = useState(false);
   const lastTapAt = useRef(0);
   const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Phase 48: siehe feed-duel-card.tsx — derselbe "Screen leer machen"-Knopf.
+  const [uiHidden, setUiHidden] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -182,6 +185,30 @@ export function FeedSoloPitchCard({
         </button>
       )}
 
+      {!uiHidden && (
+        <div
+          className="pointer-events-none absolute left-2 flex flex-col items-start gap-1"
+          style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
+        >
+          <AdLabel />
+          {pitch.containsAiContent && <AiContentLabel />}
+        </div>
+      )}
+
+      {/* Phase 48: oben links, unter dem Anzeige/KI-Badge (siehe
+          feed-duel-card.tsx für die volle Begründung gegen die anderen drei
+          Ecken: oben rechts drängen sich Glocke/Schließen-Button, unten
+          links/rechts sind Info-Text bzw. Action-Leiste belegt). */}
+      <button
+        onClick={() => setUiHidden((h) => !h)}
+        aria-label={uiHidden ? "Bedienelemente einblenden" : "Bedienelemente ausblenden"}
+        className="pointer-events-auto absolute left-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/70"
+        style={{ top: "calc(env(safe-area-inset-top) + 56px)" }}
+      >
+        {uiHidden ? <Eye size={16} /> : <EyeOff size={16} />}
+      </button>
+
+      {!uiHidden && (
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 pb-4 pr-20">
         <div className="pointer-events-auto mb-2 flex items-center gap-2">
           <Link href={`/brands/${pitch.brandSlug}`} className="text-sm font-bold text-white hover:underline">
@@ -190,9 +217,6 @@ export function FeedSoloPitchCard({
           {!pitch.viewerOwnsThisBrand && isLoggedIn && (
             <FollowButton brandId={pitch.brandId} isFollowing={pitch.viewerFollowsBrand} />
           )}
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">Solo-Pitch</span>
-          <AdLabel />
-          {pitch.containsAiContent && <AiContentLabel />}
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-400">
             <Eye size={11} /> {pitch.viewCount}
           </span>
@@ -216,14 +240,16 @@ export function FeedSoloPitchCard({
         )}
         <div className="pointer-events-auto inline-block">
           {viewerHasOtherBrand && <PitchChallengeButton soloPitchId={pitch.soloPitchId} />}
-          {pitch.viewerOwnsThisBrand && <BoostButton soloPitchId={pitch.soloPitchId} />}
+          {BOOST_ENABLED && pitch.viewerOwnsThisBrand && <BoostButton soloPitchId={pitch.soloPitchId} />}
         </div>
       </div>
+      )}
 
       {/* Right action rail — pointer-events-none on the wrapper, auto only
           on each button, so a swipe/tap near this edge (or a double-tap
           slightly off-center) still reaches the gesture layer instead of
           being swallowed by empty space between icons. */}
+      {!uiHidden && (
       <div className="pointer-events-none absolute bottom-4 right-3 flex flex-col items-center gap-5">
         <button
           onClick={() => (isLoggedIn ? onToggleLike(pitch) : (window.location.href = "/login"))}
@@ -259,6 +285,7 @@ export function FeedSoloPitchCard({
           <ReportButton targetType="solo_pitch" targetId={pitch.soloPitchId} isLoggedIn={isLoggedIn} />
         )}
       </div>
+      )}
     </div>
   );
 }
