@@ -21,17 +21,69 @@ export function getOrCreateAnonId(): string {
   return id;
 }
 
-/** Fire-and-forget content-event tracking — never blocks or throws into the caller. */
+type QueuedEvent = {
+  brandId: string;
+  kind: "view" | "share" | "cta_click" | "vote_click" | "login_required";
+  soloPitchId?: string;
+  battleId?: string;
+  anonId: string;
+};
+
+// Phase 48: die kleinste Supabase-Instanz (t4g.nano, "Burstable") kam beim
+// gleichzeitigen Testen ins Straucheln — ein einzelnes INSERT pro Video-View
+// beim Durchscrollen des Feeds erzeugt in Sekunden viele kleine, einzelne
+// Datenbank-Verbindungen/Roundtrips. Statt jedes Event sofort einzeln zu
+// schicken, sammelt dieser Puffer sie kurz und schickt sie gebündelt als ein
+// einziges Insert — gleiche Information, deutlich weniger Last pro Video.
+const queue: QueuedEvent[] = [];
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+const FLUSH_DELAY_MS = 4000;
+const FLUSH_MAX_QUEUE = 8;
+
+function flush(useBeacon = false) {
+  if (queue.length === 0) return;
+  const events = queue.splice(0, queue.length);
+  const body = JSON.stringify({ events });
+  if (useBeacon && navigator.sendBeacon) {
+    navigator.sendBeacon("/api/analytics/track", new Blob([body], { type: "application/json" }));
+    return;
+  }
+  fetch("/api/analytics/track", { method: "POST", headers: { "Content-Type": "application/json" }, body }).catch(() => {});
+}
+
+function scheduleFlush() {
+  if (flushTimer) return;
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    flush();
+  }, FLUSH_DELAY_MS);
+}
+
+if (typeof document !== "undefined") {
+  // Beim Verlassen/Wechseln der Seite nicht auf den Timer warten — sonst
+  // gehen die letzten paar Events einer Session (z.B. der allerletzte View)
+  // beim Tab-Schließen verloren, bevor der Timer je feuert.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flush(true);
+  });
+}
+
+/** Fire-and-forget content-event tracking — never blocks or throws into the caller. Batched, siehe oben. */
 export function trackAnalyticsEvent(
   brandId: string,
   kind: "view" | "share" | "cta_click" | "vote_click" | "login_required",
   target?: { soloPitchId?: string; battleId?: string },
 ) {
-  fetch("/api/analytics/track", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ brandId, kind, anonId: getOrCreateAnonId(), ...target }),
-  }).catch(() => {});
+  queue.push({ brandId, kind, anonId: getOrCreateAnonId(), ...target });
+  if (queue.length >= FLUSH_MAX_QUEUE) {
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    flush();
+  } else {
+    scheduleFlush();
+  }
 }
 
 /** Fire-and-forget visitor-/account-level event tracking (session start, registration funnel). */

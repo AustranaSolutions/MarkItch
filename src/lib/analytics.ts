@@ -28,6 +28,28 @@ export async function recordAnalyticsEvent(
     .values({ brandId, kind, soloPitchId: target?.soloPitchId, battleId: target?.battleId, anonId: target?.anonId });
 }
 
+export type AnalyticsEventInput = {
+  brandId: string;
+  kind: AnalyticsEventKind;
+  soloPitchId?: string;
+  battleId?: string;
+  anonId?: string;
+};
+
+/**
+ * Phase 48: ein einziges Insert für mehrere Events statt einem Roundtrip pro
+ * Event — der Client (analytics-client.ts) sammelt View/Klick-Events kurz und
+ * schickt sie gebündelt. Schont die kleine Supabase-Instanz beim Durchscrollen
+ * eines Feeds, wo sonst mehrere Views pro Sekunde je ein eigenes INSERT
+ * auslösen würden.
+ */
+export async function recordAnalyticsEvents(events: AnalyticsEventInput[]): Promise<void> {
+  if (events.length === 0) return;
+  await db.insert(brandAnalyticsEvents).values(
+    events.map((e) => ({ brandId: e.brandId, kind: e.kind, soloPitchId: e.soloPitchId, battleId: e.battleId, anonId: e.anonId })),
+  );
+}
+
 /** Fire-and-forget — see visitorEvents in schema.ts for why this isn't just another brandAnalyticsEvents row. */
 export async function recordVisitorEvent(
   anonId: string,
