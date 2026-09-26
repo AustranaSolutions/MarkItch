@@ -17,9 +17,13 @@ if (!process.env.DATABASE_URL) {
 // bricht exakt an der Suspense-Stelle ab, die auf die DB-Query wartet) —
 // kein Anzeige-/Router-Bug, sondern der Server selbst kam nie zu einer
 // Antwort. `connect_timeout` lässt eine feststeckende Verbindung nach 10s
-// fehlschlagen statt endlos zu hängen — wird dann von der bestehenden
-// error.tsx/global-error.tsx aufgefangen ("nochmal versuchen" statt
-// endlosem Spinner). Behebt nicht die zugrundeliegende Pool-Erschöpfung
+// fehlschlagen statt endlos zu hängen. Reicht aber allein nicht: `connect_timeout`
+// greift nur, solange noch KEINE Verbindung steht — hängt stattdessen eine
+// schon verbundene Query selbst (Lock, langsamer Join, o.ä.), läuft sie daran
+// vorbei. `statement_timeout`/`lock_timeout` als Postgres-Session-Parameter
+// decken genau diesen zweiten Fall ab. Beides zusammen wird dann von der
+// bestehenden error.tsx/global-error.tsx aufgefangen ("nochmal versuchen"
+// statt endlosem Spinner). Behebt nicht die zugrundeliegende Pool-Erschöpfung
 // selbst (dafür müsste Vercels Function-Concurrency oder Supabases
 // Pool-Größe untersucht werden), macht aus einem unsichtbaren Totalausfall
 // aber einen sichtbaren, wiederholbaren Fehler.
@@ -28,6 +32,10 @@ const client = postgres(process.env.DATABASE_URL, {
   connect_timeout: 10,
   idle_timeout: 20,
   max: 10,
+  connection: {
+    statement_timeout: 10000,
+    lock_timeout: 10000,
+  },
 });
 
 export const db = drizzle(client, { schema });
