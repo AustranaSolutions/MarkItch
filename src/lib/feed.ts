@@ -2,7 +2,7 @@ import "server-only";
 import { after } from "next/server";
 import { getAllBattles, resolveBattleVideos } from "@/lib/battle";
 import { getBattleStage } from "@/lib/battle-stage";
-import { getVoteTally, getVoteTallyAsOf, getUserVote, type VoteTally } from "@/lib/vote";
+import { getVoteTally, getVoteTallyAsOf, getUserVote, publicTally, type VoteTally } from "@/lib/vote";
 import { getLikeCounts, getUserLikedKeys, getSoloPitchLikeCounts, getUserLikedSoloPitchIds } from "@/lib/like";
 import { getCommentCounts, getCommentCountsForSoloPitches } from "@/lib/comment";
 import { getFollowedBrandIds } from "@/lib/follow";
@@ -207,7 +207,7 @@ async function buildFeedDuels(viewerId: string | null): Promise<FeedDuel[]> {
       isFinished,
       votingEndsAt: battle.votingEndsAt ? battle.votingEndsAt.toISOString() : null,
       revealSplit: isFinished,
-      tally,
+      tally: publicTally(tally, isFinished),
       officialTally,
       commentCount,
       viewCount: viewCounts.get(battle.id) ?? 0,

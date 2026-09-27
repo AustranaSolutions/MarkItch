@@ -102,14 +102,25 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           </div>
         </div>
 
-        <div style={{ display: "flex", width: "100%", height: 28, borderRadius: 14, overflow: "hidden" }}>
-          <div style={{ display: "flex", width: `${pctA}%`, background: ORANGE }} />
-          <div style={{ display: "flex", width: `${pctB}%`, background: ZINC }} />
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 30, fontWeight: 700, marginTop: 14 }}>
-          <div style={{ display: "flex" }}>{pctA}%</div>
-          <div style={{ display: "flex" }}>{pctB}%</div>
-        </div>
+        {/* Blind-Abstimmen: Balken/Prozente nur für beendete Duelle. Vorher
+            zeigte die Vorschau beim Teilen eines laufenden Duells, wer gerade
+            führt — genau der Mitläufer-Effekt, den die Regel verhindern soll. */}
+        {isFinished ? (
+          <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+            <div style={{ display: "flex", width: "100%", height: 28, borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ display: "flex", width: `${pctA}%`, background: ORANGE }} />
+              <div style={{ display: "flex", width: `${pctB}%`, background: ZINC }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 30, fontWeight: 700, marginTop: 14 }}>
+              <div style={{ display: "flex" }}>{pctA}%</div>
+              <div style={{ display: "flex" }}>{pctB}%</div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", justifyContent: "center", fontSize: 34, fontWeight: 700, color: ORANGE }}>
+            Wer gewinnt? Jetzt abstimmen
+          </div>
+        )}
 
         <div style={{ display: "flex", justifyContent: "center", fontSize: 24, color: ZINC_LIGHT, marginTop: 32 }}>
           {isFinished ? `${tally.total} Stimmen · Ergebnis` : `${tally.total} Stimmen bisher · läuft noch`}

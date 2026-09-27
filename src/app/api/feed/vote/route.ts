@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { battles } from "@/db/schema";
 import { getOptionalUser } from "@/lib/session";
-import { castVoteForUser, getVoteTally } from "@/lib/vote";
+import { castVoteForUser, getVoteTally, publicTally } from "@/lib/vote";
 import { checkRateLimit, getClientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
@@ -34,5 +34,7 @@ export async function POST(request: NextRequest) {
 
   const [battle] = await db.select().from(battles).where(eq(battles.id, battleId)).limit(1);
   const tally = battle ? await getVoteTally(battle.id, battle.brandAId, battle.brandBId) : null;
-  return NextResponse.json({ tally, votedForBrandId });
+  // Blind bis Fristende: nur die Gesamtzahl zurückgeben (siehe publicTally).
+  const isFinished = Boolean(battle?.votingEndsAt && battle.votingEndsAt <= new Date());
+  return NextResponse.json({ tally: tally ? publicTally(tally, isFinished) : null, votedForBrandId });
 }

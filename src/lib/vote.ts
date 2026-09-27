@@ -5,6 +5,19 @@ import { battles, brandMembers, votes } from "@/db/schema";
 
 export type VoteTally = { brandAVotes: number; brandBVotes: number; total: number };
 
+/**
+ * Blind-Abstimmen auch serverseitig: vor Fristende verlässt nur die
+ * Gesamtzahl den Server, nie die Aufteilung — sonst könnte jeder, der die
+ * API-Antwort mitliest (oder die App-Version, die sie zufällig anzeigt), den
+ * Zwischenstand sehen und der Mitläufer-Effekt wäre wieder da. Die Oberfläche
+ * zeigt vor Fristende ohnehin nur `total` (siehe VoteState in
+ * feed-duel-card.tsx), serverinterne Rechnungen (Trending, Gewinner) nutzen
+ * weiter die echte Zählung.
+ */
+export function publicTally(tally: VoteTally, isFinished: boolean): VoteTally {
+  return isFinished ? tally : { brandAVotes: 0, brandBVotes: 0, total: tally.total };
+}
+
 export async function getVoteTally(battleId: string, brandAId: string, brandBId: string): Promise<VoteTally> {
   const rows = await db
     .select({ votedForBrandId: votes.votedForBrandId, n: count() })
