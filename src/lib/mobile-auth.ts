@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type * as z from "zod";
 import type { users } from "@/db/schema";
 import { issueMobileToken } from "@/lib/mobile-token";
+import { getBrandForUser } from "@/lib/brand";
 
 // RN-2: gemeinsame Bausteine der /api/mobile/auth/*-Routen.
 
@@ -13,11 +14,14 @@ export type MobileUser = {
   isVerified: boolean;
   accountType: string;
   avatarUrl: string | null;
+  /** RN-4: eigene Marke (Acro), sonst null — die App zeigt damit das passende Profil. */
+  brandSlug: string | null;
 };
 
 type UserRow = typeof users.$inferSelect;
 
-export function toMobileUser(row: UserRow): MobileUser {
+export async function toMobileUser(row: UserRow): Promise<MobileUser> {
+  const brand = await getBrandForUser(row.id);
   return {
     id: row.id,
     email: row.email,
@@ -25,13 +29,14 @@ export function toMobileUser(row: UserRow): MobileUser {
     isVerified: row.emailVerifiedAt !== null,
     accountType: row.accountType,
     avatarUrl: row.avatarUrl,
+    brandSlug: brand?.slug ?? null,
   };
 }
 
 /** Antwort nach erfolgreichem Login/Registrieren/Token-Erneuern. */
 export async function sessionResponse(row: UserRow, status = 200) {
   const token = await issueMobileToken(row);
-  return NextResponse.json({ token, user: toMobileUser(row) }, { status });
+  return NextResponse.json({ token, user: await toMobileUser(row) }, { status });
 }
 
 /**
