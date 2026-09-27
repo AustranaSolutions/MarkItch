@@ -505,23 +505,25 @@ export function FeedDuelCard({
             </div>
           )}
 
-          {/* Phase 48: Luca — "Anzeige kann man sicher links oben in die Ecke
-              geben, klein" statt mitten in der ohnehin vollen unteren Zeile. */}
-          <div
-            className="pointer-events-none absolute left-2 flex flex-col items-start gap-1"
-            style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
-          >
-            <AdLabel />
-            {side.containsAiContent && <AiContentLabel />}
-          </div>
         </>
       )}
+
+      {/* Phase 48: Luca — "Anzeige kann man sicher links oben in die Ecke
+          geben, klein". Bleibt auch bei ausgeblendeter Oberfläche stehen:
+          DSA Art. 26 (Werbung "in Echtzeit" erkennbar), § 26 MedienG, AI Act
+          Art. 50 — Pflichtangaben, kein Bedienelement. */}
+      <div
+        className="pointer-events-none absolute left-2 flex flex-col items-start gap-1"
+        style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
+      >
+        <AdLabel />
+        {side.containsAiContent && <AiContentLabel />}
+      </div>
 
       {/* Phase 48: "Wir brauchen eine Möglichkeit den ganzen Screen leer zu
           machen ... entweder einen Button mit ausblenden" — dieser Knopf
           bleibt als einzige Ausnahme sichtbar, damit man die Ansicht wieder
-          zurückholen kann. Oben links, unter dem Anzeige/KI-Badge (das beim
-          Ausblenden ohnehin verschwindet) — oben rechts drängen sich schon
+          zurückholen kann. Oben links, unter dem Anzeige/KI-Badge — oben rechts drängen sich schon
           die globale Glocke und (in anderen Kontexten) ein Schließen-Button,
           unten links/rechts sind Info-Text bzw. Action-Leiste belegt. */}
       <button

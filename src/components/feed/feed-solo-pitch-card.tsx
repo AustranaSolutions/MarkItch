@@ -185,15 +185,16 @@ export function FeedSoloPitchCard({
         </button>
       )}
 
-      {!uiHidden && (
-        <div
-          className="pointer-events-none absolute left-2 flex flex-col items-start gap-1"
-          style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
-        >
-          <AdLabel />
-          {pitch.containsAiContent && <AiContentLabel />}
-        </div>
-      )}
+      {/* Anzeige-/KI-Kennzeichnung bleibt auch bei ausgeblendeter Oberfläche
+          stehen: DSA Art. 26 (Werbung "in Echtzeit" erkennbar), § 26 MedienG,
+          AI Act Art. 50 — Pflichtangaben, kein Bedienelement. */}
+      <div
+        className="pointer-events-none absolute left-2 flex flex-col items-start gap-1"
+        style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
+      >
+        <AdLabel />
+        {pitch.containsAiContent && <AiContentLabel />}
+      </div>
 
       {/* Phase 48: oben links, unter dem Anzeige/KI-Badge (siehe
           feed-duel-card.tsx für die volle Begründung gegen die anderen drei
