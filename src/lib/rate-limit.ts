@@ -13,6 +13,7 @@ import { rateLimitHits } from "@/db/schema";
 // traffic shows what's actually needed.
 export type RateLimitBucket =
   | "register"
+  | "login"
   | "vote"
   | "challenge"
   | "reaction"
@@ -27,6 +28,7 @@ export type RateLimitBucket =
 
 const LIMITS: Record<RateLimitBucket, { max: number; windowMs: number }> = {
   register: { max: 5, windowMs: 60 * 60 * 1000 }, // 5 Registrierungen/Stunde pro IP
+  login: { max: 20, windowMs: 60 * 60 * 1000 }, // RN-2: 20 App-Login-Versuche/Stunde pro IP (Passwort-Raten bremsen)
   vote: { max: 40, windowMs: 60 * 60 * 1000 }, // 40 Votes/Stunde pro IP
   challenge: { max: 10, windowMs: 24 * 60 * 60 * 1000 }, // 10 Herausforderungen/Tag pro Marke
   reaction: { max: 10, windowMs: 24 * 60 * 60 * 1000 }, // 10 Reaktionen/Tag pro Marke

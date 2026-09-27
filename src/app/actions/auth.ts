@@ -7,8 +7,8 @@ import { users, emailVerificationTokens, passwordResetTokens } from "@/db/schema
 import { signIn, signOut } from "@/auth";
 import { requireUser } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { generateRawToken, hashToken, expiresInHours } from "@/lib/tokens";
-import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
+import { hashToken } from "@/lib/tokens";
+import { createAccount, isEmailTaken, issueVerificationToken, requestPasswordResetFor } from "@/lib/account";
 import { checkRateLimit, getClientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { uploadImage, ALLOWED_IMAGE_TYPES } from "@/lib/storage";
 import {
@@ -22,20 +22,6 @@ import {
 } from "@/lib/validation";
 
 export type FormState = { errors?: Record<string, string[]>; success?: boolean } | undefined;
-
-function appUrl() {
-  return process.env.APP_URL ?? "http://localhost:3000";
-}
-
-async function issueVerificationToken(userId: string, email: string) {
-  const rawToken = generateRawToken();
-  await db.insert(emailVerificationTokens).values({
-    userId,
-    tokenHash: hashToken(rawToken),
-    expiresAt: expiresInHours(24),
-  });
-  await sendVerificationEmail(email, `${appUrl()}/verify-email?token=${rawToken}`);
-}
 
 export async function registerUser(_prevState: FormState, formData: FormData): Promise<FormState> {
   // Phase 14: the one lever against mass fake-account creation this stack
@@ -53,18 +39,11 @@ export async function registerUser(_prevState: FormState, formData: FormData): P
   }
   const { name, email, password, accountType } = parsed.data;
 
-  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-  if (existing) {
+  if (await isEmailTaken(email)) {
     return { errors: { email: ["Für diese E-Mail-Adresse existiert bereits ein Account."] } };
   }
 
-  const passwordHash = await hashPassword(password);
-  const [user] = await db
-    .insert(users)
-    .values({ email, passwordHash, name: name || null, accountType })
-    .returning({ id: users.id, email: users.email });
-
-  await issueVerificationToken(user.id, user.email);
+  await createAccount({ name, email, password, accountType });
 
   try {
     await signIn("credentials", { email, password, redirectTo: "/" });
@@ -110,16 +89,7 @@ export async function requestPasswordReset(_prevState: FormState, formData: Form
     return { errors: parsed.error.flatten().fieldErrors };
   }
 
-  const [user] = await db.select().from(users).where(eq(users.email, parsed.data.email)).limit(1);
-  if (user) {
-    const rawToken = generateRawToken();
-    await db.insert(passwordResetTokens).values({
-      userId: user.id,
-      tokenHash: hashToken(rawToken),
-      expiresAt: expiresInHours(1),
-    });
-    await sendPasswordResetEmail(user.email, `${appUrl()}/reset-password?token=${rawToken}`);
-  }
+  await requestPasswordResetFor(parsed.data.email);
 
   // Same response whether or not the account exists, so the form can't be
   // used to check which emails are registered.
