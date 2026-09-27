@@ -1,6 +1,5 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { db } from "@/db";
@@ -11,15 +10,10 @@ import { readVideoUrlField } from "@/lib/storage";
 import { DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
 import { validateCtaLink } from "@/lib/cta-link";
 import { AudioRightsSchema } from "@/lib/validation";
-
-const MAX_DESCRIPTION_LENGTH = 300;
+import { deleteOwnSoloPitch, updateOwnSoloPitch, validateDescription } from "@/lib/solo-pitch";
 
 function readDescription(formData: FormData): { description: string } | { error: string } {
-  const raw = formData.get("description");
-  const description = typeof raw === "string" ? raw.trim() : "";
-  if (!description) return { error: "Bitte eine kurze Beschreibung schreiben." };
-  if (description.length > MAX_DESCRIPTION_LENGTH) return { error: `Maximal ${MAX_DESCRIPTION_LENGTH} Zeichen.` };
-  return { description };
+  return validateDescription(formData.get("description"));
 }
 
 export type SoloPitchFormState = { errors?: Record<string, string[]> } | undefined;
@@ -107,30 +101,15 @@ export async function updateSoloPitch(
     return { errors: { _form: ["Ungültige Anfrage."] } };
   }
 
-  const myBrand = await getBrandForUser(user.id);
-  if (!myBrand) {
-    return { errors: { _form: ["Du hast keine Marke."] } };
+  // RN-3: Logik in lib/solo-pitch.ts, damit die App-Route dieselbe nutzt.
+  const result = await updateOwnSoloPitch(user.id, soloPitchId, {
+    description: formData.get("description"),
+    ctaLabel: formData.get("ctaLabel"),
+    ctaUrl: formData.get("ctaUrl"),
+  });
+  if (!result.ok) {
+    return { errors: result.errors };
   }
-
-  const [pitch] = await db.select({ brandId: soloPitches.brandId }).from(soloPitches).where(eq(soloPitches.id, soloPitchId)).limit(1);
-  if (!pitch || pitch.brandId !== myBrand.id) {
-    return { errors: { _form: ["Das ist nicht dein Pitch."] } };
-  }
-
-  const description = readDescription(formData);
-  if ("error" in description) {
-    return { errors: { description: [description.error] } };
-  }
-
-  const cta = validateCtaLink(formData);
-  if ("errors" in cta) {
-    return { errors: cta.errors };
-  }
-
-  await db
-    .update(soloPitches)
-    .set({ description: description.description, ctaLabel: cta.ctaLabel, ctaUrl: cta.ctaUrl })
-    .where(eq(soloPitches.id, soloPitchId));
 
   refresh();
   return { success: true };
@@ -146,17 +125,10 @@ export async function deleteSoloPitch(_prevState: DeleteSoloPitchState, formData
     return { error: "Ungültige Anfrage." };
   }
 
-  const myBrand = await getBrandForUser(user.id);
-  if (!myBrand) {
-    return { error: "Du hast keine Marke." };
+  const result = await deleteOwnSoloPitch(user.id, soloPitchId);
+  if (!result.ok) {
+    return { error: result.error };
   }
-
-  const [pitch] = await db.select({ brandId: soloPitches.brandId }).from(soloPitches).where(eq(soloPitches.id, soloPitchId)).limit(1);
-  if (!pitch || pitch.brandId !== myBrand.id) {
-    return { error: "Das ist nicht dein Pitch." };
-  }
-
-  await db.delete(soloPitches).where(eq(soloPitches.id, soloPitchId));
   refresh();
   return undefined;
 }

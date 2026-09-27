@@ -3,6 +3,7 @@ import { and, count, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { brandMembers, brands, follows, users } from "@/db/schema";
 import { getBrandMemberUserIds } from "@/lib/brand";
+import { getActorLabel, notifyUsers } from "@/lib/notification";
 
 export async function isFollowing(userId: string, brandId: string): Promise<boolean> {
   const [row] = await db
@@ -11,6 +12,23 @@ export async function isFollowing(userId: string, brandId: string): Promise<bool
     .where(and(eq(follows.userId, userId), eq(follows.brandId, brandId)))
     .limit(1);
   return Boolean(row);
+}
+
+/**
+ * Folgen an/aus für einen Nutzer — gemeinsam genutzt von der Web-Action
+ * (actions/follow.ts) und der App-Route (/api/follow). Benachrichtigt die
+ * Marke nur beim Folgen, nie beim Entfolgen (Phase 35, wie Insta).
+ */
+export async function toggleFollowForUser(userId: string, brandId: string): Promise<{ following: boolean }> {
+  if (await isFollowing(userId, brandId)) {
+    await db.delete(follows).where(and(eq(follows.userId, userId), eq(follows.brandId, brandId)));
+    return { following: false };
+  }
+  // onConflictDoNothing: a double-click racing two requests shouldn't 500.
+  await db.insert(follows).values({ userId, brandId }).onConflictDoNothing();
+  const [memberIds, actor] = await Promise.all([getBrandMemberUserIds(brandId), getActorLabel(userId)]);
+  await notifyUsers(memberIds, `${actor.label} folgt dir jetzt.`, actor.link, userId);
+  return { following: true };
 }
 
 export async function getFollowerCount(brandId: string): Promise<number> {
