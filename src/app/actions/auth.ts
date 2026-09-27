@@ -3,22 +3,26 @@
 import { eq } from "drizzle-orm";
 import { AuthError } from "next-auth";
 import { db } from "@/db";
-import { users, emailVerificationTokens, passwordResetTokens } from "@/db/schema";
+import { users, passwordResetTokens } from "@/db/schema";
 import { signIn, signOut } from "@/auth";
 import { requireUser } from "@/lib/session";
-import { hashPassword, verifyPassword } from "@/lib/password";
+import { hashPassword } from "@/lib/password";
 import { hashToken } from "@/lib/tokens";
-import { createAccount, isEmailTaken, issueVerificationToken, requestPasswordResetFor } from "@/lib/account";
+import {
+  changePasswordForUser,
+  createAccount,
+  deleteAccountForUser,
+  isEmailTaken,
+  requestPasswordResetFor,
+  resendVerificationFor,
+  updateProfileForUser,
+} from "@/lib/account";
 import { checkRateLimit, getClientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
-import { uploadImage, ALLOWED_IMAGE_TYPES } from "@/lib/storage";
 import {
   RegisterSchema,
   LoginSchema,
   ForgotPasswordSchema,
   ResetPasswordSchema,
-  ChangePasswordSchema,
-  UpdateProfileSchema,
-  DeleteAccountSchema,
 } from "@/lib/validation";
 
 export type FormState = { errors?: Record<string, string[]>; success?: boolean } | undefined;
@@ -123,12 +127,8 @@ export async function resetPassword(_prevState: FormState, formData: FormData): 
 
 export async function resendVerificationEmail(): Promise<FormState> {
   const sessionUser = await requireUser();
-  const [dbUser] = await db.select().from(users).where(eq(users.id, sessionUser.id)).limit(1);
-  if (!dbUser) return { errors: { _form: ["Account nicht gefunden."] } };
-  if (dbUser.emailVerifiedAt) return { success: true };
-
-  await db.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, dbUser.id));
-  await issueVerificationToken(dbUser.id, dbUser.email);
+  const result = await resendVerificationFor(sessionUser.id);
+  if (!result.ok) return { errors: { _form: ["Account nicht gefunden."] } };
   return { success: true };
 }
 
@@ -138,78 +138,27 @@ export async function resendVerificationEmail(): Promise<FormState> {
  * verification (same token flow as registration/resend), since the old
  * verification no longer proves you own the new address.
  */
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // 2 MB — gleiche Grenze wie ein Markenlogo
-
 export async function updateProfile(_prevState: FormState, formData: FormData): Promise<FormState> {
   const sessionUser = await requireUser();
-  // Phase 48: die Avatar-Datei muss vor dem Zod-Parse raus — UpdateProfileSchema
-  // erwartet nur Strings, Object.fromEntries(formData) würde ein File-Objekt sonst
-  // unverändert durchreichen und an z.email()/z.string() scheitern.
+  // Phase 48: Profilbild optional; Logik (inkl. Neu-Verifizierung bei
+  // geänderter E-Mail) in lib/account.ts, gemeinsam mit der App-Route.
   const avatarFile = formData.get("avatar");
-  formData.delete("avatar");
-  const parsed = UpdateProfileSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    return { errors: parsed.error.flatten().fieldErrors };
-  }
-  const { name, email } = parsed.data;
-
-  const [dbUser] = await db.select().from(users).where(eq(users.id, sessionUser.id)).limit(1);
-  if (!dbUser) return { errors: { _form: ["Account nicht gefunden."] } };
-
-  const emailChanged = email !== dbUser.email;
-  if (emailChanged) {
-    const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-    if (existing) return { errors: { email: ["Für diese E-Mail-Adresse existiert bereits ein Account."] } };
-  }
-
-  let avatarUrl = dbUser.avatarUrl;
-  if (avatarFile instanceof File && avatarFile.size > 0) {
-    if (avatarFile.size > MAX_AVATAR_BYTES) {
-      return { errors: { avatar: ["Profilbild darf maximal 2 MB groß sein."] } };
-    }
-    if (!ALLOWED_IMAGE_TYPES.includes(avatarFile.type)) {
-      return { errors: { avatar: ["Erlaubt: PNG, JPEG, WEBP oder SVG."] } };
-    }
-    const uploaded = await uploadImage(avatarFile, "avatars");
-    avatarUrl = uploaded.url;
-  }
-
-  await db
-    .update(users)
-    .set({
-      name: name || null,
-      email,
-      avatarUrl,
-      emailVerifiedAt: emailChanged ? null : dbUser.emailVerifiedAt,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, dbUser.id));
-
-  if (emailChanged) {
-    await db.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, dbUser.id));
-    await issueVerificationToken(dbUser.id, email);
-  }
-
+  const result = await updateProfileForUser(sessionUser.id, {
+    name: formData.get("name"),
+    email: formData.get("email"),
+    avatar: avatarFile instanceof File ? avatarFile : null,
+  });
+  if (!result.ok) return { errors: result.errors };
   return { success: true };
 }
 
 export async function changePassword(_prevState: FormState, formData: FormData): Promise<FormState> {
   const sessionUser = await requireUser();
-  const parsed = ChangePasswordSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    return { errors: parsed.error.flatten().fieldErrors };
-  }
-  const { currentPassword, newPassword } = parsed.data;
-
-  const [dbUser] = await db.select().from(users).where(eq(users.id, sessionUser.id)).limit(1);
-  if (!dbUser) return { errors: { _form: ["Account nicht gefunden."] } };
-
-  const valid = await verifyPassword(currentPassword, dbUser.passwordHash);
-  if (!valid) return { errors: { currentPassword: ["Aktuelles Passwort ist falsch."] } };
-
-  const passwordHash = await hashPassword(newPassword);
-  await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, dbUser.id));
-
+  const result = await changePasswordForUser(sessionUser.id, {
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+  });
+  if (!result.ok) return { errors: result.errors };
   return { success: true };
 }
 
@@ -226,17 +175,7 @@ export async function changePassword(_prevState: FormState, formData: FormData):
  */
 export async function deleteAccount(_prevState: FormState, formData: FormData): Promise<FormState> {
   const sessionUser = await requireUser();
-  const parsed = DeleteAccountSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    return { errors: parsed.error.flatten().fieldErrors };
-  }
-
-  const [dbUser] = await db.select().from(users).where(eq(users.id, sessionUser.id)).limit(1);
-  if (!dbUser) return { errors: { _form: ["Account nicht gefunden."] } };
-
-  const valid = await verifyPassword(parsed.data.password, dbUser.passwordHash);
-  if (!valid) return { errors: { password: ["Passwort ist falsch."] } };
-
-  await db.delete(users).where(eq(users.id, dbUser.id));
+  const result = await deleteAccountForUser(sessionUser.id, { password: formData.get("password") });
+  if (!result.ok) return { errors: result.errors };
   await signOut({ redirectTo: "/" });
 }

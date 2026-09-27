@@ -54,3 +54,13 @@ export async function readJsonBody(request: Request): Promise<Record<string, unk
   const body = await request.json().catch(() => null);
   return body && typeof body === "object" ? (body as Record<string, unknown>) : {};
 }
+
+export function unauthorized() {
+  return NextResponse.json({ error: "Bitte melde dich an." }, { status: 401 });
+}
+
+/** Feldfehler aus den lib-Funktionen (`{ feld: [meldung] }`, `_form` für allgemeine) → Antwort wie validationErrorResponse. */
+export function fieldErrorResponse(errors: Record<string, string[]>) {
+  const first = Object.values(errors).find((messages) => messages?.length)?.[0];
+  return NextResponse.json({ error: first ?? "Ungültige Eingabe.", fieldErrors: errors }, { status: 400 });
+}
