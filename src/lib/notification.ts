@@ -23,7 +23,8 @@ export async function getActorLabel(userId: string): Promise<{ label: string; li
   if (brandRow) return { label: brandRow.name, link: `/brands/${brandRow.slug}` };
 
   const [userRow] = await db.select({ name: users.name, email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
-  return { label: userRow?.name || userRow?.email || "Jemand", link: null };
+  // Nie die volle E-Mail an andere schicken — nur der Teil vor dem @ (wie bei Kommentaren).
+  return { label: userRow?.name || userRow?.email?.split("@")[0] || "Jemand", link: null };
 }
 
 /**
