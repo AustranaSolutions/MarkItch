@@ -150,6 +150,15 @@ export const challenges = pgTable(
     status: text("status").notNull().default("pending"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     respondedAt: timestamp("responded_at", { withTimezone: true }),
+    // RN-7 (Luca 30.09.): die einladende Marke kann ihr Duell-Video gleich
+    // mitschicken. Bleibt verdeckt (die eingeladene Marke sieht nur, DASS es
+    // da ist) und wird beim Annehmen die A-Seite des Duells — ist dann auch
+    // die B-Seite schon da (Einladung auf einen Solo-Pitch), startet das
+    // Duell sofort. Alle null = Video kommt wie bisher nach der Annahme.
+    challengerVideoUrl: text("challenger_video_url"),
+    challengerCtaLabel: text("challenger_cta_label"),
+    challengerCtaUrl: text("challenger_cta_url"),
+    challengerContainsAiContent: boolean("challenger_contains_ai_content").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

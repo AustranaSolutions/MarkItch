@@ -75,6 +75,11 @@ export function IncomingChallengeList({ challenges }: { challenges: ChallengeWit
             <div>
               <BrandChip brand={c.otherBrand} />
               <p className="mt-1 text-xs text-zinc-400">{c.category}</p>
+              {/* RN-7: Einladung auf einen Solo-Pitch / mit mitgeschicktem Video (bleibt verdeckt). */}
+              {c.soloPitchId && <p className="mt-1 text-xs text-zinc-400">Auf deinen Solo-Pitch — dein Video ist schon drin.</p>}
+              {c.challengerVideoUrl && (
+                <p className="mt-1 text-xs text-orange-300">Video von {c.otherBrand.name} liegt bereit (verdeckt bis zum Start).</p>
+              )}
               {status === "pending" ? (
                 <p className="mt-1 text-xs text-zinc-500">{timeLeftLabel(c.expiresAt)} zum Antworten</p>
               ) : (

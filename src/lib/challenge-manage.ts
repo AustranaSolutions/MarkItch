@@ -7,6 +7,10 @@ import { CHALLENGE_WINDOW_MS, effectiveStatus, getLivePendingChallengeBetween } 
 import { DUEL_CATEGORIES, PRODUCTION_WINDOW_MS, type DuelCategory } from "@/lib/battle-format";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { getActorLabel, notifyUsers } from "@/lib/notification";
+import { activateBattleIfBothSidesReady } from "@/lib/battle-stage";
+import { readVideoUrlField } from "@/lib/storage";
+import { validateCtaLink } from "@/lib/cta-link";
+import { AudioRightsSchema } from "@/lib/validation";
 
 // RN-5b: Duell-Einladungen — gemeinsam genutzt von den Web-Actions
 // (actions/challenge.ts) und den App-Routen (/api/mobile/challenges*).
@@ -22,10 +26,35 @@ function parseCategory(category: unknown): DuelCategory | { error: string } {
   return category as DuelCategory;
 }
 
+/**
+ * RN-7 (Luca 30.09.): optional schickt die einladende Marke ihr Duell-Video
+ * gleich mit (dieselben Felder wie beim Duell-Video: Video, Link,
+ * Musikrechte, KI). Kein Video = wie bisher, Upload nach der Annahme.
+ */
+type ChallengerVideo =
+  | { challengerVideoUrl: string; challengerCtaLabel: string; challengerCtaUrl: string; challengerContainsAiContent: boolean }
+  | Record<string, never>;
+
+function parseChallengerVideo(video: FormData | null | undefined): ChallengerVideo | { error: string } {
+  if (!video || !video.get("videoUrl")) return {};
+  const parsed = readVideoUrlField(video, "battle-videos");
+  if ("error" in parsed) return { error: parsed.error };
+  const cta = validateCtaLink(video);
+  if ("errors" in cta) return { error: Object.values(cta.errors)[0]![0] };
+  const audio = AudioRightsSchema.safeParse({ audioRightsConfirmed: video.get("audioRightsConfirmed") });
+  if (!audio.success) return { error: Object.values(audio.error.flatten().fieldErrors)[0]![0] };
+  return {
+    challengerVideoUrl: parsed.videoUrl,
+    challengerCtaLabel: cta.ctaLabel,
+    challengerCtaUrl: cta.ctaUrl,
+    challengerContainsAiContent: video.get("containsAiContent") === "on",
+  };
+}
+
 /** Brand A challenges Brand B. Triggered from B's public profile page. */
 export async function sendChallengeFor(
   user: { id: string },
-  input: { challengedBrandId: unknown; category: unknown },
+  input: { challengedBrandId: unknown; category: unknown; video?: FormData | null },
 ): Promise<ChallengeResult> {
   const challengedBrandId = input.challengedBrandId;
   if (typeof challengedBrandId !== "string" || !challengedBrandId) {
@@ -48,6 +77,9 @@ export async function sendChallengeFor(
   const category = parseCategory(input.category);
   if (typeof category === "object") return { ok: false, error: category.error };
 
+  const challengerVideo = parseChallengerVideo(input.video);
+  if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };
+
   const { allowed } = await checkRateLimit("challenge", myBrand.id);
   if (!allowed) {
     return { ok: false, error: RATE_LIMIT_MESSAGE };
@@ -59,6 +91,7 @@ export async function sendChallengeFor(
     category,
     status: "pending",
     expiresAt: new Date(Date.now() + CHALLENGE_WINDOW_MS),
+    ...challengerVideo,
   });
 
   await notifyChallenge(challengedBrandId, user.id);
@@ -95,7 +128,7 @@ async function notifyChallenge(challengedBrandId: string, challengerUserId: stri
  */
 export async function sendChallengeFromSoloPitchFor(
   user: { id: string },
-  input: { soloPitchId: unknown; category: unknown },
+  input: { soloPitchId: unknown; category: unknown; video?: FormData | null },
 ): Promise<ChallengeResult> {
   const soloPitchId = input.soloPitchId;
   if (typeof soloPitchId !== "string" || !soloPitchId) {
@@ -123,6 +156,9 @@ export async function sendChallengeFromSoloPitchFor(
   const category = parseCategory(input.category);
   if (typeof category === "object") return { ok: false, error: category.error };
 
+  const challengerVideo = parseChallengerVideo(input.video);
+  if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };
+
   const { allowed } = await checkRateLimit("challenge", myBrand.id);
   if (!allowed) {
     return { ok: false, error: RATE_LIMIT_MESSAGE };
@@ -135,6 +171,7 @@ export async function sendChallengeFromSoloPitchFor(
     category,
     status: "pending",
     expiresAt: new Date(Date.now() + CHALLENGE_WINDOW_MS),
+    ...challengerVideo,
   });
 
   await notifyChallenge(pitch.brandId, user.id);
@@ -232,13 +269,30 @@ export async function respondToChallengeFor(
   // exactly like one where that side uploaded first, same as today.
   let acceptedBattleId: string | undefined;
   if (decision === "accept") {
-    let prefilledBrandBVideo: { brandBVideoUrl: string; brandBSubmittedAt: Date } | Record<string, never> = {};
+    let prefilledBrandBVideo: Partial<typeof battles.$inferInsert> = {};
     if (challenge.soloPitchId) {
       const [pitch] = await db.select().from(soloPitches).where(eq(soloPitches.id, challenge.soloPitchId)).limit(1);
       if (pitch) {
-        prefilledBrandBVideo = { brandBVideoUrl: pitch.videoUrl, brandBSubmittedAt: pitch.createdAt };
+        prefilledBrandBVideo = {
+          brandBVideoUrl: pitch.videoUrl,
+          brandBSubmittedAt: pitch.createdAt,
+          // RN-7: Link + KI-Kennzeichnung des Pitches gehören mit ins Duell.
+          brandBCtaLabel: pitch.ctaLabel,
+          brandBCtaUrl: pitch.ctaUrl,
+          brandBContainsAiContent: pitch.containsAiContent,
+        };
       }
     }
+    // RN-7: mitgeschicktes Video der einladenden Marke = A-Seite.
+    const prefilledBrandAVideo: Partial<typeof battles.$inferInsert> = challenge.challengerVideoUrl
+      ? {
+          brandAVideoUrl: challenge.challengerVideoUrl,
+          brandASubmittedAt: challenge.createdAt,
+          brandACtaLabel: challenge.challengerCtaLabel,
+          brandACtaUrl: challenge.challengerCtaUrl,
+          brandAContainsAiContent: challenge.challengerContainsAiContent,
+        }
+      : {};
     const [battle] = await db
       .insert(battles)
       .values({
@@ -249,13 +303,18 @@ export async function respondToChallengeFor(
         category: challenge.category,
         productionDeadline: new Date(Date.now() + PRODUCTION_WINDOW_MS),
         ...prefilledBrandBVideo,
+        ...prefilledBrandAVideo,
       })
       .returning({ id: battles.id });
     acceptedBattleId = battle.id;
 
+    // Beide Seiten schon da (Pitch + mitgeschicktes Video) → sofort live.
+    await activateBattleIfBothSidesReady(battle.id);
     await notifyUsers(
       challengerMemberIds,
-      `${actor.label} hat deine Duell-Einladung angenommen — jetzt dein Video hochladen!`,
+      challenge.challengerVideoUrl
+        ? `${actor.label} hat deine Duell-Einladung angenommen — euer Video ist schon drin!`
+        : `${actor.label} hat deine Duell-Einladung angenommen — jetzt dein Video hochladen!`,
       `/pitches/${battle.id}`,
       user.id,
     );
