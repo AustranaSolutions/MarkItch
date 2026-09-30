@@ -38,7 +38,7 @@ export function SubmissionUploadForm({ castingId }: { castingId: string }) {
       <input type="hidden" name="castingId" value={castingId} />
       <FormError message={clientError ?? state?.error} />
       <VideoPickerInput
-        folder="casting-videos"
+        folder="solo-pitch-videos"
         onUploadStateChange={({ uploading, uploadedUrl }) => {
           setVideoUploading(uploading);
           setVideoUploaded(Boolean(uploadedUrl));

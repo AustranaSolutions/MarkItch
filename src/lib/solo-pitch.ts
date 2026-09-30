@@ -125,7 +125,9 @@ export async function deleteOwnSoloPitch(userId: string, soloPitchId: string): P
 export async function createSoloPitchForUser(
   userId: string,
   formData: FormData,
-): Promise<{ ok: true; id: string } | { ok: false; errors: Record<string, string[]> }> {
+  // RN-7: Einreichung zu einer Creator-Challenge (Prüfung macht der Aufrufer).
+  options: { creatorChallengeId?: string } = {},
+): Promise<{ ok: true; id: string; videoUrl: string; description: string; ctaLabel: string; ctaUrl: string; containsAiContent: boolean } | { ok: false; errors: Record<string, string[]> }> {
   const myBrand = await getBrandForUser(userId);
   if (!myBrand) return { ok: false, errors: { _form: ["Du musst zuerst eine Marke erstellen."] } };
 
@@ -141,6 +143,7 @@ export async function createSoloPitchForUser(
   const audioRights = AudioRightsSchema.safeParse({ audioRightsConfirmed: formData.get("audioRightsConfirmed") });
   if (!audioRights.success) return { ok: false, errors: audioRights.error.flatten().fieldErrors };
 
+  const containsAiContent = formData.get("containsAiContent") === "on";
   const [pitch] = await db
     .insert(soloPitches)
     .values({
@@ -150,8 +153,17 @@ export async function createSoloPitchForUser(
       description: description.description,
       ctaLabel: cta.ctaLabel,
       ctaUrl: cta.ctaUrl,
-      containsAiContent: formData.get("containsAiContent") === "on",
+      containsAiContent,
+      creatorChallengeId: options.creatorChallengeId ?? null,
     })
     .returning({ id: soloPitches.id });
-  return { ok: true, id: pitch.id };
+  return {
+    ok: true,
+    id: pitch.id,
+    videoUrl: video.videoUrl,
+    description: description.description,
+    ctaLabel: cta.ctaLabel,
+    ctaUrl: cta.ctaUrl,
+    containsAiContent,
+  };
 }

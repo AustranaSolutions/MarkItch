@@ -15,6 +15,7 @@ import { getActiveBoostedSoloPitchIds } from "@/lib/boost";
 import { getViewCountsForSoloPitches, getViewCountsForBattles } from "@/lib/analytics";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
 import { getBlockedIds } from "@/lib/block";
+import { getSoloPitchContexts, type PitchContext } from "@/lib/pitch-context";
 
 // Phase 9.1 — one feed entry per Duell (battle), not per side.
 //
@@ -288,6 +289,10 @@ export type FeedSoloPitch = {
   ctaUrl: string | null;
   /** Phase 46: EU-AI-Act-Kennzeichnungspflicht. */
   containsAiContent: boolean;
+  /** RN-7: Einreichung zu einer Creator-Challenge bzw. einem Partner-Casting → Knopf dorthin. */
+  context: PitchContext | null;
+  /** RN-7: für die Challenge-Seite (Einreichungen filtern). */
+  creatorChallengeId: string | null;
 };
 
 export type FeedItem = FeedDuel | FeedSoloPitch;
@@ -304,7 +309,7 @@ async function buildFeedSoloPitches(viewerId: string | null): Promise<FeedSoloPi
   if (pitches.length === 0) return [];
 
   const ids = pitches.map((p) => p.id);
-  const [likeCounts, commentCounts, reactionCounts, viewerLikedIds, viewerBrand, followedBrandIds, boostedIds, viewCounts] =
+  const [likeCounts, commentCounts, reactionCounts, viewerLikedIds, viewerBrand, followedBrandIds, boostedIds, viewCounts, contexts] =
     await Promise.all([
       getSoloPitchLikeCounts(ids),
       getCommentCountsForSoloPitches(ids),
@@ -314,6 +319,7 @@ async function buildFeedSoloPitches(viewerId: string | null): Promise<FeedSoloPi
       viewerId ? getFollowedBrandIds(viewerId) : Promise.resolve([]),
       getActiveBoostedSoloPitchIds(ids),
       getViewCountsForSoloPitches(ids),
+      getSoloPitchContexts(pitches),
     ]);
   const followedSet = new Set(followedBrandIds);
 
@@ -340,7 +346,17 @@ async function buildFeedSoloPitches(viewerId: string | null): Promise<FeedSoloPi
     ctaLabel: pitch.ctaLabel,
     ctaUrl: pitch.ctaUrl,
     containsAiContent: pitch.containsAiContent,
+    context: contexts.get(pitch.id) ?? null,
+    creatorChallengeId: pitch.creatorChallengeId,
   }));
+}
+
+/** RN-7: alle Einreichungen einer Creator-Challenge, meiste Likes zuerst (= Rangliste). */
+export async function getFeedSoloPitchesForChallenge(viewerId: string | null, challengeId: string): Promise<FeedSoloPitch[]> {
+  const items = await buildFeedSoloPitches(viewerId);
+  return items
+    .filter((p) => p.creatorChallengeId === challengeId)
+    .sort((a, b) => b.likeCount - a.likeCount || a.createdAt.localeCompare(b.createdAt));
 }
 
 export type FeedPage = { items: FeedItem[]; total: number; followsAnyone?: boolean };

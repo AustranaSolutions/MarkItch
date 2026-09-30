@@ -2,14 +2,19 @@
 
 import { useActionState, useState, type FormEvent } from "react";
 import { postSoloPitch, type SoloPitchFormState } from "@/app/actions/solo-pitch";
+import { submitChallengeEntry } from "@/app/actions/creator-challenge";
 import { FormError, SubmitButton } from "@/components/ui";
 import { VideoPickerInput } from "@/components/video-picker-input";
 import { CtaLinkFields } from "@/components/pitches/cta-link-fields";
 import { AudioRightsCheckbox } from "@/components/pitches/audio-rights-checkbox";
 import { AiContentCheckbox } from "@/components/pitches/ai-content-checkbox";
 
-export function SoloPitchUploadForm() {
-  const [state, action] = useActionState<SoloPitchFormState, FormData>(postSoloPitch, undefined);
+/** RN-7: mit `challengeId` wird der Post als Einreichung zu dieser Creator-Challenge gespeichert. */
+export function SoloPitchUploadForm({ challengeId }: { challengeId?: string } = {}) {
+  const [state, action] = useActionState<SoloPitchFormState, FormData>(
+    challengeId ? submitChallengeEntry : postSoloPitch,
+    undefined,
+  );
   const [description, setDescription] = useState("");
   const [ctaLabel, setCtaLabel] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
@@ -36,6 +41,7 @@ export function SoloPitchUploadForm() {
 
   return (
     <form action={action} onSubmit={handleSubmit}>
+      {challengeId && <input type="hidden" name="challengeId" value={challengeId} />}
       <FormError
         message={
           clientError ?? state?.errors?._form?.[0] ?? state?.errors?.video?.[0] ?? state?.errors?.description?.[0]
@@ -73,7 +79,7 @@ export function SoloPitchUploadForm() {
       />
       <AudioRightsCheckbox errors={state?.errors} />
       <AiContentCheckbox />
-      <SubmitButton>Solo-Pitch posten</SubmitButton>
+      <SubmitButton>{challengeId ? "Video einreichen" : "Solo-Pitch posten"}</SubmitButton>
     </form>
   );
 }

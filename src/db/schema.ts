@@ -502,8 +502,16 @@ export const soloPitches = pgTable("solo_pitches", {
   // "nein" — ein Pflichtfeld hätte jeden bestehenden Upload-Flow für ein
   // Rand-Feature verkompliziert.
   containsAiContent: boolean("contains_ai_content").notNull().default(false),
+  // RN-7 (Luca 30.09.): Einreichung zu einer Creator-Challenge — der Post
+  // läuft ganz normal im Feed (Likes = Rangliste), führt aber per Knopf zur
+  // Challenge. Null = normaler Solo-Pitch. Wird die Challenge gelöscht,
+  // bleibt der Post als normaler Solo-Pitch stehen.
+  creatorChallengeId: uuid("creator_challenge_id").references(() => creatorChallenges.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  // Eine Einreichung pro Marke und Challenge (Nullwerte zählen nicht → normale Posts unbegrenzt).
+  uniqueIndex("solo_pitches_challenge_brand_unique_idx").on(table.creatorChallengeId, table.brandId),
+]);
 
 export type SoloPitch = typeof soloPitches.$inferSelect;
 export type NewSoloPitch = typeof soloPitches.$inferInsert;
@@ -696,6 +704,10 @@ export const castingSubmissions = pgTable(
     ctaUrl: text("cta_url"),
     // Phase 46: siehe soloPitches.containsAiContent.
     containsAiContent: boolean("contains_ai_content").notNull().default(false),
+    // RN-7 (Luca 30.09.): neue Einreichungen laufen zusätzlich als Solo-Pitch
+    // im Feed (mit Knopf „Zum Casting“). Löscht die Marke den Post, fällt
+    // auch die Einreichung weg. Null bei älteren Einreichungen.
+    soloPitchId: uuid("solo_pitch_id").references(() => soloPitches.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("casting_submissions_casting_brand_unique_idx").on(table.castingId, table.brandId)],
@@ -728,6 +740,28 @@ export const castingVotes = pgTable(
 
 export type CastingVote = typeof castingVotes.$inferSelect;
 export type NewCastingVote = typeof castingVotes.$inferInsert;
+
+// RN-7 (Luca 30.09.): Creator-Challenge — ersetzt die offenen Monats-Charts
+// (creator_submissions/creator_votes bleiben nur als Altdaten stehen). Nur
+// die Marke selbst eröffnet eine Challenge für einen Kalendermonat
+// ("YYYY-MM"); Creator reichen einen normalen Solo-Pitch mit
+// creatorChallengeId ein, die Rangliste sind dessen Likes, am Monatsende
+// stehen die Top 3 („Creator Winner Oktober 2026").
+export const creatorChallenges = pgTable(
+  "creator_challenges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    period: text("period").notNull(),
+    prompt: text("prompt").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("creator_challenges_brand_period_unique_idx").on(table.brandId, table.period)],
+);
+
+export type CreatorChallenge = typeof creatorChallenges.$inferSelect;
 
 // Phase 20: Creator-Charts. Different idea from Partner-Casting above —
 // that's a brand's open call to find a *new* partner; this is for

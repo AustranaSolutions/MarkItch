@@ -51,9 +51,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       category: extras.category,
       country: extras.country,
       website: extras.website,
-      period: extras.period,
-      periodLabel: extras.periodLabel,
-      chartCount: extras.chartEntries.length,
+      // RN-7: Creator-Challenges statt der alten Monats-Charts.
+      challenges: extras.challenges,
+      challengeWinners: extras.challengeWinners,
       activeCasting: extras.activeCasting ? { id: extras.activeCasting.id, prompt: extras.activeCasting.prompt } : null,
       castingWinner: extras.castingWinner,
       latestFinishedCastingId: extras.latestFinishedCastingId,

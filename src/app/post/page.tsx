@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { eq, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { users, brands } from "@/db/schema";
+import { users } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { getBattlesAwaitingVideoFrom } from "@/lib/upcoming-battles";
 import { getActiveCastingForBrand } from "@/lib/casting";
 import { CreateBrandForm } from "@/components/brand/create-brand-form";
 import { PostTypePicker } from "@/components/post/post-type-picker";
+import { getOpenChallengesForBrand, openablePeriods } from "@/lib/creator-challenge";
+import { periodLabel } from "@/lib/creator-charts";
 
 // This page reads the session via requireUser() -> auth() (cookies), so
 // it's already dynamic — no explicit flag needed, same as /profile.
@@ -47,8 +49,8 @@ export default async function PostPage() {
   // Battles where this brand accepted a challenge (or is countering) but
   // hasn't uploaded its own side yet — easy to forget since that upload
   // otherwise only lives on /pitches/[id]'s waiting room.
-  const [otherBrandRows, activeCasting, pendingBattles] = await Promise.all([
-    db.select({ id: brands.id, name: brands.name }).from(brands).where(ne(brands.id, brand.id)),
+  const [ownChallenges, activeCasting, pendingBattles] = await Promise.all([
+    getOpenChallengesForBrand(brand.id),
     getActiveCastingForBrand(brand.id),
     getBattlesAwaitingVideoFrom(brand.id),
   ]);
@@ -76,7 +78,8 @@ export default async function PostPage() {
       )}
 
       <PostTypePicker
-        otherBrands={otherBrandRows}
+        challengePeriods={openablePeriods().map((p) => ({ ...p, taken: ownChallenges.some((c) => c.period === p.period) }))}
+        ownChallenges={ownChallenges.map((c) => ({ id: c.id, prompt: c.prompt, periodLabel: periodLabel(c.period) }))}
         activeCasting={activeCasting ? { id: activeCasting.id, prompt: activeCasting.prompt } : null}
       />
     </div>

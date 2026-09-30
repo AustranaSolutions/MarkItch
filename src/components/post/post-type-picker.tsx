@@ -3,22 +3,28 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SoloPitchUploadForm } from "@/components/pitches/solo-pitch-upload-form";
-import { CreatorVideoUploadForm } from "@/components/creator-charts/creator-video-upload-form";
+import { OpenChallengeForm } from "@/components/creator-challenge/open-challenge-form";
 import { StartCastingForm } from "@/components/casting/start-casting-form";
 
 type PostType = "solo" | "creator" | "casting";
 
 const TYPES: { key: PostType; label: string; hint: string }[] = [
   { key: "solo", label: "Solo-Pitch", hint: "Ein normales Video, kein Gegner nötig." },
-  { key: "creator", label: "Creator-Video", hint: "Video für eine Marke, mit der du zusammenarbeitest." },
+  {
+    key: "creator",
+    label: "Creator-Challenge",
+    hint: "Eröffne für einen Monat eine Challenge für deine Creator — die Videos laufen im Feed, die meisten Likes gewinnen.",
+  },
   { key: "casting", label: "Partner-Casting", hint: "Ruf auf, einen neuen Markenpartner zu finden." },
 ];
 
 export function PostTypePicker({
-  otherBrands,
+  challengePeriods,
+  ownChallenges,
   activeCasting,
 }: {
-  otherBrands: { id: string; name: string }[];
+  challengePeriods: { period: string; label: string; taken: boolean }[];
+  ownChallenges: { id: string; prompt: string; periodLabel: string }[];
   activeCasting: { id: string; prompt: string } | null;
 }) {
   const [selected, setSelected] = useState<PostType>("solo");
@@ -42,12 +48,22 @@ export function PostTypePicker({
       <p className="mb-4 text-sm text-zinc-500">{TYPES.find((t) => t.key === selected)?.hint}</p>
 
       {selected === "solo" && <SoloPitchUploadForm />}
-      {selected === "creator" &&
-        (otherBrands.length > 0 ? (
-          <CreatorVideoUploadForm brands={otherBrands} />
-        ) : (
-          <p className="text-sm text-zinc-500">Noch keine anderen Marken registriert.</p>
-        ))}
+      {selected === "creator" && (
+        <div>
+          {ownChallenges.length > 0 && (
+            <ul className="mb-4 space-y-2">
+              {ownChallenges.map((c) => (
+                <li key={c.id} className="rounded-lg border border-zinc-800 p-3 text-sm">
+                  <Link href={`/challenges/${c.id}`} className="text-orange-400 hover:underline">
+                    {c.periodLabel}: „{c.prompt}“ ansehen →
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <OpenChallengeForm periods={challengePeriods} />
+        </div>
+      )}
       {selected === "casting" &&
         (activeCasting ? (
           <div className="rounded-lg border border-zinc-800 p-4 text-sm">

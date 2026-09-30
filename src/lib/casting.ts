@@ -175,18 +175,41 @@ export async function getWonCastingsForBrand(brandId: string): Promise<CastingWi
   );
 }
 
-export async function createCasting(hostBrandId: string, prompt: string): Promise<PartnerCasting> {
+/** RN-7 (Luca 30.09.): Einreichfrist wählt die Marke — 7, 14 oder 30 Tage. */
+export const CASTING_SUBMISSION_DAYS = [7, 14, 30] as const;
+
+export async function createCasting(
+  hostBrandId: string,
+  prompt: string,
+  submissionDays: number = SUBMISSION_WINDOW_MS / (24 * 60 * 60 * 1000),
+): Promise<PartnerCasting> {
   const now = Date.now();
+  const submissionMs = submissionDays * 24 * 60 * 60 * 1000;
   const [casting] = await db
     .insert(partnerCastings)
     .values({
       hostBrandId,
       prompt,
-      submissionDeadline: new Date(now + SUBMISSION_WINDOW_MS),
-      votingEndsAt: new Date(now + SUBMISSION_WINDOW_MS + CASTING_VOTING_WINDOW_MS),
+      submissionDeadline: new Date(now + submissionMs),
+      votingEndsAt: new Date(now + submissionMs + CASTING_VOTING_WINDOW_MS),
     })
     .returning();
   return casting;
+}
+
+/** Darf diese Marke (noch) bei diesem Casting einreichen? */
+export async function checkCastingSubmission(castingId: string, brandId: string): Promise<{ error?: string }> {
+  const [casting] = await db.select().from(partnerCastings).where(eq(partnerCastings.id, castingId)).limit(1);
+  if (!casting) return { error: "Dieses Casting existiert nicht." };
+  if (casting.hostBrandId === brandId) return { error: "Du kannst nicht bei deinem eigenen Casting mitmachen." };
+  if (casting.submissionDeadline.getTime() < Date.now()) return { error: "Die Einreichungsfrist ist abgelaufen." };
+  const [existing] = await db
+    .select({ id: castingSubmissions.id })
+    .from(castingSubmissions)
+    .where(and(eq(castingSubmissions.castingId, castingId), eq(castingSubmissions.brandId, brandId)))
+    .limit(1);
+  if (existing) return { error: "Du hast für dieses Casting bereits eingereicht." };
+  return {};
 }
 
 export async function submitToCasting(

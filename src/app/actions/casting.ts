@@ -17,7 +17,7 @@ function toFormState(result: CastingResult): { error?: string } | undefined {
 
 export async function startCasting(_prevState: StartCastingFormState, formData: FormData): Promise<StartCastingFormState> {
   const user = await requireUser();
-  return toFormState(await startCastingFor(user, formData.get("prompt")));
+  return toFormState(await startCastingFor(user, formData.get("prompt"), formData.get("days")));
 }
 
 export async function submitCastingEntry(

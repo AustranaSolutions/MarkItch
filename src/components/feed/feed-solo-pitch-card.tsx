@@ -239,6 +239,15 @@ export function FeedSoloPitchCard({
             {pitch.ctaLabel} →
           </a>
         )}
+        {/* RN-7: Einreichung zu Creator-Challenge/Partner-Casting → Knopf dorthin (Luca 30.09.). */}
+        {pitch.context && (
+          <Link
+            href={pitch.context.kind === "challenge" ? `/challenges/${pitch.context.id}` : `/castings/${pitch.context.id}`}
+            className="pointer-events-auto mb-2 ml-1 inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/30 px-2.5 py-1 text-xs font-semibold text-white hover:border-orange-400"
+          >
+            {pitch.context.kind === "challenge" ? "🏆" : "🎬"} {pitch.context.label} →
+          </Link>
+        )}
         <div className="pointer-events-auto inline-block">
           {viewerHasOtherBrand && <PitchChallengeButton soloPitchId={pitch.soloPitchId} />}
           {BOOST_ENABLED && pitch.viewerOwnsThisBrand && <BoostButton soloPitchId={pitch.soloPitchId} />}

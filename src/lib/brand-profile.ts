@@ -1,17 +1,26 @@
 import "server-only";
 import { getActiveCastingForBrand, getLatestFinishedCastingForBrand } from "@/lib/casting";
-import { currentPeriod, periodLabel, getChartForBrand } from "@/lib/creator-charts";
+import { periodLabel } from "@/lib/creator-charts";
 import { getLivePendingChallengeBetween } from "@/lib/challenge";
+import {
+  challengeStage,
+  getChallengeDetails,
+  getLatestFinishedChallengeForBrand,
+  getOpenChallengesForBrand,
+} from "@/lib/creator-challenge";
 import type { PartnerCasting } from "@/db/schema";
-import type { CreatorChartEntry } from "@/lib/creator-charts";
+
+/** RN-7: laufende/kommende Creator-Challenge einer Marke fürs Profil. */
+export type ProfileChallenge = { id: string; periodLabel: string; prompt: string; stage: "running" | "upcoming" };
+/** RN-7: Top 3 der zuletzt beendeten Challenge („Creator Winner …“). */
+export type ProfileChallengeWinners = { challengeId: string; periodLabel: string; winners: { name: string; slug: string }[] };
 
 export type BrandProfileExtras = {
   category: string;
   country: string;
   website: string | null;
-  period: string;
-  periodLabel: string;
-  chartEntries: CreatorChartEntry[];
+  challenges: ProfileChallenge[];
+  challengeWinners: ProfileChallengeWinners | null;
   activeCasting: PartnerCasting | null;
   castingWinner: { brandName: string; brandSlug: string } | null;
   latestFinishedCastingId: string | null;
@@ -32,15 +41,14 @@ export async function getBrandProfileExtras(
   viewerBrandId: string | null,
   isOwnBrand: boolean,
 ): Promise<BrandProfileExtras> {
-  const period = currentPeriod();
-  // Phase 42: getChartForBrand doesn't depend on anything below — it was
-  // previously awaited on its own afterwards, adding a needless extra
-  // round trip to an already request-waterfall-heavy page.
-  const [activeCasting, livePending, { entries: chartEntries }] = await Promise.all([
+  const [activeCasting, livePending, openChallenges, finishedChallenge] = await Promise.all([
     getActiveCastingForBrand(brand.id),
     viewerBrandId && !isOwnBrand ? getLivePendingChallengeBetween(viewerBrandId, brand.id) : Promise.resolve(null),
-    getChartForBrand(brand.id, period, null),
+    getOpenChallengesForBrand(brand.id),
+    getLatestFinishedChallengeForBrand(brand.id),
   ]);
+  // Top 3 nur für die zuletzt beendete Challenge laden (eine Abfrage mehr, nur wenn es eine gibt).
+  const finishedDetails = finishedChallenge ? await getChallengeDetails(finishedChallenge.id, null) : null;
   // Only bother looking up a finished casting's result if there's no
   // active one to show instead — a brand always has at most one relevant
   // casting to display at a time.
@@ -55,9 +63,20 @@ export async function getBrandProfileExtras(
     category: brand.category,
     country: brand.country,
     website: brand.website,
-    period,
-    periodLabel: periodLabel(period),
-    chartEntries,
+    challenges: openChallenges.map((c) => ({
+      id: c.id,
+      periodLabel: periodLabel(c.period),
+      prompt: c.prompt,
+      stage: challengeStage(c.period) === "upcoming" ? ("upcoming" as const) : ("running" as const),
+    })),
+    challengeWinners:
+      finishedDetails && finishedDetails.entries.length > 0
+        ? {
+            challengeId: finishedDetails.challenge.id,
+            periodLabel: finishedDetails.periodLabel,
+            winners: finishedDetails.entries.slice(0, 3).map((e) => ({ name: e.brandName, slug: e.brandSlug })),
+          }
+        : null,
     activeCasting,
     castingWinner: castingWinnerSubmission
       ? { brandName: castingWinnerSubmission.brandName, brandSlug: castingWinnerSubmission.brandSlug }

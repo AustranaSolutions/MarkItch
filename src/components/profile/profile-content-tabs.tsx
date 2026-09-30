@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import type { ProfileChallenge, ProfileChallengeWinners } from "@/lib/brand-profile";
 import { SoloPitchGrid } from "@/components/profile/solo-pitch-grid";
 import { DuelGrid } from "@/components/profile/duel-grid";
 import type { FeedSoloPitch, FeedDuel } from "@/lib/feed";
@@ -18,9 +19,8 @@ export type ProfileInfo = {
   country: string;
   website: string | null;
   brandSlug: string;
-  period: string;
-  periodLabel: string;
-  chartCount: number;
+  challenges: ProfileChallenge[];
+  challengeWinners: ProfileChallengeWinners | null;
   isOwnBrand: boolean;
   activeCasting: { id: string; prompt: string } | null;
   castingWinner: { brandName: string; brandSlug: string } | null;
@@ -115,15 +115,38 @@ export function ProfileContentTabs({
             </a>
           )}
 
-          <div className="rounded-lg border border-zinc-800 p-4 text-center">
-            <p className="mb-2 text-sm text-zinc-300">
-              🎥 Creator-Charts — {info.periodLabel}
-              {info.chartCount > 0 ? ` (${info.chartCount})` : ""}
-            </p>
-            <Link href={`/brands/${info.brandSlug}/charts/${info.period}`} className="text-sm font-semibold text-orange-400 hover:underline">
-              {info.chartCount > 0 ? "Ansehen & abstimmen" : "Noch keine Videos — erstes posten"} →
-            </Link>
-          </div>
+          {/* RN-7: Creator-Challenges eröffnet nur die Marke selbst (statt offener Monats-Charts). */}
+          {info.challenges.map((c) => (
+            <div key={c.id} className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 text-center">
+              <p className="mb-2 text-sm text-orange-300">
+                🏆 Creator-Challenge {c.periodLabel}
+                {c.stage === "upcoming" ? " (startet bald)" : ""}: „{c.prompt}“
+              </p>
+              <Link href={`/challenges/${c.id}`} className="text-sm font-semibold text-orange-400 hover:underline">
+                {info.isOwnBrand ? "Ansehen" : "Ansehen & mitmachen"} →
+              </Link>
+            </div>
+          ))}
+
+          {info.challengeWinners && (
+            <div className="rounded-lg border border-zinc-800 p-4 text-center">
+              <p className="mb-1 text-sm text-zinc-300">🥇 Creator Winner {info.challengeWinners.periodLabel}</p>
+              <p className="text-sm text-zinc-400">
+                {info.challengeWinners.winners.map((w, i) => (
+                  <span key={w.slug}>
+                    {i > 0 ? " · " : ""}
+                    {i + 1}.{" "}
+                    <Link href={`/brands/${w.slug}`} className="text-orange-400 hover:underline">
+                      {w.name}
+                    </Link>
+                  </span>
+                ))}
+              </p>
+              <Link href={`/challenges/${info.challengeWinners.challengeId}`} className="mt-1 inline-block text-xs text-orange-400/80 hover:underline">
+                Challenge ansehen →
+              </Link>
+            </div>
+          )}
 
           {info.activeCasting && (
             <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 text-center">
