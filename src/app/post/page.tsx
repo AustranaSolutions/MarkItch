@@ -4,8 +4,7 @@ import { db } from "@/db";
 import { users, brands } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
-import { getBattlesForBrand, resolveBattleVideos } from "@/lib/battle";
-import { getBattleStage } from "@/lib/battle-stage";
+import { getBattlesAwaitingVideoFrom } from "@/lib/upcoming-battles";
 import { getActiveCastingForBrand } from "@/lib/casting";
 import { CreateBrandForm } from "@/components/brand/create-brand-form";
 import { PostTypePicker } from "@/components/post/post-type-picker";
@@ -45,27 +44,14 @@ export default async function PostPage() {
     );
   }
 
-  const [otherBrandRows, activeCasting, myBattles] = await Promise.all([
-    db.select({ id: brands.id, name: brands.name }).from(brands).where(ne(brands.id, brand.id)),
-    getActiveCastingForBrand(brand.id),
-    getBattlesForBrand(brand.id),
-  ]);
-
   // Battles where this brand accepted a challenge (or is countering) but
   // hasn't uploaded its own side yet — easy to forget since that upload
   // otherwise only lives on /pitches/[id]'s waiting room.
-  const pendingBattles = myBattles.filter((b) => {
-    const { videoUrlA, videoUrlB } = resolveBattleVideos(b);
-    const stage = getBattleStage({
-      brandAId: b.brandAId,
-      brandBId: b.brandBId,
-      hasVideoA: Boolean(videoUrlA),
-      hasVideoB: Boolean(videoUrlB),
-      productionDeadline: b.productionDeadline,
-      votingEndsAt: b.votingEndsAt,
-    });
-    return stage.stage === "awaiting_videos" && stage.waitingOnBrandIds.includes(brand.id);
-  });
+  const [otherBrandRows, activeCasting, pendingBattles] = await Promise.all([
+    db.select({ id: brands.id, name: brands.name }).from(brands).where(ne(brands.id, brand.id)),
+    getActiveCastingForBrand(brand.id),
+    getBattlesAwaitingVideoFrom(brand.id),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">

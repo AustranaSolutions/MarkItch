@@ -64,3 +64,8 @@ export function fieldErrorResponse(errors: Record<string, string[]>) {
   const first = Object.values(errors).find((messages) => messages?.length)?.[0];
   return NextResponse.json({ error: first ?? "Ungültige Eingabe.", fieldErrors: errors }, { status: 400 });
 }
+
+/** Pfad-IDs vor der DB-Abfrage prüfen — Postgres wirft bei ungültiger UUID einen 500er. */
+export function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}

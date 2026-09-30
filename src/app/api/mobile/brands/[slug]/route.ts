@@ -56,5 +56,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       castingWinner: extras.castingWinner,
       latestFinishedCastingId: extras.latestFinishedCastingId,
     },
+    // RN-5b: offene Einladung zwischen eigener und dieser Marke (für den „Duell einladen“-Knopf).
+    viewerHasBrand: Boolean(viewerBrand),
+    livePendingChallenge: extras.livePending
+      ? { sentByViewer: extras.livePending.challengerBrandId === viewerBrand?.id }
+      : null,
   });
 }

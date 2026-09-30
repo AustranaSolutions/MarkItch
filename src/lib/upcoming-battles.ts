@@ -26,3 +26,20 @@ export async function getUpcomingBattles(): Promise<UpcomingBattle[]> {
   }
   return upcoming;
 }
+
+/**
+ * Duelle, in denen diese Marke angenommen hat (oder eingeladen wurde und
+ * angenommen wurde), ihr eigenes Video aber noch fehlt — der Hinweis „Dein
+ * Video für ein Duell fehlt noch“ auf /post. RN-5b: gemeinsam mit der App.
+ */
+export async function getBattlesAwaitingVideoFrom(brandId: string): Promise<BattleWithBrands[]> {
+  const upcoming = await getUpcomingBattles();
+  const result: BattleWithBrands[] = [];
+  for (const { battle } of upcoming) {
+    if (battle.brandAId !== brandId && battle.brandBId !== brandId) continue;
+    const { videoUrlA, videoUrlB } = resolveBattleVideos(battle);
+    const mine = battle.brandAId === brandId ? videoUrlA : videoUrlB;
+    if (!mine) result.push(battle);
+  }
+  return result;
+}

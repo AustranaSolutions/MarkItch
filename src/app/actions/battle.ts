@@ -1,16 +1,9 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
-import { db } from "@/db";
-import { battles } from "@/db/schema";
 import { requireUser } from "@/lib/session";
-import { getBrandForUser } from "@/lib/brand";
-import { activateBattleIfBothSidesReady } from "@/lib/battle-stage";
-import { readVideoUrlField } from "@/lib/storage";
-import { validateCtaLink } from "@/lib/cta-link";
-import { AudioRightsSchema } from "@/lib/validation";
+import { submitBattleVideoFor } from "@/lib/battle-video";
 
 export type UploadBattleVideoFormState = { error?: string } | undefined;
 
@@ -33,69 +26,11 @@ export async function uploadBattleVideo(
     return { error: "Ungültige Anfrage." };
   }
 
-  const myBrand = await getBrandForUser(user.id);
-  if (!myBrand) {
-    return { error: "Du hast keine Marke." };
+  // RN-5b: Logik in lib/battle-video.ts, gemeinsam mit der App-Route.
+  const result = await submitBattleVideoFor(user, battleId, formData);
+  if (!result.ok) {
+    return { error: result.error };
   }
-
-  const [battle] = await db.select().from(battles).where(eq(battles.id, battleId)).limit(1);
-  if (!battle) {
-    return { error: "Dieser Pitch existiert nicht." };
-  }
-
-  const isA = battle.brandAId === myBrand.id;
-  const isB = battle.brandBId === myBrand.id;
-  if (!isA && !isB) {
-    return { error: "Das ist nicht dein Pitch." };
-  }
-  if ((isA && battle.brandAVideoUrl) || (isB && battle.brandBVideoUrl)) {
-    return { error: "Du hast für diesen Pitch bereits ein Video hochgeladen." };
-  }
-  if (battle.productionDeadline && battle.productionDeadline.getTime() < Date.now()) {
-    return { error: "Die Frist für diesen Pitch ist abgelaufen." };
-  }
-
-  const video = readVideoUrlField(formData, "battle-videos");
-  if ("error" in video) {
-    return { error: video.error };
-  }
-
-  const cta = validateCtaLink(formData);
-  if ("errors" in cta) {
-    return { error: Object.values(cta.errors)[0]![0] };
-  }
-
-  const audioRights = AudioRightsSchema.safeParse({ audioRightsConfirmed: formData.get("audioRightsConfirmed") });
-  if (!audioRights.success) {
-    return { error: Object.values(audioRights.error.flatten().fieldErrors)[0]![0] };
-  }
-
-  const now = new Date();
-
-  const containsAiContent = formData.get("containsAiContent") === "on";
-
-  await db
-    .update(battles)
-    .set(
-      isA
-        ? {
-            brandAVideoUrl: video.videoUrl,
-            brandASubmittedAt: now,
-            brandACtaLabel: cta.ctaLabel,
-            brandACtaUrl: cta.ctaUrl,
-            brandAContainsAiContent: containsAiContent,
-          }
-        : {
-            brandBVideoUrl: video.videoUrl,
-            brandBSubmittedAt: now,
-            brandBCtaLabel: cta.ctaLabel,
-            brandBCtaUrl: cta.ctaUrl,
-            brandBContainsAiContent: containsAiContent,
-          },
-    )
-    .where(eq(battles.id, battleId));
-
-  await activateBattleIfBothSidesReady(battleId);
 
   refresh();
   // Phase 30: redirect instead of just returning — the waiting-room page
