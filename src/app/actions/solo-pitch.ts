@@ -2,19 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
-import { db } from "@/db";
-import { soloPitches } from "@/db/schema";
 import { requireUser } from "@/lib/session";
-import { getBrandForUser } from "@/lib/brand";
-import { readVideoUrlField } from "@/lib/storage";
-import { DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
-import { validateCtaLink } from "@/lib/cta-link";
-import { AudioRightsSchema } from "@/lib/validation";
-import { deleteOwnSoloPitch, updateOwnSoloPitch, validateDescription } from "@/lib/solo-pitch";
-
-function readDescription(formData: FormData): { description: string } | { error: string } {
-  return validateDescription(formData.get("description"));
-}
+import { createSoloPitchForUser, deleteOwnSoloPitch, updateOwnSoloPitch } from "@/lib/solo-pitch";
 
 export type SoloPitchFormState = { errors?: Record<string, string[]> } | undefined;
 
@@ -38,43 +27,11 @@ export type SoloPitchFormState = { errors?: Record<string, string[]> } | undefin
  */
 export async function postSoloPitch(_prevState: SoloPitchFormState, formData: FormData): Promise<SoloPitchFormState> {
   const user = await requireUser();
-  const myBrand = await getBrandForUser(user.id);
-  if (!myBrand) {
-    return { errors: { _form: ["Du musst zuerst eine Marke erstellen."] } };
+  // RN-4c: Logik in lib/solo-pitch.ts, gemeinsam mit der App-Route.
+  const result = await createSoloPitchForUser(user.id, formData);
+  if (!result.ok) {
+    return { errors: result.errors };
   }
-
-  const video = readVideoUrlField(formData, "solo-pitch-videos");
-  if ("error" in video) {
-    return { errors: { video: [video.error] } };
-  }
-
-  const description = readDescription(formData);
-  if ("error" in description) {
-    return { errors: { description: [description.error] } };
-  }
-
-  const cta = validateCtaLink(formData);
-  if ("errors" in cta) {
-    return { errors: cta.errors };
-  }
-
-  const audioRights = AudioRightsSchema.safeParse({ audioRightsConfirmed: formData.get("audioRightsConfirmed") });
-  if (!audioRights.success) {
-    return { errors: audioRights.error.flatten().fieldErrors };
-  }
-
-  const [pitch] = await db
-    .insert(soloPitches)
-    .values({
-      brandId: myBrand.id,
-      videoUrl: video.videoUrl,
-      category: DEFAULT_DUEL_CATEGORY,
-      description: description.description,
-      ctaLabel: cta.ctaLabel,
-      ctaUrl: cta.ctaUrl,
-      containsAiContent: formData.get("containsAiContent") === "on",
-    })
-    .returning({ id: soloPitches.id });
 
   refresh();
   // Phase 41: `posted=1` alone reset the scroll position but didn't
@@ -85,7 +42,7 @@ export async function postSoloPitch(_prevState: SoloPitchFormState, formData: Fo
   // Feed sein." Passing its id reuses the existing share-link deep-link
   // mechanism (page.tsx) to pin it to the very top for the poster, without
   // changing how the feed ranks for anyone else.
-  redirect(`/?posted=1&pitch=${pitch.id}`);
+  redirect(`/?posted=1&pitch=${result.id}`);
 }
 
 export type UpdateSoloPitchFormState = { errors?: Record<string, string[]>; success?: boolean } | undefined;

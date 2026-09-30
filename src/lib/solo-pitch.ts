@@ -4,6 +4,9 @@ import { db } from "@/db";
 import { soloPitches, brands, type SoloPitch } from "@/db/schema";
 import { getBrandForUser } from "@/lib/brand";
 import { validateCtaLink } from "@/lib/cta-link";
+import { readVideoUrlField } from "@/lib/storage";
+import { DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
+import { AudioRightsSchema } from "@/lib/validation";
 
 export type SoloPitchBrand = {
   id: string;
@@ -93,4 +96,44 @@ export async function deleteOwnSoloPitch(userId: string, soloPitchId: string): P
   if (!owner.ok) return owner;
   await db.delete(soloPitches).where(eq(soloPitches.id, soloPitchId));
   return { ok: true };
+}
+
+/**
+ * RN-4c: Neuen Solo-Pitch anlegen — gemeinsam genutzt von der Web-Action
+ * postSoloPitch und der App-Route /api/mobile/solo-pitches. Das Video liegt
+ * zu diesem Zeitpunkt schon im Speicher (Direkt-Upload), hier kommt nur die
+ * URL an. Erwartet dieselben Feldnamen wie das Web-Formular.
+ */
+export async function createSoloPitchForUser(
+  userId: string,
+  formData: FormData,
+): Promise<{ ok: true; id: string } | { ok: false; errors: Record<string, string[]> }> {
+  const myBrand = await getBrandForUser(userId);
+  if (!myBrand) return { ok: false, errors: { _form: ["Du musst zuerst eine Marke erstellen."] } };
+
+  const video = readVideoUrlField(formData, "solo-pitch-videos");
+  if ("error" in video) return { ok: false, errors: { video: [video.error] } };
+
+  const description = validateDescription(formData.get("description"));
+  if ("error" in description) return { ok: false, errors: { description: [description.error] } };
+
+  const cta = validateCtaLink(formData);
+  if ("errors" in cta) return { ok: false, errors: cta.errors };
+
+  const audioRights = AudioRightsSchema.safeParse({ audioRightsConfirmed: formData.get("audioRightsConfirmed") });
+  if (!audioRights.success) return { ok: false, errors: audioRights.error.flatten().fieldErrors };
+
+  const [pitch] = await db
+    .insert(soloPitches)
+    .values({
+      brandId: myBrand.id,
+      videoUrl: video.videoUrl,
+      category: DEFAULT_DUEL_CATEGORY,
+      description: description.description,
+      ctaLabel: cta.ctaLabel,
+      ctaUrl: cta.ctaUrl,
+      containsAiContent: formData.get("containsAiContent") === "on",
+    })
+    .returning({ id: soloPitches.id });
+  return { ok: true, id: pitch.id };
 }
