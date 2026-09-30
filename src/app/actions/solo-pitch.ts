@@ -63,6 +63,8 @@ export async function updateSoloPitch(
     description: formData.get("description"),
     ctaLabel: formData.get("ctaLabel"),
     ctaUrl: formData.get("ctaUrl"),
+    // Das Bearbeiten-Formular schickt das Kästchen immer mit (gesetzt = "on").
+    containsAiContent: formData.get("containsAiContent") === "on",
   });
   if (!result.ok) {
     return { errors: result.errors };

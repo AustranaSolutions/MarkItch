@@ -18,12 +18,18 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     description: body?.description,
     ctaLabel: body?.ctaLabel,
     ctaUrl: body?.ctaUrl,
+    containsAiContent: typeof body?.containsAiContent === "boolean" ? body.containsAiContent : undefined,
   });
   if (!result.ok) {
     const first = Object.values(result.errors).find((messages) => messages?.length)?.[0];
     return NextResponse.json({ error: first ?? "Ungültige Eingabe.", fieldErrors: result.errors }, { status: 400 });
   }
-  return NextResponse.json({ description: result.description, ctaLabel: result.ctaLabel, ctaUrl: result.ctaUrl });
+  return NextResponse.json({
+    description: result.description,
+    ctaLabel: result.ctaLabel,
+    ctaUrl: result.ctaUrl,
+    containsAiContent: result.containsAiContent,
+  });
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {

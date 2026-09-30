@@ -66,12 +66,19 @@ async function checkOwnSoloPitch(userId: string, soloPitchId: string): Promise<O
   return { ok: true };
 }
 
-/** Nur Beschreibung + CTA, nie das Video selbst (neues Video = neuer Post). */
+/**
+ * Nur Beschreibung + CTA + KI-Kennzeichnung, nie das Video selbst (neues
+ * Video = neuer Post). KI-Kennzeichnung nachträglich änderbar (Luca
+ * 30.09.: falls beim Posten vergessen); fehlt der Wert, bleibt er unverändert.
+ */
 export async function updateOwnSoloPitch(
   userId: string,
   soloPitchId: string,
-  input: { description: unknown; ctaLabel: unknown; ctaUrl: unknown },
-): Promise<{ ok: true; description: string; ctaLabel: string; ctaUrl: string } | { ok: false; errors: Record<string, string[]> }> {
+  input: { description: unknown; ctaLabel: unknown; ctaUrl: unknown; containsAiContent?: boolean },
+): Promise<
+  | { ok: true; description: string; ctaLabel: string; ctaUrl: string; containsAiContent?: boolean }
+  | { ok: false; errors: Record<string, string[]> }
+> {
   const owner = await checkOwnSoloPitch(userId, soloPitchId);
   if (!owner.ok) return { ok: false, errors: { _form: [owner.error] } };
 
@@ -86,9 +93,20 @@ export async function updateOwnSoloPitch(
 
   await db
     .update(soloPitches)
-    .set({ description: description.description, ctaLabel: cta.ctaLabel, ctaUrl: cta.ctaUrl })
+    .set({
+      description: description.description,
+      ctaLabel: cta.ctaLabel,
+      ctaUrl: cta.ctaUrl,
+      ...(input.containsAiContent === undefined ? {} : { containsAiContent: input.containsAiContent }),
+    })
     .where(eq(soloPitches.id, soloPitchId));
-  return { ok: true, description: description.description, ctaLabel: cta.ctaLabel, ctaUrl: cta.ctaUrl };
+  return {
+    ok: true,
+    description: description.description,
+    ctaLabel: cta.ctaLabel,
+    ctaUrl: cta.ctaUrl,
+    ...(input.containsAiContent === undefined ? {} : { containsAiContent: input.containsAiContent }),
+  };
 }
 
 export async function deleteOwnSoloPitch(userId: string, soloPitchId: string): Promise<OwnershipResult> {

@@ -11,6 +11,7 @@ import {
 } from "@/app/actions/solo-pitch";
 import { FormError, SubmitButton } from "@/components/ui";
 import { CtaLinkFields } from "@/components/pitches/cta-link-fields";
+import { AiContentCheckbox } from "@/components/pitches/ai-content-checkbox";
 import type { FeedSoloPitch } from "@/lib/feed";
 
 type Screen = "closed" | "menu" | "edit" | "delete";
@@ -36,6 +37,7 @@ export function SoloPitchOwnerMenuButton({
   const [description, setDescription] = useState(pitch.description ?? "");
   const [ctaLabel, setCtaLabel] = useState(pitch.ctaLabel ?? "");
   const [ctaUrl, setCtaUrl] = useState(pitch.ctaUrl ?? "");
+  const [containsAiContent, setContainsAiContent] = useState(pitch.containsAiContent);
 
   const [updateState, updateAction, updatePending] = useActionState<UpdateSoloPitchFormState, FormData>(
     updateSoloPitch,
@@ -51,11 +53,11 @@ export function SoloPitchOwnerMenuButton({
   // Same pending->done transition pattern as reaction-upload-form.tsx.
   useEffect(() => {
     if (wasUpdatePending.current && !updatePending && updateState?.success) {
-      onUpdated({ description, ctaLabel, ctaUrl });
+      onUpdated({ description, ctaLabel, ctaUrl, containsAiContent });
       setScreen("closed");
     }
     wasUpdatePending.current = updatePending;
-  }, [updatePending, updateState, description, ctaLabel, ctaUrl, onUpdated]);
+  }, [updatePending, updateState, description, ctaLabel, ctaUrl, containsAiContent, onUpdated]);
 
   useEffect(() => {
     if (wasDeletePending.current && !deletePending && deleteState === undefined) {
@@ -68,6 +70,7 @@ export function SoloPitchOwnerMenuButton({
     setDescription(pitch.description ?? "");
     setCtaLabel(pitch.ctaLabel ?? "");
     setCtaUrl(pitch.ctaUrl ?? "");
+    setContainsAiContent(pitch.containsAiContent);
     setScreen("menu");
   }
 
@@ -143,6 +146,9 @@ export function SoloPitchOwnerMenuButton({
                   onCtaLabelChange={setCtaLabel}
                   onCtaUrlChange={setCtaUrl}
                 />
+                <div onChange={(e) => setContainsAiContent((e.target as HTMLInputElement).checked)}>
+                  <AiContentCheckbox defaultChecked={pitch.containsAiContent} />
+                </div>
                 <div className="flex gap-2">
                   <SubmitButton>Speichern</SubmitButton>
                   <button
