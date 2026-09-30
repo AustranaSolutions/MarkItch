@@ -246,6 +246,13 @@
       "when": 1790790484316,
       "tag": "0034_safe_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790794959313,
+      "tag": "0035_fat_vertigo",
+      "breakpoints": true
     }
   ]
 }
