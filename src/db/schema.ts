@@ -444,6 +444,22 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
 
+// RN-6: Push-Kennungen der nativen App (Expo Push Service). Eigene Tabelle
+// statt push_subscriptions, weil Web-Push (VAPID: endpoint + Schlüssel) und
+// Expo (eine einzige Token-Zeichenkette) völlig verschiedene Daten sind.
+// Ein Gerät = ein Token; meldet sich dort jemand anderes an, wandert der
+// Token per Upsert zum neuen Nutzer.
+export const mobilePushTokens = pgTable("mobile_push_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull(),
+  platform: text("platform").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [uniqueIndex("mobile_push_tokens_token_unique_idx").on(table.token)]);
+
 // Phase 13: solo pitches. A video posted without an opponent — every video
 // starts life as one of these, viewable/likable/commentable on its own, no
 // battle required. Deliberately its own table rather than a one-sided

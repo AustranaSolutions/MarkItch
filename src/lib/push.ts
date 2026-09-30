@@ -3,6 +3,7 @@ import webpush from "web-push";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { pushSubscriptions, type NewPushSubscription } from "@/db/schema";
+import { sendMobilePushToUser } from "@/lib/mobile-push";
 
 // Phase 12: web push. VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY are a keypair this
 // app generated for itself (npx web-push generate-vapid-keys) — not a
@@ -43,6 +44,11 @@ export type PushPayload = { title: string; body: string; url: string };
  * expired — those rows are cleaned up rather than retried forever.
  */
 export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
+  // RN-6: zusätzlich an die native App (unabhängig von den VAPID-Schlüsseln).
+  await Promise.all([sendWebPushToUser(userId, payload), sendMobilePushToUser(userId, payload)]);
+}
+
+async function sendWebPushToUser(userId: string, payload: PushPayload): Promise<void> {
   if (!configured) return;
   const subs = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
   await Promise.all(
