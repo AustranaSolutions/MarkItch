@@ -3,7 +3,8 @@ import { getBrandForUser } from "@/lib/brand";
 import { CASTING_SUBMISSION_DAYS, checkCastingSubmission, createCasting, getActiveCastingForBrand } from "@/lib/casting";
 import { createSoloPitchForUser, deleteOwnSoloPitch } from "@/lib/solo-pitch";
 import { db } from "@/db";
-import { castingSubmissions } from "@/db/schema";
+import { castingSubmissions, partnerCastings } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 // RN-5d: Partner-Casting starten / einreichen — gemeinsam genutzt von den
@@ -98,5 +99,20 @@ export async function submitCastingEntryFor(user: { id: string }, formData: Form
     await deleteOwnSoloPitch(user.id, pitch.id);
     return { ok: false, error: "Du hast für dieses Casting bereits eingereicht." };
   }
+  return { ok: true, castingId };
+}
+
+/**
+ * RN-7 (Luca 30.09.): die Marke löscht ihr eigenes Casting (z. B. um neu zu
+ * starten). Einreichungen + Stimmen fallen mit weg; die dazugehörigen
+ * Feed-Posts der anderen Marken bleiben als normale Posts stehen.
+ */
+export async function deleteCastingFor(user: { id: string }, castingId: string): Promise<CastingResult> {
+  const myBrand = await getBrandForUser(user.id);
+  const [casting] = await db.select().from(partnerCastings).where(eq(partnerCastings.id, castingId)).limit(1);
+  if (!casting || !myBrand || casting.hostBrandId !== myBrand.id) {
+    return { ok: false, error: "Nur die Marke selbst kann ihr Casting löschen." };
+  }
+  await db.delete(partnerCastings).where(eq(partnerCastings.id, castingId));
   return { ok: true, castingId };
 }

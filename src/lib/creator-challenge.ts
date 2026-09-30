@@ -47,7 +47,7 @@ export async function openChallengeFor(user: { id: string }, input: { period: un
   if (!prompt) return { ok: false, error: "Beschreibe kurz, was die Creator zeigen sollen." };
   if (prompt.length > MAX_PROMPT_LENGTH) return { ok: false, error: `Maximal ${MAX_PROMPT_LENGTH} Zeichen.` };
 
-  const { allowed } = await checkRateLimit("casting-start", myBrand.id);
+  const { allowed } = await checkRateLimit("challenge-open", myBrand.id);
   if (!allowed) return { ok: false, error: RATE_LIMIT_MESSAGE };
 
   const [created] = await db
@@ -151,3 +151,17 @@ export async function submitToChallengeFor(
   }
 }
 
+
+/**
+ * RN-7 (Luca 30.09.): die Marke löscht ihre eigene Challenge. Eingereichte
+ * Posts bleiben als normale Solo-Pitches (creator_challenge_id → null).
+ */
+export async function deleteChallengeFor(user: { id: string }, challengeId: string): Promise<ChallengeResult> {
+  const myBrand = await getBrandForUser(user.id);
+  const [challenge] = await db.select().from(creatorChallenges).where(eq(creatorChallenges.id, challengeId)).limit(1);
+  if (!challenge || !myBrand || challenge.brandId !== myBrand.id) {
+    return { ok: false, error: "Nur die Marke selbst kann ihre Challenge löschen." };
+  }
+  await db.delete(creatorChallenges).where(eq(creatorChallenges.id, challengeId));
+  return { ok: true, challengeId };
+}

@@ -19,6 +19,7 @@ export type RateLimitBucket =
   | "reaction"
   | "like"
   | "casting-start"
+  | "challenge-open"
   | "casting-submit"
   | "casting-vote"
   | "creator-submit"
@@ -34,6 +35,8 @@ const LIMITS: Record<RateLimitBucket, { max: number; windowMs: number }> = {
   reaction: { max: 10, windowMs: 24 * 60 * 60 * 1000 }, // 10 Reaktionen/Tag pro Marke
   like: { max: 300, windowMs: 60 * 60 * 1000 }, // 300 Likes/Stunde pro Nutzer
   "casting-start": { max: 3, windowMs: 7 * 24 * 60 * 60 * 1000 }, // 3 Castings/Woche pro Marke
+  // RN-7: eigener Topf — sonst blockiert ein Casting das Eröffnen der Monats-Challenges (und umgekehrt).
+  "challenge-open": { max: 6, windowMs: 7 * 24 * 60 * 60 * 1000 }, // 6 Creator-Challenges/Woche pro Marke
   "casting-submit": { max: 10, windowMs: 24 * 60 * 60 * 1000 }, // 10 Einreichungen/Tag pro Marke
   "casting-vote": { max: 40, windowMs: 60 * 60 * 1000 }, // 40 Casting-Stimmen/Stunde pro IP
   "creator-submit": { max: 10, windowMs: 24 * 60 * 60 * 1000 }, // 10 Creator-Videos/Tag pro Marke

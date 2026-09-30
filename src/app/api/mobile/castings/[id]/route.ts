@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { getCastingById } from "@/lib/casting";
-import { isUuid } from "@/lib/mobile-auth";
+import { isUuid, unauthorized } from "@/lib/mobile-auth";
+import { deleteCastingFor } from "@/lib/casting-manage";
 
 /**
  * RN-5d: ein Partner-Casting für die App — dieselben Daten und Regeln wie
@@ -36,4 +37,15 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     canSubmit: Boolean(viewerBrand) && !isHost && !hasSubmitted && stage.stage === "open",
     canVote: Boolean(viewer) && !isHost && !hasSubmitted && (stage.stage === "open" || stage.stage === "voting"),
   });
+}
+
+/** RN-7: eigenes Casting löschen (nur die Marke selbst). */
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const viewer = await getOptionalUser();
+  if (!viewer) return unauthorized();
+  const { id } = await params;
+  if (!isUuid(id)) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
+  const result = await deleteCastingFor(viewer, id);
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 403 });
+  return NextResponse.json({ ok: true });
 }
