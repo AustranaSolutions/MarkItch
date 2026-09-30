@@ -74,3 +74,11 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
     .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
   return rows.length;
 }
+
+/** Alle ungelesenen als gelesen markieren — Web-Action und App-Route (RN-5). */
+export async function markAllNotificationsReadFor(userId: string): Promise<void> {
+  await db
+    .update(notifications)
+    .set({ readAt: new Date() })
+    .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
+}

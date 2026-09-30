@@ -29,3 +29,14 @@ export async function getReminderUserIds(battleId: string): Promise<string[]> {
     .where(eq(battleReminders.battleId, battleId));
   return rows.map((r) => r.userId);
 }
+
+/** Erinnerung an/aus — gemeinsam genutzt von der Web-Action toggleReminder und der App-Route (RN-5). */
+export async function toggleReminderFor(userId: string, battleId: string): Promise<{ reminded: boolean }> {
+  if (await hasReminder(userId, battleId)) {
+    await db.delete(battleReminders).where(and(eq(battleReminders.userId, userId), eq(battleReminders.battleId, battleId)));
+    return { reminded: false };
+  }
+  // onConflictDoNothing: a double-click racing two requests shouldn't 500.
+  await db.insert(battleReminders).values({ userId, battleId }).onConflictDoNothing();
+  return { reminded: true };
+}

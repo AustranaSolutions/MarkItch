@@ -1,11 +1,8 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
 import { refresh } from "next/cache";
-import { db } from "@/db";
-import { battleReminders } from "@/db/schema";
 import { requireUser } from "@/lib/session";
-import { hasReminder } from "@/lib/reminder";
+import { toggleReminderFor } from "@/lib/reminder";
 
 export type ReminderFormState = { error?: string } | undefined;
 
@@ -17,13 +14,8 @@ export async function toggleReminder(_prevState: ReminderFormState, formData: Fo
     return { error: "Ungültige Anfrage." };
   }
 
-  const alreadySet = await hasReminder(user.id, battleId);
-  if (alreadySet) {
-    await db.delete(battleReminders).where(and(eq(battleReminders.userId, user.id), eq(battleReminders.battleId, battleId)));
-  } else {
-    // onConflictDoNothing: a double-click racing two requests shouldn't 500.
-    await db.insert(battleReminders).values({ userId: user.id, battleId }).onConflictDoNothing();
-  }
+  // RN-5: Logik in lib/reminder.ts, gemeinsam mit der App-Route.
+  await toggleReminderFor(user.id, battleId);
 
   refresh();
   return undefined;

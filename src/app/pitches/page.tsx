@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getAllBattles, resolveBattleVideos } from "@/lib/battle";
-import { getBattleStage } from "@/lib/battle-stage";
+import { getUpcomingBattles } from "@/lib/upcoming-battles";
 import { getOptionalUser } from "@/lib/session";
 import { getRemindedBattleIds } from "@/lib/reminder";
 import { ReminderButton } from "@/components/pitches/reminder-button";
@@ -38,21 +37,8 @@ function deadlineLabel(deadline: Date | null): string | null {
 // Feed = the only place to actually watch/vote/comment.
 export default async function PitchesPage() {
   const viewer = await getOptionalUser();
-  const battles = await getAllBattles();
+  const upcoming = await getUpcomingBattles();
   const remindedIds = viewer ? new Set(await getRemindedBattleIds(viewer.id)) : new Set<string>();
-
-  const upcoming = battles.filter((battle) => {
-    const { videoUrlA, videoUrlB } = resolveBattleVideos(battle);
-    const stage = getBattleStage({
-      brandAId: battle.brandAId,
-      brandBId: battle.brandBId,
-      hasVideoA: Boolean(videoUrlA),
-      hasVideoB: Boolean(videoUrlB),
-      productionDeadline: battle.productionDeadline,
-      votingEndsAt: battle.votingEndsAt,
-    });
-    return stage.stage === "awaiting_videos";
-  });
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
@@ -66,17 +52,8 @@ export default async function PitchesPage() {
         <p className="text-sm text-zinc-500">Gerade kommt nichts Neues — schau später wieder vorbei.</p>
       ) : (
         <ul className="space-y-3">
-          {upcoming.map((battle) => {
-            const { videoUrlA, videoUrlB } = resolveBattleVideos(battle);
-            const stage = getBattleStage({
-              brandAId: battle.brandAId,
-              brandBId: battle.brandBId,
-              hasVideoA: Boolean(videoUrlA),
-              hasVideoB: Boolean(videoUrlB),
-              productionDeadline: battle.productionDeadline,
-              votingEndsAt: battle.votingEndsAt,
-            });
-            const deadline = stage.stage === "awaiting_videos" ? deadlineLabel(stage.deadline) : null;
+          {upcoming.map(({ battle, deadline: productionDeadline }) => {
+            const deadline = deadlineLabel(productionDeadline);
 
             return (
               <li key={battle.id} className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
