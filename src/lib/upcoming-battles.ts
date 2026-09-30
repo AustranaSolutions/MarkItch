@@ -2,7 +2,7 @@ import "server-only";
 import { getAllBattles, resolveBattleVideos, type BattleWithBrands } from "@/lib/battle";
 import { getBattleStage } from "@/lib/battle-stage";
 
-export type UpcomingBattle = { battle: BattleWithBrands; deadline: Date | null };
+export type UpcomingBattle = { battle: BattleWithBrands; deadline: Date | null; waitingOnBrandIds: string[] };
 
 /**
  * Phase 10: every Duell still waiting on at least one video — the "kommt
@@ -22,7 +22,9 @@ export async function getUpcomingBattles(): Promise<UpcomingBattle[]> {
       productionDeadline: battle.productionDeadline,
       votingEndsAt: battle.votingEndsAt,
     });
-    if (stage.stage === "awaiting_videos") upcoming.push({ battle, deadline: stage.deadline });
+    if (stage.stage === "awaiting_videos") {
+      upcoming.push({ battle, deadline: stage.deadline, waitingOnBrandIds: stage.waitingOnBrandIds });
+    }
   }
   return upcoming;
 }
