@@ -239,6 +239,13 @@
       "when": 1790784370984,
       "tag": "0033_quick_night_nurse",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790790484316,
+      "tag": "0034_safe_masque",
+      "breakpoints": true
     }
   ]
 }
