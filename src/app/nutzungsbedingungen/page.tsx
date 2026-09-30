@@ -46,6 +46,19 @@ export default function NutzungsbedingungenPage() {
         </p>
       </Section>
 
+      <Section title="Verbotene Inhalte, Melden und Blockieren">
+        <p>
+          Anstößige, beleidigende, diskriminierende, gewaltverherrlichende, sexuell explizite oder anderweitig
+          rechtswidrige Inhalte und missbräuchliches Verhalten gegenüber anderen sind auf MarkItch nicht erlaubt —
+          dafür gilt null Toleranz.
+        </p>
+        <p>
+          Jedes Video, jede Reaktion und jeden Kommentar kannst du melden. Wir prüfen Meldungen in der Regel innerhalb
+          von 24 Stunden, entfernen unzulässige Inhalte und sperren die verantwortlichen Accounts. In der App
+          kannst du außerdem Marken und Nutzer:innen blockieren — ihre Inhalte werden dir dann nicht mehr angezeigt.
+        </p>
+      </Section>
+
       <Section title="Fairness beim Voting">
         <p>
           Manipulation ist verboten: Fake-Accounts, automatisiertes/gekauftes Voting, koordinierte Stimmabgabe
@@ -65,7 +78,7 @@ export default function NutzungsbedingungenPage() {
       <Section title="Sperrung und Kündigung">
         <p>
           Wir können Accounts bei Verstößen gegen diese Bedingungen sperren oder löschen. Du kannst dein Konto
-          jederzeit über die Kontaktadresse im Impressum löschen lassen.
+          jederzeit selbst in den Einstellungen löschen oder über die Kontaktadresse im Impressum löschen lassen.
         </p>
       </Section>
 
