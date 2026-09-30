@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
   if (!reactionId) {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
   }
-  const list = await getCommentsForReaction(reactionId);
+  const viewer = await getOptionalUser();
+  const list = await getCommentsForReaction(reactionId, viewer?.id ?? null);
   return NextResponse.json({ comments: list });
 }
 
@@ -56,6 +57,6 @@ export async function POST(request: NextRequest) {
   // No dedicated reaction deep-link exists yet — points at the pitch the
   // reaction belongs to instead of a dead link.
   await notifyUsers(memberIds, `${actor.label} hat deine Reaktion kommentiert.`, `/?pitch=${reaction.soloPitchId}`, viewer.id);
-  const list = await getCommentsForReaction(reactionId);
+  const list = await getCommentsForReaction(reactionId, viewer.id);
   return NextResponse.json({ comments: list });
 }

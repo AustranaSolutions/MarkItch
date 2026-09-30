@@ -48,7 +48,7 @@ export default async function PitchPage({ params }: { params: Promise<{ id: stri
 
   const isOwnBrandA = viewerBrand?.id === battle.brandAId;
   const isOwnBrandB = viewerBrand?.id === battle.brandBId;
-  const comments = await getCommentsForBattle(battle.id);
+  const comments = await getCommentsForBattle(battle.id, viewer?.id ?? null);
 
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-16">

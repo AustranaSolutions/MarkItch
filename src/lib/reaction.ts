@@ -7,6 +7,7 @@ import { activateBattleIfBothSidesReady } from "@/lib/battle-stage";
 import { DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
 import { getCommentCountsForReactions } from "@/lib/comment";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
+import { getBlockedIds } from "@/lib/block";
 
 export type ReactionBrand = { id: string; name: string; slug: string; logoUrl: string | null };
 
@@ -21,7 +22,7 @@ const brandCols = { id: brands.id, name: brands.name, slug: brands.slug, logoUrl
 
 /** Reactions to a solo pitch, best-liked first — "beste Antwort" per §6. */
 export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: string | null): Promise<ReactionWithBrand[]> {
-  const [allRows, autoHiddenIds] = await Promise.all([
+  const [allRows, autoHiddenIds, blocked] = await Promise.all([
     db
       .select({ reaction: reactions, brand: brandCols })
       .from(reactions)
@@ -29,9 +30,11 @@ export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: st
       .where(eq(reactions.soloPitchId, soloPitchId))
       .orderBy(desc(reactions.createdAt)),
     getAutoHiddenTargetIds(["reaction"]),
+    getBlockedIds(viewerId),
   ]);
   // Phase 46: siehe buildFeedDuels — mehrere unterschiedliche Meldende → automatisch pausiert.
-  const rows = allRows.filter((r) => !autoHiddenIds.has(r.reaction.id));
+  // RN-7: dazu Reaktionen blockierter Marken.
+  const rows = allRows.filter((r) => !autoHiddenIds.has(r.reaction.id) && !blocked.brandIds.has(r.brand.id));
   if (rows.length === 0) return [];
 
   const reactionIds = rows.map((r) => r.reaction.id);

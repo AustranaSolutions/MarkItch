@@ -444,6 +444,21 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
 
+// RN-7: Blockieren (App-Store-Richtlinie 1.2 für Nutzerinhalte). Immer
+// Konto → Konto; „Marke blockieren" legt je eine Zeile pro Mitglied dieser
+// Marke an. Wirkt nur für den Blockierenden: dessen Feed, Reaktionen und
+// Kommentare blenden die Inhalte der blockierten Konten aus (lib/block.ts).
+export const userBlocks = pgTable("user_blocks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  blockerUserId: uuid("blocker_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  blockedUserId: uuid("blocked_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [uniqueIndex("user_blocks_pair_unique_idx").on(table.blockerUserId, table.blockedUserId)]);
+
 // RN-6: Push-Kennungen der nativen App (Expo Push Service). Eigene Tabelle
 // statt push_subscriptions, weil Web-Push (VAPID: endpoint + Schlüssel) und
 // Expo (eine einzige Token-Zeichenkette) völlig verschiedene Daten sind.

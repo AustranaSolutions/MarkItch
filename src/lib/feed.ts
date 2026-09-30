@@ -14,6 +14,7 @@ import { getReactionCounts } from "@/lib/reaction";
 import { getActiveBoostedSoloPitchIds } from "@/lib/boost";
 import { getViewCountsForSoloPitches, getViewCountsForBattles } from "@/lib/analytics";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
+import { getBlockedIds } from "@/lib/block";
 
 // Phase 9.1 — one feed entry per Duell (battle), not per side.
 //
@@ -76,11 +77,14 @@ export type FeedDuel = {
 };
 
 async function buildFeedDuels(viewerId: string | null): Promise<FeedDuel[]> {
-  const [allBattles, autoHiddenBattleIds] = await Promise.all([
+  const [allBattles, autoHiddenBattleIds, blocked] = await Promise.all([
     getAllBattles(),
     getAutoHiddenTargetIds(["battle_a", "battle_b"]),
+    getBlockedIds(viewerId),
   ]);
   const eligible = allBattles.filter((battle) => {
+    // RN-7: Duelle mit einer blockierten Marke sieht der Blockierende nicht.
+    if (blocked.brandIds.has(battle.brandAId) || blocked.brandIds.has(battle.brandBId)) return false;
     // Phase 46: mehrere unterschiedliche Meldende → automatisch pausiert
     // bis zur Überprüfung (Rechtskonformitäts-Audit) — siehe
     // getAutoHiddenTargetIds für die Begründung.
@@ -289,9 +293,14 @@ export type FeedSoloPitch = {
 export type FeedItem = FeedDuel | FeedSoloPitch;
 
 async function buildFeedSoloPitches(viewerId: string | null): Promise<FeedSoloPitch[]> {
-  const [allPitches, autoHiddenIds] = await Promise.all([getAllSoloPitches(), getAutoHiddenTargetIds(["solo_pitch"])]);
+  const [allPitches, autoHiddenIds, blocked] = await Promise.all([
+    getAllSoloPitches(),
+    getAutoHiddenTargetIds(["solo_pitch"]),
+    getBlockedIds(viewerId),
+  ]);
   // Phase 46: siehe buildFeedDuels — mehrere unterschiedliche Meldende → automatisch pausiert.
-  const pitches = allPitches.filter((p) => !autoHiddenIds.has(p.id));
+  // RN-7: dazu alles von blockierten Marken.
+  const pitches = allPitches.filter((p) => !autoHiddenIds.has(p.id) && !blocked.brandIds.has(p.brandId));
   if (pitches.length === 0) return [];
 
   const ids = pitches.map((p) => p.id);
@@ -344,8 +353,9 @@ export type TrendingSoloPitch = { soloPitchId: string; brandName: string; brandS
  * viewer-specific follow/boost bonus) since this isn't the ranked "Für
  * dich"-Feed, just "what's hot right now" for anyone browsing.
  */
-export async function getTrendingSoloPitches(limit = 12): Promise<TrendingSoloPitch[]> {
-  const pitches = await buildFeedSoloPitches(null);
+export async function getTrendingSoloPitches(limit = 12, viewerId: string | null = null): Promise<TrendingSoloPitch[]> {
+  // viewerId nur, damit blockierte Marken auch hier fehlen (RN-7).
+  const pitches = await buildFeedSoloPitches(viewerId);
   const scored = pitches.map((pitch) => {
     const ageHours = Math.max(0, (Date.now() - new Date(pitch.createdAt).getTime()) / (60 * 60 * 1000));
     const engagement = pitch.likeCount + pitch.commentCount * 1.5 + pitch.reactionCount * 2;

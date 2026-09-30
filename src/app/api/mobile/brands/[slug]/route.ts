@@ -7,6 +7,7 @@ import { getBrandForUser } from "@/lib/brand";
 import { getBrandProfileExtras } from "@/lib/brand-profile";
 import { getFollowerCount, getFollowingCountForBrand, isFollowing } from "@/lib/follow";
 import { getFeedSoloPitchesForBrand, getFeedDuelsForBrand } from "@/lib/feed";
+import { getBlockedIds } from "@/lib/block";
 
 /**
  * RN-4: Markenprofil für die App — dieselben Daten wie die Seite
@@ -22,13 +23,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const viewer = await getOptionalUser();
   const viewerBrand = viewer ? await getBrandForUser(viewer.id) : null;
   const isOwnBrand = viewerBrand?.id === brand.id;
-  const [soloPitches, duels, followerCount, followingCount, viewerFollows, extras] = await Promise.all([
+  const [soloPitches, duels, followerCount, followingCount, viewerFollows, extras, blocked] = await Promise.all([
     getFeedSoloPitchesForBrand(viewer?.id ?? null, brand.id),
     getFeedDuelsForBrand(viewer?.id ?? null, brand.id),
     getFollowerCount(brand.id),
     getFollowingCountForBrand(brand.id),
     viewer && !isOwnBrand ? isFollowing(viewer.id, brand.id) : Promise.resolve(false),
     getBrandProfileExtras(brand, viewerBrand?.id ?? null, isOwnBrand),
+    getBlockedIds(viewer?.id ?? null),
   ]);
 
   return NextResponse.json({
@@ -58,6 +60,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     },
     // RN-5b: offene Einladung zwischen eigener und dieser Marke (für den „Duell einladen“-Knopf).
     viewerHasBrand: Boolean(viewerBrand),
+    // RN-7: Videos/Duelle sind dann schon leer (Feed-Filter), die App zeigt „Blockiert".
+    viewerBlocked: blocked.brandIds.has(brand.id),
     livePendingChallenge: extras.livePending
       ? { sentByViewer: extras.livePending.challengerBrandId === viewerBrand?.id }
       : null,

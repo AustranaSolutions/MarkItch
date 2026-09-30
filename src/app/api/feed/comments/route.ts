@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
   if (!battleId) {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
   }
-  const list = await getCommentsForBattle(battleId);
+  const viewer = await getOptionalUser();
+  const list = await getCommentsForBattle(battleId, viewer?.id ?? null);
   return NextResponse.json({ comments: list });
 }
 
@@ -58,6 +59,6 @@ export async function POST(request: NextRequest) {
     getActorLabel(viewer.id),
   ]);
   await notifyUsers([...memberIdsA, ...memberIdsB], `${actor.label} hat dein Duell kommentiert.`, `/?battle=${battleId}`, viewer.id);
-  const list = await getCommentsForBattle(battleId);
+  const list = await getCommentsForBattle(battleId, viewer.id);
   return NextResponse.json({ comments: list });
 }

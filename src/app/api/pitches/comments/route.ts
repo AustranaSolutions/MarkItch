@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
   if (!soloPitchId) {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
   }
-  const list = await getCommentsForSoloPitch(soloPitchId);
+  const viewer = await getOptionalUser();
+  const list = await getCommentsForSoloPitch(soloPitchId, viewer?.id ?? null);
   return NextResponse.json({ comments: list });
 }
 
@@ -50,6 +51,6 @@ export async function POST(request: NextRequest) {
   await db.insert(comments).values({ soloPitchId, userId: viewer.id, content });
   const [memberIds, actor] = await Promise.all([getBrandMemberUserIds(pitch.brandId), getActorLabel(viewer.id)]);
   await notifyUsers(memberIds, `${actor.label} hat deinen Pitch kommentiert.`, `/?pitch=${soloPitchId}`, viewer.id);
-  const list = await getCommentsForSoloPitch(soloPitchId);
+  const list = await getCommentsForSoloPitch(soloPitchId, viewer.id);
   return NextResponse.json({ comments: list });
 }
