@@ -28,6 +28,21 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "4mb",
     },
   },
+  // 2026-10-03 (Luca): name and concept must not be findable via search
+  // engines until domain/trademark are secured. X-Robots-Tag on every
+  // response keeps the site out of Google & co. without blocking anything
+  // else — browsers, the native app and its /api/mobile calls are
+  // unaffected. Deliberately NOT a robots.txt "Disallow": crawlers would
+  // then never fetch the pages and never see the noindex, so already-
+  // indexed URLs would stay in the results. Remove at public launch.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
