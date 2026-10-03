@@ -74,7 +74,7 @@ export function IncomingChallengeList({ challenges }: { challenges: ChallengeWit
           <li key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 p-3">
             <div>
               <BrandChip brand={c.otherBrand} />
-              <p className="mt-1 text-xs text-zinc-400">{c.category}</p>
+              {c.category ? <p className="mt-1 text-xs text-zinc-400">{c.category}</p> : null}
               {/* RN-7: Einladung auf einen Solo-Pitch / mit mitgeschicktem Video (bleibt verdeckt). */}
               {c.soloPitchId && <p className="mt-1 text-xs text-zinc-400">Auf deinen Solo-Pitch — dein Video ist schon drin.</p>}
               {c.challengerVideoUrl && (
@@ -108,7 +108,7 @@ export function OutgoingChallengeList({ challenges }: { challenges: ChallengeWit
           <li key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 p-3">
             <div>
               <BrandChip brand={c.otherBrand} />
-              <p className="mt-1 text-xs text-zinc-400">{c.category}</p>
+              {c.category ? <p className="mt-1 text-xs text-zinc-400">{c.category}</p> : null}
             </div>
             <div className="text-right">
               <StatusBadge status={status} battleId={c.battleId} />

@@ -68,7 +68,7 @@ export default async function PitchesPage() {
                     <BrandThumb brand={battle.brandB} />
                   </div>
                 </div>
-                <p className="mt-3 text-center text-xs text-zinc-500">{battle.category}</p>
+                {battle.category ? <p className="mt-3 text-center text-xs text-zinc-500">{battle.category}</p> : null}
                 <div className="mt-3 flex items-center justify-center gap-3">
                   {deadline && <span className="text-xs text-zinc-600">{deadline}</span>}
                   {viewer ? (

@@ -83,3 +83,11 @@ export async function markAllNotificationsReadFor(userId: string): Promise<void>
     .set({ readAt: new Date() })
     .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
 }
+
+/** Eine einzelne als gelesen markieren — beim Antippen in der App (Luca 03.10.). */
+export async function markNotificationReadFor(userId: string, notificationId: string): Promise<void> {
+  await db
+    .update(notifications)
+    .set({ readAt: new Date() })
+    .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId), isNull(notifications.readAt)));
+}

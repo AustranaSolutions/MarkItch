@@ -56,7 +56,7 @@ export default async function PitchPage({ params }: { params: Promise<{ id: stri
         <h1 className="text-2xl font-bold text-white">
           {battle.brandA.name} <span className="text-orange-500">vs</span> {battle.brandB.name}
         </h1>
-        <p className="mt-2 text-xs uppercase tracking-wide text-zinc-600">{battle.category}</p>
+        {battle.category ? <p className="mt-2 text-xs uppercase tracking-wide text-zinc-600">{battle.category}</p> : null}
       </div>
 
       {stage.stage === "awaiting_videos" && (

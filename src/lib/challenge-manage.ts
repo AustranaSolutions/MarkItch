@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { battles, challenges, soloPitches } from "@/db/schema";
 import { getBrandForUser, getBrandMemberUserIds } from "@/lib/brand";
 import { CHALLENGE_WINDOW_MS, effectiveStatus, getLivePendingChallengeBetween } from "@/lib/challenge";
-import { DUEL_CATEGORIES, PRODUCTION_WINDOW_MS, type DuelCategory } from "@/lib/battle-format";
+import { PRODUCTION_WINDOW_MS } from "@/lib/battle-format";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { getActorLabel, notifyUsers } from "@/lib/notification";
 import { activateBattleIfBothSidesReady } from "@/lib/battle-stage";
@@ -18,12 +18,20 @@ import { AudioRightsSchema } from "@/lib/validation";
 
 export type ChallengeResult = { ok: true; battleId?: string } | { ok: false; error: string };
 
-/** Shared by both "send a challenge" actions below. */
-function parseCategory(category: unknown): DuelCategory | { error: string } {
-  if (typeof category !== "string" || !DUEL_CATEGORIES.includes(category as DuelCategory)) {
-    return { error: "Bitte eine Kategorie wählen." };
+const MAX_CUSTOM_CATEGORY_LENGTH = 80;
+
+/**
+ * Shared by both "send a challenge" actions below. Seit Luca 03.10. sind die
+ * DUEL_CATEGORIES nur noch Vorschläge: leer = „Keine Kategorie“, sonst darf
+ * die Marke eine eigene Idee eintragen.
+ */
+function parseCategory(category: unknown): string | { error: string } {
+  if (typeof category !== "string") return { error: "Bitte eine Kategorie wählen." };
+  const trimmed = category.trim();
+  if (trimmed.length > MAX_CUSTOM_CATEGORY_LENGTH) {
+    return { error: `Die Kategorie darf maximal ${MAX_CUSTOM_CATEGORY_LENGTH} Zeichen haben.` };
   }
-  return category as DuelCategory;
+  return trimmed;
 }
 
 /**
@@ -75,7 +83,7 @@ export async function sendChallengeFor(
   }
 
   const category = parseCategory(input.category);
-  if (typeof category === "object") return { ok: false, error: category.error };
+  if (typeof category !== "string") return { ok: false, error: category.error };
 
   const challengerVideo = parseChallengerVideo(input.video);
   if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };
@@ -154,7 +162,7 @@ export async function sendChallengeFromSoloPitchFor(
   }
 
   const category = parseCategory(input.category);
-  if (typeof category === "object") return { ok: false, error: category.error };
+  if (typeof category !== "string") return { ok: false, error: category.error };
 
   const challengerVideo = parseChallengerVideo(input.video);
   if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };

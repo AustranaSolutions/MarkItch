@@ -359,6 +359,29 @@ export async function getFeedSoloPitchesForChallenge(viewerId: string | null, ch
     .sort((a, b) => b.likeCount - a.likeCount || a.createdAt.localeCompare(b.createdAt));
 }
 
+/**
+ * Luca 03.10.: Suche nach Produkten/Leistungen — durchsucht die Videos
+ * (Beschreibung, Link-Beschriftung) und als Rückfall Marke/Kategorie.
+ * Treffer im Video-Text zuerst, dann nach Likes und Aktualität.
+ */
+export async function searchSoloPitches(viewerId: string | null, rawQuery: string, limit = 30): Promise<FeedSoloPitch[]> {
+  const terms = rawQuery.toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return [];
+  const items = await buildFeedSoloPitches(viewerId);
+  const scored = items.flatMap((p) => {
+    const ownText = `${p.description ?? ""} ${p.ctaLabel ?? ""} ${p.context?.label ?? ""}`.toLowerCase();
+    const brandText = `${p.brandName} ${p.category}`.toLowerCase();
+    // Jedes Wort muss irgendwo vorkommen (UND-Suche).
+    if (!terms.every((t) => ownText.includes(t) || brandText.includes(t))) return [];
+    const ownHits = terms.filter((t) => ownText.includes(t)).length;
+    return [{ p, ownHits }];
+  });
+  scored.sort(
+    (a, b) => b.ownHits - a.ownHits || b.p.likeCount - a.p.likeCount || b.p.createdAt.localeCompare(a.p.createdAt),
+  );
+  return scored.slice(0, limit).map(({ p }) => p);
+}
+
 export type FeedPage = { items: FeedItem[]; total: number; followsAnyone?: boolean };
 
 export type TrendingSoloPitch = { soloPitchId: string; brandName: string; brandSlug: string; videoUrl: string; likeCount: number };
