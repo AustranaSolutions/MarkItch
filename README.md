@@ -2,21 +2,35 @@
 
 > Werbung wird zum Entertainment.
 
-Built phase by phase. **Done so far: Phase 1 (accounts), Phase 2 (brands), Phase 3
-(video), Phase 4 (challenges), Phase 5 (battle + follow/notify refinements), Phase 6
-(voting), Phase 7 (per-battle video, hidden results, open counters), Phase 8
-(Acro/Assent roles, Pitch vocabulary, comments), Phase 9/9.1 (TikTok-style Feed),
-Phase 10 (Pitches as preview, real notifications screen), Phase 11 (demo content,
-nav bugfix), Phase 12 (frozen result + continued voting + push notifications).**
+Ein Kurzvideo-Feed wie TikTok/Reels, in dem **nur Marken posten**. Sie treten
+gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreich.
 
-**Live:** https://market-matcher-neon.vercel.app
+**Live:** https://markitch.vercel.app · **Native App:** [AustranaSolutions/MarkItch-mobile](https://github.com/AustranaSolutions/MarkItch-mobile)
+
+## Stand (Oktober 2026)
+
+- **Web-App live**, alle Formate fertig:
+  - Solo-Pitch, Duell (7 Tage Abstimmung, Ergebnis verdeckt), Reaktion,
+  - Creator-Challenge (monatlich, meiste Likes gewinnen),
+  - Partner-Casting (Marken bewerben sich als Partner, Community wählt),
+  - Link-Knopf unter jedem Video, Folgen, Benachrichtigungen, Suche/Trends,
+  - Kommentare, Melden/Blockieren, Moderation, Marken-Statistik.
+- **Rollen:** *Acro* = Marken-Konto (darf posten), *Assent* = Zuschauer (schaut, stimmt ab, folgt).
+- **Dieses Repo ist auch das Backend der nativen App:** alle `/api/mobile/*`-Routen (Bearer-Token-Auth).
+- **Native iOS-App** (Expo/React Native) läuft auf Testgeräten. Für den App Store fehlt noch der Apple-Developer-Account.
+- **Boost** (19 € für 48 h Ranking-Bonus) ist gebaut, aber pausiert (`src/lib/feature-flags.ts`).
+- Noch keine echten Nutzer, getestet wird mit Demo-Marken.
 
 Stack: Next.js 16 (App Router, TypeScript) · Tailwind CSS 4 · Drizzle ORM · Postgres
-(Supabase) · Auth.js v5 (Credentials) · Resend.
+(Supabase) · Auth.js v5 (Credentials) · Supabase Storage für Videos · Vercel.
 
-Prisma was the originally planned ORM, but its engine binaries can't be downloaded in
-this build environment (blocked by network policy), so this project uses Drizzle
-instead — pure TypeScript, no binary engine, same relational-Postgres fit.
+**Schema-Änderungen in Produktion:** Migrationen liegen in `drizzle/`. Nach dem Deploy
+`/api/admin/migrate?key=<ADMIN_SEED_KEY>` aufrufen. Neue Spalten an bestehenden
+Tabellen in zwei Schritten ausrollen: erst nur die Migration pushen und ausführen,
+dann `schema.ts` und den Code.
+
+Abschnitt 3 unten ist die ursprüngliche Phasen-Historie (englisch, Phasen 1–12).
+Spätere Phasen sind dort nicht mehr nachgetragen; der aktuelle Funktionsumfang steht oben.
 
 ## 1. Local setup
 
@@ -88,7 +102,7 @@ That's enough to test the whole flow solo.
 
 More tables get added in later phases, on top of this.
 
-## 3. What's implemented
+## 3. What's implemented (Phasen-Historie 1–12)
 
 **Phase 1 — accounts:**
 
@@ -671,4 +685,4 @@ production:
 
 ## 6. Repo
 
-https://github.com/AventraLabs/market-matcher
+https://github.com/AustranaSolutions/MarkItch
