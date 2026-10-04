@@ -28,6 +28,7 @@ Stack: Next.js 16 (App Router, TypeScript) · Tailwind CSS 4 · Drizzle ORM · P
 `/api/admin/migrate?key=<ADMIN_SEED_KEY>` aufrufen. Neue Spalten an bestehenden
 Tabellen in zwei Schritten ausrollen: erst nur die Migration pushen und ausführen,
 dann `schema.ts` und den Code.
+Jede neue Tabelle bekommt in ihrer Migration sofort `ENABLE ROW LEVEL SECURITY` (siehe `drizzle/0036_enable_rls.sql`).
 
 Abschnitt 3 unten ist die ursprüngliche Phasen-Historie (englisch, Phasen 1–12).
 Spätere Phasen sind dort nicht mehr nachgetragen; der aktuelle Funktionsumfang steht oben.
