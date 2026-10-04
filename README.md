@@ -20,12 +20,13 @@ gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreic
 - **Native iOS-App** (Expo/React Native) läuft auf Testgeräten. Für den App Store fehlt noch der Apple-Developer-Account.
 - **Boost** (19 € für 48 h Ranking-Bonus) ist gebaut, aber pausiert (`src/lib/feature-flags.ts`).
 - Noch keine echten Nutzer, getestet wird mit Demo-Marken.
+- **Sicherheit:** RLS auf allen Tabellen, eindeutige Markennamen + Verifiziert-Haken (`/admin/brands`), Uploads pro Konto mit Dateityp-Prüfung und täglichem Aufräumen (`/api/cron/cleanup-uploads`, braucht `CRON_SECRET`), Admin-Routen nur per Header `x-admin-key`. Fahrplan: `MARKITCH-AUDIT-2026-10-04.md` (Desktop-Ordner).
 
 Stack: Next.js 16 (App Router, TypeScript) · Tailwind CSS 4 · Drizzle ORM · Postgres
 (Supabase) · Auth.js v5 (Credentials) · Supabase Storage für Videos · Vercel.
 
 **Schema-Änderungen in Produktion:** Migrationen liegen in `drizzle/`. Nach dem Deploy
-`/api/admin/migrate?key=<ADMIN_SEED_KEY>` aufrufen. Neue Spalten an bestehenden
+`curl -X POST -H "x-admin-key: <ADMIN_SEED_KEY>" https://markitch.vercel.app/api/admin/migrate` aufrufen (nur per Header, seit Oktober 2026). Neue Spalten an bestehenden
 Tabellen in zwei Schritten ausrollen: erst nur die Migration pushen und ausführen,
 dann `schema.ts` und den Code.
 Jede neue Tabelle bekommt in ihrer Migration sofort `ENABLE ROW LEVEL SECURITY` (siehe `drizzle/0036_enable_rls.sql`).
