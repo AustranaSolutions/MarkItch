@@ -267,6 +267,13 @@
       "when": 1791136078613,
       "tag": "0037_brand_verified",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791140090784,
+      "tag": "0038_challenge_production_days",
+      "breakpoints": true
     }
   ]
 }
