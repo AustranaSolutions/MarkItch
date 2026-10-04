@@ -162,6 +162,11 @@ export const challenges = pgTable(
     challengerCtaLabel: text("challenger_cta_label"),
     challengerCtaUrl: text("challenger_cta_url"),
     challengerContainsAiContent: boolean("challenger_contains_ai_content").notNull().default(false),
+    // Phase B (Luca 04.10.): Frist zum Filmen nach dem Annehmen, gewählt von
+    // der einladenden Marke — 3, 7, 14 oder 30 Tage (30 = große Ankündigung,
+    // „wie vor einem Boxkampf“). Die eingeladene Marke sieht sie vor dem
+    // Annehmen. Null (Altbestand) = 14 Tage wie bisher.
+    productionDays: integer("production_days"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

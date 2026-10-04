@@ -22,7 +22,11 @@ export async function getUpcomingBattles(): Promise<UpcomingBattle[]> {
       productionDeadline: battle.productionDeadline,
       votingEndsAt: battle.votingEndsAt,
     });
-    if (stage.stage === "awaiting_videos") {
+    // Audit M1: Altbestand von vor den Produktionsfristen (scheduled ohne
+    // Frist, Videos kommen aus dem Markenprofil) kann nie mehr fertig werden —
+    // sonst stünde er ewig als „Video fehlt noch“ bzw. ohne Datum im Pitches-Tab.
+    const isLegacyRow = battle.mode === "scheduled" && battle.productionDeadline === null;
+    if (stage.stage === "awaiting_videos" && !isLegacyRow) {
       upcoming.push({ battle, deadline: stage.deadline, waitingOnBrandIds: stage.waitingOnBrandIds });
     }
   }

@@ -21,6 +21,23 @@ export type ChallengeResult = { ok: true; battleId?: string } | { ok: false; err
 const MAX_CUSTOM_CATEGORY_LENGTH = 80;
 
 /**
+ * Phase B (Luca 04.10.): Frist zum Filmen nach dem Annehmen. Unter 3 Tagen
+ * gibt es nicht — sonst bliebe der anderen Marke keine faire Zeit. Ohne
+ * Angabe (ältere App, Web) wie bisher 14 Tage.
+ */
+export const PRODUCTION_DAY_OPTIONS = [3, 7, 14, 30] as const;
+const DEFAULT_PRODUCTION_DAYS = 14;
+
+function parseProductionDays(raw: unknown): number | { error: string } {
+  if (raw === undefined || raw === null || raw === "") return DEFAULT_PRODUCTION_DAYS;
+  const days = typeof raw === "number" ? raw : Number(raw);
+  if (!(PRODUCTION_DAY_OPTIONS as readonly number[]).includes(days)) {
+    return { error: "Bitte eine Frist von 3, 7, 14 oder 30 Tagen wählen." };
+  }
+  return days;
+}
+
+/**
  * Shared by both "send a challenge" actions below. Seit Luca 03.10. sind die
  * DUEL_CATEGORIES nur noch Vorschläge: leer = „Keine Kategorie“, sonst darf
  * die Marke eine eigene Idee eintragen.
@@ -65,7 +82,7 @@ async function parseChallengerVideo(
 /** Brand A challenges Brand B. Triggered from B's public profile page. */
 export async function sendChallengeFor(
   user: { id: string },
-  input: { challengedBrandId: unknown; category: unknown; video?: FormData | null },
+  input: { challengedBrandId: unknown; category: unknown; productionDays?: unknown; video?: FormData | null },
 ): Promise<ChallengeResult> {
   const challengedBrandId = input.challengedBrandId;
   if (typeof challengedBrandId !== "string" || !challengedBrandId) {
@@ -87,6 +104,8 @@ export async function sendChallengeFor(
 
   const category = parseCategory(input.category);
   if (typeof category !== "string") return { ok: false, error: category.error };
+  const productionDays = parseProductionDays(input.productionDays);
+  if (typeof productionDays !== "number") return { ok: false, error: productionDays.error };
 
   const challengerVideo = await parseChallengerVideo(input.video, user.id);
   if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };
@@ -100,6 +119,7 @@ export async function sendChallengeFor(
     challengerBrandId: myBrand.id,
     challengedBrandId,
     category,
+    productionDays,
     status: "pending",
     expiresAt: new Date(Date.now() + CHALLENGE_WINDOW_MS),
     ...challengerVideo,
@@ -139,7 +159,7 @@ async function notifyChallenge(challengedBrandId: string, challengerUserId: stri
  */
 export async function sendChallengeFromSoloPitchFor(
   user: { id: string },
-  input: { soloPitchId: unknown; category: unknown; video?: FormData | null },
+  input: { soloPitchId: unknown; category: unknown; productionDays?: unknown; video?: FormData | null },
 ): Promise<ChallengeResult> {
   const soloPitchId = input.soloPitchId;
   if (typeof soloPitchId !== "string" || !soloPitchId) {
@@ -166,6 +186,8 @@ export async function sendChallengeFromSoloPitchFor(
 
   const category = parseCategory(input.category);
   if (typeof category !== "string") return { ok: false, error: category.error };
+  const productionDays = parseProductionDays(input.productionDays);
+  if (typeof productionDays !== "number") return { ok: false, error: productionDays.error };
 
   const challengerVideo = await parseChallengerVideo(input.video, user.id);
   if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };
@@ -180,6 +202,7 @@ export async function sendChallengeFromSoloPitchFor(
     challengedBrandId: pitch.brandId,
     soloPitchId: pitch.id,
     category,
+    productionDays,
     status: "pending",
     expiresAt: new Date(Date.now() + CHALLENGE_WINDOW_MS),
     ...challengerVideo,
@@ -312,7 +335,9 @@ export async function respondToChallengeFor(
         brandBId: challenge.challengedBrandId,
         mode: "scheduled",
         category: challenge.category,
-        productionDeadline: new Date(Date.now() + PRODUCTION_WINDOW_MS),
+        productionDeadline: new Date(
+          Date.now() + (challenge.productionDays ? challenge.productionDays * 24 * 60 * 60 * 1000 : PRODUCTION_WINDOW_MS),
+        ),
         ...prefilledBrandBVideo,
         ...prefilledBrandAVideo,
       })

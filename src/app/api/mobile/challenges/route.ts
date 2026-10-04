@@ -26,6 +26,8 @@ function toJson(c: ChallengeWithBrand, pitchById: Map<string, { id: string; desc
     soloPitch: c.soloPitchId ? (pitchById.get(c.soloPitchId) ?? null) : null,
     // Nur DASS das Video der einladenden Marke da ist — nie die Adresse (bleibt verdeckt).
     hasChallengerVideo: Boolean(c.challengerVideoUrl),
+    // Phase B: Frist zum Filmen nach dem Annehmen (Altbestand: 14).
+    productionDays: c.productionDays ?? 14,
   };
 }
 
@@ -80,8 +82,18 @@ export async function POST(request: NextRequest) {
     if (body.containsAiContent === true) video.set("containsAiContent", "on");
   }
   const result = body.soloPitchId
-    ? await sendChallengeFromSoloPitchFor(viewer, { soloPitchId: body.soloPitchId, category: body.category, video })
-    : await sendChallengeFor(viewer, { challengedBrandId: body.challengedBrandId, category: body.category, video });
+    ? await sendChallengeFromSoloPitchFor(viewer, {
+        soloPitchId: body.soloPitchId,
+        category: body.category,
+        productionDays: body.productionDays,
+        video,
+      })
+    : await sendChallengeFor(viewer, {
+        challengedBrandId: body.challengedBrandId,
+        category: body.category,
+        productionDays: body.productionDays,
+        video,
+      });
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true }, { status: 201 });
 }

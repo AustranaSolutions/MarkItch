@@ -12,9 +12,25 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const battle = await getBattleById(id);
   if (!battle) return {};
+  // Audit (Kleinfehler): „Wer hat gewonnen?“ nur, wenn das Duell wirklich vorbei ist.
+  const { videoUrlA, videoUrlB } = resolveBattleVideos(battle);
+  const stage = getBattleStage({
+    brandAId: battle.brandAId,
+    brandBId: battle.brandBId,
+    hasVideoA: Boolean(videoUrlA),
+    hasVideoB: Boolean(videoUrlB),
+    productionDeadline: battle.productionDeadline,
+    votingEndsAt: battle.votingEndsAt,
+  });
+  const description =
+    stage.stage === "finished"
+      ? "Wer hat gewonnen? Jetzt auf MarkItch ansehen."
+      : stage.stage === "voting"
+        ? "Das Duell läuft — schau beide Videos an und stimm mit ab."
+        : "Dieses Duell startet bald — sei dabei, wenn es losgeht.";
   return {
     title: `${battle.brandA.name} vs. ${battle.brandB.name} — MarkItch`,
-    description: "Wer hat gewonnen? Jetzt auf MarkItch ansehen und mitentscheiden.",
+    description,
   };
 }
 
