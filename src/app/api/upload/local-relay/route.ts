@@ -21,7 +21,8 @@ export async function PUT(request: NextRequest) {
   // Only ever a key this same app just generated (randomUUID-based, see
   // createVideoUploadTarget) — reject anything that looks like it's trying
   // to escape the uploads directory.
-  if (!key || key.includes("..") || key.startsWith("/")) {
+  // Audit 04.10. (M5): nur in den eigenen Ordner (<folder>/<userId>/…).
+  if (!key || key.includes("..") || key.startsWith("/") || key.split("/")[1] !== viewer.id) {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 

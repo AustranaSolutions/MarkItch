@@ -42,7 +42,7 @@ export async function submitBattleVideoFor(
     return { ok: false, error: "Die Frist für diesen Pitch ist abgelaufen." };
   }
 
-  const video = readVideoUrlField(formData, "battle-videos");
+  const video = await readVideoUrlField(formData, "battle-videos", user.id);
   if ("error" in video) {
     return { ok: false, error: video.error };
   }

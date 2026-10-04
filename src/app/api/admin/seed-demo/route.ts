@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { seedDemoContent } from "@/lib/seed-demo-data";
+import { checkAdminKey } from "@/lib/admin-key";
 
 // Phase 12: a browser-visitable way to (re)seed demo content — the point is
 // specifically that populating a fresh Vercel deployment's prod database
@@ -14,19 +15,15 @@ import { seedDemoContent } from "@/lib/seed-demo-data";
 // app yet, and the operation is scoped to fully namespaced, disposable demo
 // rows (see seedDemoContent), so a leaked key's worst case is someone
 // re-rolling the demo dataset, not touching real data.
-export async function GET(request: NextRequest) {
-  const key = request.nextUrl.searchParams.get("key");
-  const expected = process.env.ADMIN_SEED_KEY;
-
-  if (!expected) {
-    return new NextResponse(
-      "ADMIN_SEED_KEY ist in den Vercel-Umgebungsvariablen nicht gesetzt — siehe README §5.",
-      { status: 500 },
-    );
+// Audit 04.10. (M9): per POST mit Header x-admin-key, und in Produktion
+// gesperrt — dort würde es Demo-Marken wieder anlegen, die vor dem Launch
+// bewusst entfernt werden sollen.
+export async function POST(request: NextRequest) {
+  if (process.env.VERCEL_ENV === "production") {
+    return new NextResponse("In Produktion gesperrt.", { status: 403 });
   }
-  if (key !== expected) {
-    return new NextResponse("Falscher oder fehlender Key.", { status: 403 });
-  }
+  const denied = checkAdminKey(request);
+  if (denied) return denied;
 
   try {
     const result = await seedDemoContent(db);

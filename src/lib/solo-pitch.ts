@@ -13,11 +13,12 @@ export type SoloPitchBrand = {
   name: string;
   slug: string;
   logoUrl: string | null;
+  verifiedAt: Date | null;
 };
 
 export type SoloPitchWithBrand = SoloPitch & { brand: SoloPitchBrand };
 
-const brandCols = { id: brands.id, name: brands.name, slug: brands.slug, logoUrl: brands.logoUrl };
+const brandCols = { id: brands.id, name: brands.name, slug: brands.slug, logoUrl: brands.logoUrl, verifiedAt: brands.verifiedAt };
 
 export async function getAllSoloPitches(): Promise<SoloPitchWithBrand[]> {
   const rows = await db
@@ -131,7 +132,7 @@ export async function createSoloPitchForUser(
   const myBrand = await getBrandForUser(userId);
   if (!myBrand) return { ok: false, errors: { _form: ["Du musst zuerst eine Marke erstellen."] } };
 
-  const video = readVideoUrlField(formData, "solo-pitch-videos");
+  const video = await readVideoUrlField(formData, "solo-pitch-videos", userId);
   if ("error" in video) return { ok: false, errors: { video: [video.error] } };
 
   const description = validateDescription(formData.get("description"));

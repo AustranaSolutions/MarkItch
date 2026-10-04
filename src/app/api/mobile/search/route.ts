@@ -24,10 +24,14 @@ export async function GET(request: NextRequest) {
         category: brands.category,
         description: brands.description,
         logoUrl: brands.logoUrl,
+        verifiedAt: brands.verifiedAt,
       })
       .from(brands)
       .orderBy(desc(brands.createdAt)),
     getTrendingSoloPitches(12, viewer?.id ?? null),
   ]);
-  return NextResponse.json({ brands: allBrands, trending });
+  return NextResponse.json({
+    brands: allBrands.map(({ verifiedAt, ...b }) => ({ ...b, verified: verifiedAt !== null })),
+    trending,
+  });
 }

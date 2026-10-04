@@ -40,6 +40,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       name: brand.name,
       logoUrl: brand.logoUrl,
       description: brand.description,
+      // Audit 04.10. (C1): vom Betreiber geprüft → Haken am Namen.
+      verified: brand.verifiedAt !== null,
     },
     isOwnBrand,
     viewerFollows,

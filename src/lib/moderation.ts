@@ -1,5 +1,5 @@
 import "server-only";
-import { and, countDistinct, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, countDistinct, desc, eq, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { requireUser } from "@/lib/session";
@@ -112,6 +112,12 @@ export async function submitReport(input: {
 // "un-hide"-Logik.
 export const AUTO_HIDE_REPORT_THRESHOLD = 3;
 
+// Audit 04.10. (H4): Nur Meldungen von Konten, die mindestens so alt sind,
+// zählen für das automatische Pausieren — sonst könnte eine Marke das Video
+// des Gegners mit drei frisch angelegten Konten aus dem Feed nehmen. Jede
+// Meldung landet trotzdem in der Admin-Liste.
+export const AUTO_HIDE_MIN_ACCOUNT_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
  * IDs, die für einen oder mehrere targetTypes mindestens
  * AUTO_HIDE_REPORT_THRESHOLD offene Meldungen von unterschiedlichen Nutzern
@@ -128,7 +134,14 @@ export async function getAutoHiddenTargetIds(
   const rows = await db
     .select({ targetId: reports.targetId, n: countDistinct(reports.reporterUserId) })
     .from(reports)
-    .where(and(inArray(reports.targetType, targetTypes), eq(reports.status, "open")))
+    .innerJoin(users, eq(reports.reporterUserId, users.id))
+    .where(
+      and(
+        inArray(reports.targetType, targetTypes),
+        eq(reports.status, "open"),
+        lte(users.createdAt, new Date(Date.now() - AUTO_HIDE_MIN_ACCOUNT_AGE_MS)),
+      ),
+    )
     .groupBy(reports.targetId)
     .having(sql`count(distinct ${reports.reporterUserId}) >= ${minDistinctReporters}`);
   return new Set(rows.map((r) => r.targetId));

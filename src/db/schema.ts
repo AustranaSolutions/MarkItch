@@ -85,6 +85,9 @@ export const brands = pgTable(
     // weil vor dieser Migration erstellte Marken das nie bestätigt haben —
     // absichtlich nicht rückwirkend gesetzt.
     industryComplianceConfirmedAt: timestamp("industry_compliance_confirmed_at", { withTimezone: true }),
+    // Audit 04.10. (C1): vom Betreiber geprüft (echte Marke, echter Inhaber) —
+    // vergeben im Admin-Bereich /admin/brands, angezeigt als Haken am Namen.
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
     // Phase 3: one showcase video per brand for now. A brand's actual
     // battle submissions get their own table once Phase 4/5 need it — this
     // column is just "the video on my public profile".

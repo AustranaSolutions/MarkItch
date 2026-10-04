@@ -78,7 +78,7 @@ export async function postReactionFor(user: { id: string }, formData: FormData):
     return { ok: false, error: RATE_LIMIT_MESSAGE };
   }
 
-  const video = readVideoUrlField(formData, "reaction-videos");
+  const video = await readVideoUrlField(formData, "reaction-videos", user.id);
   if ("error" in video) {
     return { ok: false, error: video.error };
   }

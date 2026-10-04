@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { createVideoUploadTarget } from "@/lib/storage";
 import { ALLOWED_VIDEO_TYPES, VIDEO_UPLOAD_FOLDERS, type VideoUploadFolder } from "@/lib/video-constants";
 
@@ -26,8 +27,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Erlaubt: MP4, WEBM oder MOV." }, { status: 400 });
   }
 
+  // Audit 04.10. (H5): jede Adresse kann eine Datei im Speicher hinterlassen.
+  const { allowed } = await checkRateLimit("upload-prepare", viewer.id);
+  if (!allowed) return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+
   try {
-    const target = await createVideoUploadTarget(folder as VideoUploadFolder, contentType);
+    const target = await createVideoUploadTarget(folder as VideoUploadFolder, contentType, viewer.id);
     return NextResponse.json(target);
   } catch (err) {
     console.error("[upload/prepare]", err);

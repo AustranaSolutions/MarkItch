@@ -25,7 +25,9 @@ export type RateLimitBucket =
   | "creator-submit"
   | "creator-vote"
   | "report"
-  | "boost-request";
+  | "boost-request"
+  | "analytics"
+  | "upload-prepare";
 
 const LIMITS: Record<RateLimitBucket, { max: number; windowMs: number }> = {
   register: { max: 5, windowMs: 60 * 60 * 1000 }, // 5 Registrierungen/Stunde pro IP
@@ -43,6 +45,10 @@ const LIMITS: Record<RateLimitBucket, { max: number; windowMs: number }> = {
   "creator-vote": { max: 40, windowMs: 60 * 60 * 1000 }, // 40 Creator-Chart-Stimmen/Stunde pro IP
   report: { max: 20, windowMs: 60 * 60 * 1000 }, // 20 Meldungen/Stunde pro Nutzer
   "boost-request": { max: 5, windowMs: 60 * 60 * 1000 }, // 5 Boost-Anfragen/Stunde pro Marke
+  // Audit 04.10.: Aufrufe/Link-Klicks sind die Zahlen, für die Marken zahlen sollen → nicht beliebig aufblasbar.
+  analytics: { max: 300, windowMs: 60 * 60 * 1000 }, // 300 Bündel (je ≤ 20 Ereignisse)/Stunde pro IP
+  // Audit 04.10. (H5): jede Upload-Adresse kann eine Datei im kostenlosen Speicher hinterlassen.
+  "upload-prepare": { max: 30, windowMs: 60 * 60 * 1000 }, // 30 Upload-Adressen/Stunde pro Nutzer
 };
 
 /**

@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { brands, brandMembers, users } from "@/db/schema";
 import { getBrandForUser } from "@/lib/brand";
@@ -44,6 +44,24 @@ async function uniqueSlug(name: string): Promise<string> {
   }
 }
 
+/**
+ * Audit 04.10. (C1): Ein Markenname darf nur einmal vorkommen — sonst kann
+ * sich jemand als „Sprintex“ ausgeben. Verglichen wird ohne Groß-/Klein-
+ * schreibung, Leerzeichen und Satzzeichen („Sprint-Ex“ = „sprintex“).
+ */
+async function nameTaken(name: string, exceptBrandId?: string): Promise<boolean> {
+  const normalized = name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  const sameName = sql`regexp_replace(lower(${brands.name}), '[^[:alnum:]]', '', 'g') = ${normalized}`;
+  const [clash] = await db
+    .select({ id: brands.id })
+    .from(brands)
+    .where(exceptBrandId ? and(sameName, ne(brands.id, exceptBrandId)) : sameName)
+    .limit(1);
+  return Boolean(clash);
+}
+
+const NAME_TAKEN_ERROR = "Diesen Markennamen gibt es schon. Wenn das deine Marke ist, melde dich bei uns.";
+
 function parseBrand(input: BrandInput) {
   return CreateBrandSchema.safeParse({
     name: input.name,
@@ -76,6 +94,8 @@ export async function createBrandForUser(
 
   const parsed = parseBrand(input);
   if (!parsed.success) return { ok: false, errors: parsed.error.flatten().fieldErrors as FieldErrors };
+
+  if (await nameTaken(parsed.data.name)) return { ok: false, errors: { name: [NAME_TAKEN_ERROR] } };
 
   // Phase 46: Branchen-Compliance-Attestierung, nur bei der Erstellung.
   const compliance = IndustryComplianceSchema.safeParse({ industryCompliance: input.industryCompliance });
@@ -116,6 +136,7 @@ export async function updateBrandForUser(
 
   const parsed = parseBrand(input);
   if (!parsed.success) return { ok: false, errors: parsed.error.flatten().fieldErrors as FieldErrors };
+  if (await nameTaken(parsed.data.name, brand.id)) return { ok: false, errors: { name: [NAME_TAKEN_ERROR] } };
 
   const logo = await uploadLogoIfAny(input.logo);
   if ("errors" in logo) return { ok: false, errors: logo.errors };

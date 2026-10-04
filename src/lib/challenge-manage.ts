@@ -43,9 +43,12 @@ type ChallengerVideo =
   | { challengerVideoUrl: string; challengerCtaLabel: string; challengerCtaUrl: string; challengerContainsAiContent: boolean }
   | Record<string, never>;
 
-function parseChallengerVideo(video: FormData | null | undefined): ChallengerVideo | { error: string } {
+async function parseChallengerVideo(
+  video: FormData | null | undefined,
+  userId: string,
+): Promise<ChallengerVideo | { error: string }> {
   if (!video || !video.get("videoUrl")) return {};
-  const parsed = readVideoUrlField(video, "battle-videos");
+  const parsed = await readVideoUrlField(video, "battle-videos", userId);
   if ("error" in parsed) return { error: parsed.error };
   const cta = validateCtaLink(video);
   if ("errors" in cta) return { error: Object.values(cta.errors)[0]![0] };
@@ -85,7 +88,7 @@ export async function sendChallengeFor(
   const category = parseCategory(input.category);
   if (typeof category !== "string") return { ok: false, error: category.error };
 
-  const challengerVideo = parseChallengerVideo(input.video);
+  const challengerVideo = await parseChallengerVideo(input.video, user.id);
   if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };
 
   const { allowed } = await checkRateLimit("challenge", myBrand.id);
@@ -164,7 +167,7 @@ export async function sendChallengeFromSoloPitchFor(
   const category = parseCategory(input.category);
   if (typeof category !== "string") return { ok: false, error: category.error };
 
-  const challengerVideo = parseChallengerVideo(input.video);
+  const challengerVideo = await parseChallengerVideo(input.video, user.id);
   if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };
 
   const { allowed } = await checkRateLimit("challenge", myBrand.id);

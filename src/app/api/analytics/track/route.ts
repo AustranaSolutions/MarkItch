@@ -3,13 +3,14 @@ import { inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { brands } from "@/db/schema";
 import { recordAnalyticsEvents, type AnalyticsEventInput, type AnalyticsEventKind } from "@/lib/analytics";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 /**
  * View/share tracking — deliberately open to anyone, logged-in or not (a
  * view happens just by scrolling past a video, no account needed). Low
  * stakes if gamed (a few inflated view counts, not a vote or a Duell
- * outcome), so unlike vote/register this isn't rate-limited — see
- * src/lib/rate-limit.ts's bucket list for what actually needs it.
+ * outcome). Seit dem Audit 04.10. (M8) trotzdem pro IP begrenzt: genau
+ * diese Zahlen sollen Marken später bezahlen, und jedes Bündel ist Schreiblast.
  *
  * Phase 48: nimmt jetzt ein Bündel `{ events: [...] }` entgegen (siehe
  * analytics-client.ts) statt eines einzelnen Events — eine Validierungs-Query
@@ -33,6 +34,10 @@ function parseEvent(raw: unknown): AnalyticsEventInput | null {
 }
 
 export async function POST(request: NextRequest) {
+  const { allowed } = await checkRateLimit("analytics", await getClientIp(request));
+  // Still verwerfen — der Client wiederholt nicht und braucht keine Fehlermeldung.
+  if (!allowed) return NextResponse.json({ ok: false }, { status: 429 });
+
   const body = await request.json().catch(() => null);
   const rawEvents: unknown[] = Array.isArray(body?.events) ? body.events : [body];
   const events: AnalyticsEventInput[] = rawEvents

@@ -105,6 +105,14 @@ export async function castVoteForUser(
     return { error: "Ungültige Marke für diesen Pitch." };
   }
 
+  // Audit 04.10. (H1): Abstimmen erst, wenn beide Videos da sind — sonst
+  // ließen sich per direktem API-Aufruf schon vor dem Start Stimmen sammeln.
+  // Altbestand ohne Produktionsfrist nutzt die Profilvideos (resolveBattleVideos).
+  const isLegacyRow = battle.mode === "scheduled" && battle.productionDeadline === null;
+  if (!isLegacyRow && (!battle.brandAVideoUrl || !battle.brandBVideoUrl)) {
+    return { error: "Abstimmen ist erst möglich, wenn beide Videos da sind." };
+  }
+
   const [ownMembership] = await db
     .select({ brandId: brandMembers.brandId })
     .from(brandMembers)

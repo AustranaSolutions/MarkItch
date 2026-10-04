@@ -8,6 +8,7 @@ type BattleBrand = {
   name: string;
   slug: string;
   logoUrl: string | null;
+  verifiedAt: Date | null;
   videoUrl: string | null;
   website: string | null;
 };
@@ -40,6 +41,7 @@ const brandCols = {
   name: brands.name,
   slug: brands.slug,
   logoUrl: brands.logoUrl,
+  verifiedAt: brands.verifiedAt,
   videoUrl: brands.videoUrl,
   website: brands.website,
 };

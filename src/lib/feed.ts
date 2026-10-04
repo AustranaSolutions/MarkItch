@@ -35,6 +35,8 @@ export type FeedDuelSide = {
   brandName: string;
   brandSlug: string;
   brandLogoUrl: string | null;
+  /** Audit 04.10. (C1): vom Betreiber verifizierte Marke. */
+  brandVerified: boolean;
   videoUrl: string;
   likeCount: number;
   viewerLiked: boolean;
@@ -191,6 +193,7 @@ async function buildFeedDuels(viewerId: string | null): Promise<FeedDuel[]> {
         brandName: brand.name,
         brandSlug: brand.slug,
         brandLogoUrl: brand.logoUrl,
+        brandVerified: brand.verifiedAt !== null,
         videoUrl: videoUrls[i]!,
         likeCount: likeCounts.get(key) ?? 0,
         viewerLiked: viewerLikedKeys.has(key),
@@ -270,6 +273,8 @@ export type FeedSoloPitch = {
   brandName: string;
   brandSlug: string;
   brandLogoUrl: string | null;
+  /** Audit 04.10. (C1): vom Betreiber verifizierte Marke. */
+  brandVerified: boolean;
   videoUrl: string;
   /** Phase 30: null only for content posted before this existed. */
   description: string | null;
@@ -332,6 +337,7 @@ async function buildFeedSoloPitches(viewerId: string | null): Promise<FeedSoloPi
     brandName: pitch.brand.name,
     brandSlug: pitch.brand.slug,
     brandLogoUrl: pitch.brand.logoUrl,
+    brandVerified: pitch.brand.verifiedAt !== null,
     videoUrl: pitch.videoUrl,
     description: pitch.description,
     likeCount: likeCounts.get(pitch.id) ?? 0,

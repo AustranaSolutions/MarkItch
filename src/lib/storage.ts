@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "crypto";
-import { writeFile, mkdir } from "fs/promises";
+import { mkdir, open as openFile, writeFile } from "fs/promises";
 import path from "path";
 import { VIDEO_EXTENSION_BY_MIME_TYPE, type VideoUploadFolder } from "@/lib/video-constants";
 
@@ -74,9 +74,15 @@ async function uploadToSupabase(key: string, bytes: Buffer, contentType: string)
 // the resulting URL (a few bytes) ever goes through a Server Action.
 export type VideoUploadTarget = { uploadUrl: string; publicUrl: string };
 
-export async function createVideoUploadTarget(folder: VideoUploadFolder, contentType: string): Promise<VideoUploadTarget> {
+// Audit 04.10. (M5): die Konto-ID steckt im Pfad, damit beim Einreichen
+// geprüft werden kann, dass die Datei vom selben Konto hochgeladen wurde.
+export async function createVideoUploadTarget(
+  folder: VideoUploadFolder,
+  contentType: string,
+  userId: string,
+): Promise<VideoUploadTarget> {
   const extension = VIDEO_EXTENSION_BY_MIME_TYPE[contentType] ?? "bin";
-  const key = `${folder}/${randomUUID()}.${extension}`;
+  const key = `${folder}/${userId}/${randomUUID()}.${extension}`;
 
   if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/upload/sign/${SUPABASE_BUCKET}/${key}`, {
@@ -104,22 +110,58 @@ export async function createVideoUploadTarget(folder: VideoUploadFolder, content
   };
 }
 
-/** Every server action that accepts a client-supplied videoUrl checks this before trusting it — rejects an arbitrary external URL. */
-export function isOwnVideoUrl(url: string, folder: VideoUploadFolder): boolean {
-  if (url.startsWith(`/uploads/${folder}/`)) return true;
-  if (SUPABASE_URL && url.startsWith(`${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${folder}/`)) return true;
+/** Every server action that accepts a client-supplied videoUrl checks this before trusting it — rejects an arbitrary external URL and (Audit 04.10., M5) videos another account uploaded. */
+export function isOwnVideoUrl(url: string, folder: VideoUploadFolder, userId: string): boolean {
+  const prefix = `${folder}/${userId}/`;
+  if (url.startsWith(`/uploads/${prefix}`)) return true;
+  if (SUPABASE_URL && url.startsWith(`${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${prefix}`)) return true;
   return false;
 }
 
-/** Every video-upload action's first step now — reads the client-uploaded videoUrl instead of a File, still refusing anything that isn't actually ours. */
-export function readVideoUrlField(
+/**
+ * Audit 04.10. (H5): Ist unter der URL wirklich ein Video? Liest nur die
+ * ersten Bytes — MP4/MOV haben bei Byte 4 eine bekannte Box („ftyp“ u. a.),
+ * WebM beginnt mit 1A 45 DF A3. Fängt z. B. eine als .mp4 hochgeladene
+ * HTML-Datei ab.
+ */
+async function readFirstBytes(url: string): Promise<Buffer | null> {
+  if (url.startsWith("/uploads/")) {
+    const filePath = path.join(process.cwd(), "public", decodeURIComponent(url));
+    const handle = await openFile(filePath, "r").catch(() => null);
+    if (!handle) return null;
+    try {
+      const buffer = Buffer.alloc(16);
+      const { bytesRead } = await handle.read(buffer, 0, 16, 0);
+      return buffer.subarray(0, bytesRead);
+    } finally {
+      await handle.close();
+    }
+  }
+  const res = await fetch(url, { headers: { Range: "bytes=0-15" } }).catch(() => null);
+  if (!res || !res.ok) return null;
+  return Buffer.from(await res.arrayBuffer()).subarray(0, 16);
+}
+
+const MP4_BOX_TYPES = new Set(["ftyp", "moov", "mdat", "wide", "free", "skip", "pnot"]);
+
+function looksLikeVideo(bytes: Buffer): boolean {
+  if (bytes.length >= 4 && bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return true;
+  return bytes.length >= 8 && MP4_BOX_TYPES.has(bytes.subarray(4, 8).toString("latin1"));
+}
+
+/** Every video-upload action's first step — reads the client-uploaded videoUrl instead of a File, still refusing anything that isn't actually ours or isn't a video. */
+export async function readVideoUrlField(
   formData: FormData,
   folder: VideoUploadFolder,
+  userId: string,
   fieldName = "videoUrl",
-): { videoUrl: string } | { error: string } {
+): Promise<{ videoUrl: string } | { error: string }> {
   const raw = formData.get(fieldName);
   if (typeof raw !== "string" || !raw) return { error: "Bitte ein Video auswählen." };
-  if (!isOwnVideoUrl(raw, folder)) return { error: "Ungültige Video-URL." };
+  if (!isOwnVideoUrl(raw, folder, userId)) return { error: "Ungültige Video-URL." };
+  const bytes = await readFirstBytes(raw);
+  if (!bytes) return { error: "Das Video wurde nicht gefunden — bitte nochmal hochladen." };
+  if (!looksLikeVideo(bytes)) return { error: "Die Datei ist kein gültiges Video." };
   return { videoUrl: raw };
 }
 

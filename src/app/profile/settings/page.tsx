@@ -127,6 +127,9 @@ export default async function ProfileSettingsPage() {
             <Link href="/admin/moderation" className="text-orange-400 hover:underline">
               Moderation →
             </Link>
+            <Link href="/admin/brands" className="text-orange-400 hover:underline">
+              Marken verifizieren →
+            </Link>
             <Link href="/admin/boosts" className="text-orange-400 hover:underline">
               Boosts →
             </Link>

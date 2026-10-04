@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runPendingMigrations } from "@/lib/db-migrate";
+import { checkAdminKey } from "@/lib/admin-key";
 
 // Phase 12c: browser-visitable schema migration, same shape and same shared
 // secret as /api/admin/seed-demo (see that route's comment). This exists
@@ -11,28 +12,18 @@ import { runPendingMigrations } from "@/lib/db-migrate";
 // yet in the actual database) and the demo-seed endpoint failed the same
 // way (it writes to push_subscriptions, a table that didn't exist yet).
 //
-// Visit /api/admin/migrate?key=<ADMIN_SEED_KEY> once after each deploy that
-// changes src/db/schema.ts, BEFORE visiting /api/admin/seed-demo. It's safe
-// to visit again later (drizzle's migrator tracks what already ran and is a
-// no-op if nothing is pending).
-export async function GET(request: NextRequest) {
-  const key = request.nextUrl.searchParams.get("key");
-  const expected = process.env.ADMIN_SEED_KEY;
-
-  if (!expected) {
-    return new NextResponse(
-      "ADMIN_SEED_KEY ist in den Vercel-Umgebungsvariablen nicht gesetzt — siehe README §5.",
-      { status: 500 },
-    );
-  }
-  if (key !== expected) {
-    return new NextResponse("Falscher oder fehlender Key.", { status: 403 });
-  }
+// Nach jedem Deploy, der src/db/schema.ts ändert, einmal aufrufen — seit dem
+// Audit 04.10. per POST mit Header (siehe lib/admin-key.ts):
+//   curl -X POST -H "x-admin-key: <ADMIN_SEED_KEY>" https://markitch.vercel.app/api/admin/migrate
+// Mehrfach aufrufen ist harmlos (drizzle merkt sich, was schon lief).
+export async function POST(request: NextRequest) {
+  const denied = checkAdminKey(request);
+  if (denied) return denied;
 
   try {
     await runPendingMigrations();
     return new NextResponse(
-      "OK — Datenbank-Schema ist jetzt aktuell. Du kannst jetzt /api/admin/seed-demo aufrufen (falls noch nicht geschehen) und danach den Feed öffnen.",
+      "OK — Datenbank-Schema ist jetzt aktuell.",
       { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } },
     );
   } catch (err) {
