@@ -260,6 +260,13 @@
       "when": 1791124850311,
       "tag": "0036_enable_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791136078613,
+      "tag": "0037_brand_verified",
+      "breakpoints": true
     }
   ]
 }
