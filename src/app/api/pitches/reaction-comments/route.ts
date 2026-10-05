@@ -3,11 +3,10 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { reactions, comments } from "@/db/schema";
 import { getOptionalUser } from "@/lib/session";
+import { checkComment } from "@/lib/comment-filter";
 import { getCommentsForReaction } from "@/lib/comment";
 import { getActorLabel, notifyUsers } from "@/lib/notification";
 import { getBrandMemberUserIds } from "@/lib/brand";
-
-const MAX_COMMENT_LENGTH = 500;
 
 /** Same as /api/pitches/comments, keyed on a reaction instead of a solo pitch. */
 export async function GET(request: NextRequest) {
@@ -29,18 +28,8 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const reactionId = body?.reactionId;
-  const content = typeof body?.content === "string" ? body.content.trim() : "";
   if (typeof reactionId !== "string" || !reactionId) {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
-  }
-  if (!content) {
-    return NextResponse.json({ error: "Kommentar darf nicht leer sein." }, { status: 400 });
-  }
-  if (content.length > MAX_COMMENT_LENGTH) {
-    return NextResponse.json(
-      { error: `Kommentar darf maximal ${MAX_COMMENT_LENGTH} Zeichen lang sein.` },
-      { status: 400 },
-    );
   }
 
   const [reaction] = await db
@@ -52,6 +41,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Diese Reaktion existiert nicht." }, { status: 404 });
   }
 
+  // Phase F: Kommentarfilter (Wortliste, Links, Doppelposts, Limit).
+  const checked = await checkComment(viewer.id, body?.content);
+  if (!checked.ok) {
+    return NextResponse.json({ error: checked.error }, { status: 400 });
+  }
+  const content = checked.content;
   await db.insert(comments).values({ reactionId, userId: viewer.id, content });
   const [memberIds, actor] = await Promise.all([
     reaction.brandId ? getBrandMemberUserIds(reaction.brandId) : Promise.resolve(reaction.userId ? [reaction.userId] : []),

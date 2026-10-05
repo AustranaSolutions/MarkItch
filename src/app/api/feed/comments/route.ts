@@ -3,11 +3,10 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { battles, comments } from "@/db/schema";
 import { getOptionalUser } from "@/lib/session";
+import { checkComment } from "@/lib/comment-filter";
 import { getCommentsForBattle } from "@/lib/comment";
 import { getActorLabel, notifyUsers } from "@/lib/notification";
 import { getBrandMemberUserIds } from "@/lib/brand";
-
-const MAX_COMMENT_LENGTH = 500;
 
 /** Load a battle's comment thread — used to open the feed's comment sheet. */
 export async function GET(request: NextRequest) {
@@ -29,18 +28,8 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const battleId = body?.battleId;
-  const content = typeof body?.content === "string" ? body.content.trim() : "";
   if (typeof battleId !== "string" || !battleId) {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
-  }
-  if (!content) {
-    return NextResponse.json({ error: "Kommentar darf nicht leer sein." }, { status: 400 });
-  }
-  if (content.length > MAX_COMMENT_LENGTH) {
-    return NextResponse.json(
-      { error: `Kommentar darf maximal ${MAX_COMMENT_LENGTH} Zeichen lang sein.` },
-      { status: 400 },
-    );
   }
 
   const [battle] = await db
@@ -52,6 +41,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Dieser Pitch existiert nicht." }, { status: 404 });
   }
 
+  // Phase F: Kommentarfilter (Wortliste, Links, Doppelposts, Limit).
+  const checked = await checkComment(viewer.id, body?.content);
+  if (!checked.ok) {
+    return NextResponse.json({ error: checked.error }, { status: 400 });
+  }
+  const content = checked.content;
   await db.insert(comments).values({ battleId, userId: viewer.id, content });
   const [memberIdsA, memberIdsB, actor] = await Promise.all([
     getBrandMemberUserIds(battle.brandAId),

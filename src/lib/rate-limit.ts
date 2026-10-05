@@ -27,7 +27,8 @@ export type RateLimitBucket =
   | "report"
   | "boost-request"
   | "analytics"
-  | "upload-prepare";
+  | "upload-prepare"
+  | "comment";
 
 const LIMITS: Record<RateLimitBucket, { max: number; windowMs: number }> = {
   register: { max: 5, windowMs: 60 * 60 * 1000 }, // 5 Registrierungen/Stunde pro IP
@@ -49,6 +50,8 @@ const LIMITS: Record<RateLimitBucket, { max: number; windowMs: number }> = {
   analytics: { max: 300, windowMs: 60 * 60 * 1000 }, // 300 Bündel (je ≤ 20 Ereignisse)/Stunde pro IP
   // Audit 04.10. (H5): jede Upload-Adresse kann eine Datei im kostenlosen Speicher hinterlassen.
   "upload-prepare": { max: 30, windowMs: 60 * 60 * 1000 }, // 30 Upload-Adressen/Stunde pro Nutzer
+  // Phase F: Kommentarfilter — gegen Spam-Fluten.
+  comment: { max: 30, windowMs: 60 * 60 * 1000 }, // 30 Kommentare/Stunde pro Nutzer
 };
 
 /**

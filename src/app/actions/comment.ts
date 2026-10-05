@@ -5,12 +5,11 @@ import { refresh } from "next/cache";
 import { db } from "@/db";
 import { battles, comments } from "@/db/schema";
 import { requireUser } from "@/lib/session";
+import { checkComment } from "@/lib/comment-filter";
 import { getActorLabel, notifyUsers } from "@/lib/notification";
 import { getBrandMemberUserIds } from "@/lib/brand";
 
 export type CommentFormState = { error?: string } | undefined;
-
-const MAX_COMMENT_LENGTH = 500;
 
 /** Anyone signed in can comment — Acro or Assent, including a Pitch's own brands. */
 export async function postComment(_prevState: CommentFormState, formData: FormData): Promise<CommentFormState> {
@@ -20,12 +19,6 @@ export async function postComment(_prevState: CommentFormState, formData: FormDa
 
   if (typeof battleId !== "string" || !battleId) {
     return { error: "Ungültige Anfrage." };
-  }
-  if (typeof content !== "string" || !content.trim()) {
-    return { error: "Kommentar darf nicht leer sein." };
-  }
-  if (content.length > MAX_COMMENT_LENGTH) {
-    return { error: `Kommentar darf maximal ${MAX_COMMENT_LENGTH} Zeichen lang sein.` };
   }
 
   const [battle] = await db
@@ -37,7 +30,12 @@ export async function postComment(_prevState: CommentFormState, formData: FormDa
     return { error: "Dieser Pitch existiert nicht." };
   }
 
-  await db.insert(comments).values({ battleId, userId: user.id, content: content.trim() });
+  // Phase F: Kommentarfilter (Wortliste, Links, Doppelposts, Limit).
+  const checked = await checkComment(user.id, content);
+  if (!checked.ok) {
+    return { error: checked.error };
+  }
+  await db.insert(comments).values({ battleId, userId: user.id, content: checked.content });
   const [memberIdsA, memberIdsB, actor] = await Promise.all([
     getBrandMemberUserIds(battle.brandAId),
     getBrandMemberUserIds(battle.brandBId),
