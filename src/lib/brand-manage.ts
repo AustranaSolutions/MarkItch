@@ -6,6 +6,7 @@ import { getBrandForUser } from "@/lib/brand";
 import { uploadImage } from "@/lib/storage";
 import { validateImageFile } from "@/lib/account";
 import { CreateBrandSchema, IndustryComplianceSchema } from "@/lib/validation";
+import { withHttps } from "@/lib/cta-link";
 
 // RN-4: Marke anlegen/bearbeiten — gemeinsam für die Web-Actions
 // (actions/brand.ts) und die App-Route (/api/mobile/brand).
@@ -66,7 +67,8 @@ function parseBrand(input: BrandInput) {
   return CreateBrandSchema.safeParse({
     name: input.name,
     description: input.description ?? "",
-    website: input.website ?? "",
+    // Phase C (Audit M3): „meinemarke.at“ ohne https:// ist kein Fehler mehr.
+    website: typeof input.website === "string" ? withHttps(input.website) : "",
     category: input.category,
     country: input.country,
   });

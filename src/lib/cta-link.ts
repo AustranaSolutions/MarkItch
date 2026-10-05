@@ -1,5 +1,16 @@
 const MAX_LABEL_LENGTH = 40;
 
+/**
+ * Phase C (Audit M3): Wer „shop.at“ tippt, meint https://shop.at. Ergänzt nur,
+ * wenn noch kein Schema davorsteht — ein kopierter Link mit https:// bleibt
+ * unverändert, es wird also nie doppelt.
+ */
+export function withHttps(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed || /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export type CtaLinkResult = { ctaLabel: string; ctaUrl: string } | { errors: Record<string, string[]> };
 
 /**
@@ -19,7 +30,7 @@ export function validateCtaLink(formData: FormData): CtaLinkResult {
   }
 
   const rawUrl = formData.get("ctaUrl");
-  const ctaUrlInput = typeof rawUrl === "string" ? rawUrl.trim() : "";
+  const ctaUrlInput = typeof rawUrl === "string" ? withHttps(rawUrl) : "";
   let ctaUrl = "";
   if (!ctaUrlInput) {
     errors.ctaUrl = ["Bitte einen Link angeben."];

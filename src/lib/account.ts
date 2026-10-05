@@ -1,7 +1,7 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { users, emailVerificationTokens, passwordResetTokens } from "@/db/schema";
+import { brandMembers, brands, users, emailVerificationTokens, passwordResetTokens } from "@/db/schema";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { uploadImage, ALLOWED_IMAGE_TYPES } from "@/lib/storage";
 import { ChangePasswordSchema, DeleteAccountSchema, UpdateProfileSchema } from "@/lib/validation";
@@ -152,7 +152,18 @@ export async function deleteAccountForUser(
     return { ok: false, errors: { password: ["Passwort ist falsch."] } };
   }
 
-  await db.delete(users).where(eq(users.id, dbUser.id));
+  // Audit M4: Ist dieses Konto das letzte Mitglied einer Marke, geht die
+  // Marke mit — samt Videos, Duellen, Reaktionen (alles hängt per Cascade an
+  // brands). Sonst bliebe eine herrenlose Marke stehen, die niemand mehr
+  // verwalten kann. Die Videodateien räumt der tägliche Cron weg.
+  await db.transaction(async (tx) => {
+    const memberships = await tx.select({ brandId: brandMembers.brandId }).from(brandMembers).where(eq(brandMembers.userId, dbUser.id));
+    for (const { brandId } of memberships) {
+      const [{ n }] = await tx.select({ n: count() }).from(brandMembers).where(eq(brandMembers.brandId, brandId));
+      if (n <= 1) await tx.delete(brands).where(eq(brands.id, brandId));
+    }
+    await tx.delete(users).where(eq(users.id, dbUser.id));
+  });
   return { ok: true };
 }
 
