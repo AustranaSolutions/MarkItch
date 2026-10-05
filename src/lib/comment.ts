@@ -1,7 +1,7 @@
 import "server-only";
 import { count, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { db } from "@/db";
-import { comments, users } from "@/db/schema";
+import { brandMembers, brands, comments, users } from "@/db/schema";
 import { getBlockedIds } from "@/lib/block";
 
 export type CommentWithAuthor = {
@@ -11,6 +11,8 @@ export type CommentWithAuthor = {
   authorName: string;
   /** RN-7: damit die App „Verfasser blockieren" anbieten kann. */
   authorId: string;
+  /** Luca 05.10.: Kommentiert ein Marken-Konto, erscheint die Marke (nicht der Personenname). */
+  authorBrand: { id: string; slug: string; verified: boolean } | null;
 };
 
 /**
@@ -27,24 +29,35 @@ async function loadComments(where: SQL, viewerId: string | null): Promise<Commen
         userId: comments.userId,
         name: users.name,
         email: users.email,
+        brandId: brands.id,
+        brandName: brands.name,
+        brandSlug: brands.slug,
+        brandVerifiedAt: brands.verifiedAt,
       })
       .from(comments)
       .innerJoin(users, eq(comments.userId, users.id))
+      .leftJoin(brandMembers, eq(brandMembers.userId, users.id))
+      .leftJoin(brands, eq(brandMembers.brandId, brands.id))
       .where(where)
       .orderBy(desc(comments.createdAt)),
     getBlockedIds(viewerId),
   ]);
 
+  // Ein Konto gehört heute zu höchstens einer Marke; bei späteren Teams
+  // (mehrere Marken pro Konto) nicht doppelt listen.
+  const seen = new Set<string>();
   return rows
-    .filter((row) => !blocked.userIds.has(row.userId))
+    .filter((row) => !blocked.userIds.has(row.userId) && !(row.brandId && blocked.brandIds.has(row.brandId)))
+    .filter((row) => (seen.has(row.id) ? false : (seen.add(row.id), true)))
     .map((row) => ({
       id: row.id,
       content: row.content,
       createdAt: row.createdAt,
       // Most accounts have no display name set yet — the email's local part
       // reads better than "—" under a comment.
-      authorName: row.name || row.email.split("@")[0],
+      authorName: row.brandName ?? (row.name || row.email.split("@")[0]),
       authorId: row.userId,
+      authorBrand: row.brandId && row.brandSlug ? { id: row.brandId, slug: row.brandSlug, verified: row.brandVerifiedAt !== null } : null,
     }));
 }
 
