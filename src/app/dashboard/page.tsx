@@ -52,9 +52,9 @@ export default async function DashboardPage() {
         <StatCard label="Shares" value={summary.shares} />
       </div>
 
-      <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-center">
-        <p className="text-2xl font-bold text-white">{summary.followerCount.toLocaleString("de-DE")}</p>
-        <p className="mt-1 text-xs text-zinc-500">Follower</p>
+      <div className="mb-8 grid grid-cols-2 gap-3">
+        <StatCard label="Link-Klicks" value={summary.ctaClicks} />
+        <StatCard label="Follower" value={summary.followerCount} />
       </div>
 
       <h2 className="mb-3 text-lg font-semibold text-white">Deine Videos</h2>
@@ -75,6 +75,8 @@ export default async function DashboardPage() {
                 <span className="text-xs text-zinc-600">{timeAgo(item.createdAt)}</span>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-400">
+                <span>👁 {item.viewCount}</span>
+                <span>🔗 {item.ctaClickCount}</span>
                 <span>❤️ {item.likeCount}</span>
                 <span>💬 {item.commentCount}</span>
                 {item.kind === "solo" && <span>🔁 {item.reactionCount}</span>}

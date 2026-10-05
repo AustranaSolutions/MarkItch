@@ -3,7 +3,7 @@ import { and, count, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { brandAnalyticsEvents, visitorEvents, battles, comments, likes, reactions, soloPitches, votes } from "@/db/schema";
 import { getFollowerCount } from "@/lib/follow";
-import { getAllBattles } from "@/lib/battle";
+import { getBattlesForBrand } from "@/lib/battle";
 import { getSoloPitchesForBrand } from "@/lib/solo-pitch";
 
 // Phase 47: 'cta_click' (Klick auf den Kauf-/Standort-Link eines Videos),
@@ -97,6 +97,8 @@ export type BrandAnalyticsSummary = {
   commentsReceived: number;
   reactionsReceived: number;
   followerCount: number;
+  /** Phase F: Klicks auf den Link-Knopf (Shop, Rabatt, Route) — wurde schon gezählt, aber nirgends gezeigt. */
+  ctaClicks: number;
 };
 
 /**
@@ -111,10 +113,11 @@ export async function getBrandAnalyticsSummary(brandId: string): Promise<BrandAn
   const myPitchIdRows = await db.select({ id: soloPitches.id }).from(soloPitches).where(eq(soloPitches.brandId, brandId));
   const myPitchIds = myPitchIdRows.map((r) => r.id);
 
-  const [views, shares, votesRow, likesRow, battleCommentsRow, soloCommentsRow, reactionsRow, followerCount] =
+  const [views, shares, ctaClicks, votesRow, likesRow, battleCommentsRow, soloCommentsRow, reactionsRow, followerCount] =
     await Promise.all([
       getEventCount(brandId, "view"),
       getEventCount(brandId, "share"),
+      getEventCount(brandId, "cta_click"),
       db.select({ n: count() }).from(votes).where(eq(votes.votedForBrandId, brandId)),
       db.select({ n: count() }).from(likes).where(eq(likes.brandId, brandId)),
       db
@@ -141,16 +144,22 @@ export async function getBrandAnalyticsSummary(brandId: string): Promise<BrandAn
     commentsReceived: (battleCommentsRow[0]?.n ?? 0) + (soloCommentsRow[0]?.n ?? 0),
     reactionsReceived: reactionsRow[0]?.n ?? 0,
     followerCount,
+    ctaClicks,
   };
 }
 
 export type BrandContentItem = {
   key: string;
   kind: "solo" | "battle";
-  label: string; // "Solo-Pitch" or "vs. <opponent>"
+  /** Phase F: soloPitchId bzw. battleId — die App öffnet damit das Video. */
+  id: string;
+  label: string; // Beschreibung des Solo-Pitches (gekürzt) bzw. "vs. <opponent>"
   createdAt: string; // ISO
   likeCount: number;
   commentCount: number;
+  /** Phase F: Aufrufe und Link-Klicks — bei Duellen nur die eigene Seite. */
+  viewCount: number;
+  ctaClickCount: number;
   /** Only set for kind "solo" — how many brands reacted. */
   reactionCount?: number;
   /** Only set for kind "battle" — this brand's vote share of the two sides. */
@@ -160,8 +169,26 @@ export type BrandContentItem = {
 
 /** Per-item breakdown so a brand can see which of their videos actually performs. */
 export async function getBrandContentBreakdown(brandId: string): Promise<BrandContentItem[]> {
-  const [soloPitches_, allBattles] = await Promise.all([getSoloPitchesForBrand(brandId), getAllBattles()]);
-  const myBattles = allBattles.filter((b) => b.brandAId === brandId || b.brandBId === brandId);
+  const [soloPitches_, myBattles, eventRows] = await Promise.all([
+    getSoloPitchesForBrand(brandId),
+    getBattlesForBrand(brandId),
+    // Phase F: Aufrufe/Link-Klicks pro Video in einer Abfrage.
+    db
+      .select({
+        soloPitchId: brandAnalyticsEvents.soloPitchId,
+        battleId: brandAnalyticsEvents.battleId,
+        kind: brandAnalyticsEvents.kind,
+        n: count(),
+      })
+      .from(brandAnalyticsEvents)
+      .where(and(eq(brandAnalyticsEvents.brandId, brandId), inArray(brandAnalyticsEvents.kind, ["view", "cta_click"])))
+      .groupBy(brandAnalyticsEvents.soloPitchId, brandAnalyticsEvents.battleId, brandAnalyticsEvents.kind),
+  ]);
+  const eventCount = new Map<string, number>();
+  for (const r of eventRows) {
+    const target = r.soloPitchId ?? r.battleId;
+    if (target) eventCount.set(`${target}:${r.kind}`, (eventCount.get(`${target}:${r.kind}`) ?? 0) + r.n);
+  }
 
   const soloPitchIds = soloPitches_.map((p) => p.id);
   const battleIds = myBattles.map((b) => b.id);
@@ -227,8 +254,11 @@ export async function getBrandContentBreakdown(brandId: string): Promise<BrandCo
   const soloItems: BrandContentItem[] = soloPitches_.map((p) => ({
     key: `solo:${p.id}`,
     kind: "solo",
-    label: "Solo-Pitch",
+    id: p.id,
+    label: p.description ? (p.description.length > 40 ? `${p.description.slice(0, 40).trimEnd()}…` : p.description) : "Solo-Pitch",
     createdAt: p.createdAt.toISOString(),
+    viewCount: eventCount.get(`${p.id}:view`) ?? 0,
+    ctaClickCount: eventCount.get(`${p.id}:cta_click`) ?? 0,
     likeCount: soloLikeMap.get(p.id) ?? 0,
     commentCount: soloCommentMap.get(p.id) ?? 0,
     reactionCount: reactionMap.get(p.id) ?? 0,
@@ -239,8 +269,11 @@ export async function getBrandContentBreakdown(brandId: string): Promise<BrandCo
     return {
       key: `battle:${b.id}`,
       kind: "battle",
+      id: b.id,
       label: `vs. ${opponent.name}`,
       createdAt: b.createdAt.toISOString(),
+      viewCount: eventCount.get(`${b.id}:view`) ?? 0,
+      ctaClickCount: eventCount.get(`${b.id}:cta_click`) ?? 0,
       likeCount: battleLikeMap.get(`${b.id}:${brandId}`) ?? 0,
       commentCount: battleCommentMap.get(b.id) ?? 0,
       votesForThisBrand: votesByBattleBrand.get(`${b.id}:${brandId}`) ?? 0,
