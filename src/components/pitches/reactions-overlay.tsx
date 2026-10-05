@@ -85,7 +85,7 @@ export function ReactionsOverlay({
     // No dedicated reaction page exists — opens the pitch it belongs to,
     // same fallback the notification link uses.
     const url = `${window.location.origin}/?pitch=${reaction.soloPitchId}`;
-    const shareData = { title: `${reaction.brand.name} auf MarkItch`, url };
+    const shareData = { title: `${reaction.brand?.name ?? reaction.community?.name ?? "Reaktion"} auf MarkItch`, url };
     if (navigator.share) navigator.share(shareData).catch(() => {});
     else if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {});
   }

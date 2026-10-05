@@ -149,13 +149,21 @@ export function ReactionFeedCard({
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 pb-24 pr-20">
         <div className="pointer-events-auto mb-2 flex items-center gap-2">
-          <Link href={`/brands/${reaction.brand.slug}`} className="text-sm font-bold text-white hover:underline">
-            {reaction.brand.name}
-          </Link>
+          {reaction.brand ? (
+            <Link href={`/brands/${reaction.brand.slug}`} className="text-sm font-bold text-white hover:underline">
+              {reaction.brand.name}
+            </Link>
+          ) : (
+            <span className="text-sm font-bold text-white">{reaction.community?.name}</span>
+          )}
           <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
             {reaction.parentReactionId ? "Antwort im Thread" : "Reaktion"}
           </span>
-          <AdLabel />
+          {reaction.brand ? (
+            <AdLabel />
+          ) : (
+            <span className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-sky-300">Community</span>
+          )}
           {reaction.containsAiContent && <AiContentLabel />}
         </div>
         {reaction.promotedToBattleId && (

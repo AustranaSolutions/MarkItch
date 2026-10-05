@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { reactions, soloPitches } from "@/db/schema";
+import { reactions, soloPitches, users } from "@/db/schema";
 import { getBrandForUser } from "@/lib/brand";
 import { promoteReactionToBattle } from "@/lib/reaction";
 import { readVideoUrlField } from "@/lib/storage";
@@ -37,10 +37,18 @@ export async function postReactionFor(user: { id: string }, formData: FormData):
   }
   const parentReactionId = typeof parentReactionIdInput === "string" && parentReactionIdInput ? parentReactionIdInput : null;
 
+  // Phase E (Luca 04.10.): Zuschauer (Assent) reagieren als „Community“ mit
+  // ihrem eigenen Konto; Marken weiterhin als Marke. Ein Acro-Konto ohne
+  // Marke muss die Marke zuerst anlegen.
   const myBrand = await getBrandForUser(user.id);
   if (!myBrand) {
-    return { ok: false, error: "Du musst zuerst eine Marke erstellen, um zu reagieren." };
+    const [account] = await db.select({ accountType: users.accountType }).from(users).where(eq(users.id, user.id)).limit(1);
+    if (account?.accountType !== "assent") {
+      return { ok: false, error: "Du musst zuerst eine Marke erstellen, um zu reagieren." };
+    }
   }
+  // Wer hier postet: die Marke oder das Zuschauer-Konto selbst.
+  const author = myBrand ? eq(reactions.brandId, myBrand.id) : eq(reactions.userId, user.id);
 
   const [pitch] = await db.select().from(soloPitches).where(eq(soloPitches.id, soloPitchIdInput)).limit(1);
   if (!pitch) {
@@ -53,11 +61,11 @@ export async function postReactionFor(user: { id: string }, formData: FormData):
     if (!parent) {
       return { ok: false, error: "Diese Reaktion existiert nicht mehr." };
     }
-    if (parent.brandId === myBrand.id) {
+    if (myBrand ? parent.brandId === myBrand.id : parent.userId === user.id) {
       return { ok: false, error: "Du kannst nicht auf deine eigene Reaktion antworten." };
     }
     soloPitchId = parent.soloPitchId;
-  } else if (pitch.brandId === myBrand.id) {
+  } else if (myBrand && pitch.brandId === myBrand.id) {
     return { ok: false, error: "Du kannst nicht auf deinen eigenen Pitch reagieren." };
   }
 
@@ -66,14 +74,14 @@ export async function postReactionFor(user: { id: string }, formData: FormData):
     .from(reactions)
     .where(
       parentReactionId
-        ? and(eq(reactions.parentReactionId, parentReactionId), eq(reactions.brandId, myBrand.id))
-        : and(eq(reactions.soloPitchId, soloPitchId), isNull(reactions.parentReactionId), eq(reactions.brandId, myBrand.id)),
+        ? and(eq(reactions.parentReactionId, parentReactionId), author)
+        : and(eq(reactions.soloPitchId, soloPitchId), isNull(reactions.parentReactionId), author),
     );
   if (existing) {
     return { ok: false, error: parentReactionId ? "Du hast auf diese Reaktion bereits geantwortet." : "Du hast auf diesen Pitch bereits reagiert." };
   }
 
-  const { allowed } = await checkRateLimit("reaction", myBrand.id);
+  const { allowed } = await checkRateLimit("reaction", myBrand ? myBrand.id : `user:${user.id}`);
   if (!allowed) {
     return { ok: false, error: RATE_LIMIT_MESSAGE };
   }
@@ -91,7 +99,7 @@ export async function postReactionFor(user: { id: string }, formData: FormData):
   await db.insert(reactions).values({
     soloPitchId,
     parentReactionId,
-    brandId: myBrand.id,
+    ...(myBrand ? { brandId: myBrand.id } : { userId: user.id }),
     videoUrl: video.videoUrl,
     containsAiContent: formData.get("containsAiContent") === "on",
   });

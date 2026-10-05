@@ -21,8 +21,8 @@ export async function getLikeCounts(keys: LikeKey[]): Promise<Map<string, number
   const map = new Map<string, number>();
   // battleId is nullable at the schema level (Phase 13: solo-pitch/reaction
   // likes share this table) but never null here — the WHERE clause only
-  // ever matches battle-side rows.
-  for (const row of rows) map.set(keyOf(row.battleId!, row.brandId), row.n);
+  // ever matches battle-side rows, and battle likes always carry the side's brand.
+  for (const row of rows) map.set(keyOf(row.battleId!, row.brandId!), row.n);
   return map;
 }
 
@@ -34,7 +34,7 @@ export async function getUserLikedKeys(userId: string, keys: LikeKey[]): Promise
     .select({ battleId: likes.battleId, brandId: likes.brandId })
     .from(likes)
     .where(and(eq(likes.userId, userId), inArray(likes.battleId, battleIds)));
-  return new Set(rows.map((row) => keyOf(row.battleId!, row.brandId)));
+  return new Set(rows.map((row) => keyOf(row.battleId!, row.brandId!)));
 }
 
 export async function getLikeCount(battleId: string, brandId: string): Promise<number> {
@@ -123,7 +123,8 @@ export async function toggleSoloPitchLikeForUser(
 export async function toggleReactionLikeForUser(
   userId: string,
   reactionId: string,
-  brandId: string,
+  /** Null bei Community-Reaktionen — der Like zählt dann für keine Marke. */
+  brandId: string | null,
 ): Promise<{ liked: boolean; count: number }> {
   const [existing] = await db
     .select({ id: likes.id })

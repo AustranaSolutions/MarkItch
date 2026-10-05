@@ -175,13 +175,29 @@ async function resolveTarget(targetType: ReportTargetType, targetId: string): Pr
     }
     case "reaction": {
       const [row] = await db
-        .select({ brandId: reactions.brandId, brandName: brands.name, brandSlug: brands.slug })
+        .select({
+          brandId: reactions.brandId,
+          brandName: brands.name,
+          brandSlug: brands.slug,
+          userId: users.id,
+          userName: users.name,
+          userEmail: users.email,
+        })
         .from(reactions)
-        .innerJoin(brands, eq(reactions.brandId, brands.id))
+        .leftJoin(brands, eq(reactions.brandId, brands.id))
+        .leftJoin(users, eq(reactions.userId, users.id))
         .where(eq(reactions.id, targetId))
         .limit(1);
       if (!row) return { label: "Reaktion (bereits entfernt)", href: null, owners: [] };
-      return { label: `Reaktion von ${row.brandName}`, href: `/brands/${row.brandSlug}`, owners: await getBrandOwners(row.brandId) };
+      if (row.brandId) {
+        return { label: `Reaktion von ${row.brandName}`, href: `/brands/${row.brandSlug}`, owners: await getBrandOwners(row.brandId) };
+      }
+      // Phase E: Community-Reaktion eines Zuschauer-Kontos.
+      return {
+        label: `Community-Reaktion von ${row.userName || row.userEmail?.split("@")[0] || "Zuschauer"}`,
+        href: null,
+        owners: row.userId && row.userEmail ? [{ userId: row.userId, email: row.userEmail }] : [],
+      };
     }
     case "comment": {
       const [row] = await db

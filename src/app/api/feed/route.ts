@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
-import { getForYouFeed, getFollowingFeed } from "@/lib/feed";
+import { getForYouFeed, getForYouFeedWithReactions, getFollowingFeed } from "@/lib/feed";
 
 const PAGE_SIZE = 6;
 
@@ -23,6 +23,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(page);
   }
 
-  const page = await getForYouFeed(viewer?.id ?? null, offset, PAGE_SIZE);
+  // Phase E: `reactions=1` schickt nur die neue App — dann laufen Community-Reaktionen mit.
+  const page =
+    searchParams.get("reactions") === "1"
+      ? await getForYouFeedWithReactions(viewer?.id ?? null, offset, PAGE_SIZE)
+      : await getForYouFeed(viewer?.id ?? null, offset, PAGE_SIZE);
   return NextResponse.json(page);
 }

@@ -389,12 +389,10 @@ export const likes = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     battleId: uuid("battle_id").references(() => battles.id, { onDelete: "cascade" }),
-    // Always required, even for a solo-pitch/reaction like — it's the
-    // video's own brand, denormalized so this column can stay NOT NULL
-    // instead of widening nullability further.
-    brandId: uuid("brand_id")
-      .notNull()
-      .references(() => brands.id, { onDelete: "cascade" }),
+    // The video's own brand, denormalized (Marken-Statistik zählt hierüber).
+    // Phase E: null bei Likes auf Community-Reaktionen von Zuschauern — die
+    // sollen keiner Marke gutgeschrieben werden.
+    brandId: uuid("brand_id").references(() => brands.id, { onDelete: "cascade" }),
     soloPitchId: uuid("solo_pitch_id").references(() => soloPitches.id, { onDelete: "cascade" }),
     reactionId: uuid("reaction_id").references(() => reactions.id, { onDelete: "cascade" }),
     userId: uuid("user_id")
@@ -557,9 +555,11 @@ export const reactions = pgTable(
     soloPitchId: uuid("solo_pitch_id")
       .notNull()
       .references(() => soloPitches.id, { onDelete: "cascade" }),
-    brandId: uuid("brand_id")
-      .notNull()
-      .references(() => brands.id, { onDelete: "cascade" }),
+    // Phase E (Luca 04.10.): eine Reaktion kommt entweder von einer Marke
+    // (brandId, „Anzeige“) oder von einem Zuschauer-Konto (userId,
+    // „Community“) — genau eines von beiden ist gesetzt (CHECK in Migration 0039).
+    brandId: uuid("brand_id").references(() => brands.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     parentReactionId: uuid("parent_reaction_id").references((): AnyPgColumn => reactions.id, { onDelete: "cascade" }),
     videoUrl: text("video_url").notNull(),
     promotedToBattleId: uuid("promoted_to_battle_id").references(() => battles.id, { onDelete: "set null" }),
@@ -574,6 +574,12 @@ export const reactions = pgTable(
     uniqueIndex("reactions_parent_reaction_brand_unique_idx")
       .on(table.parentReactionId, table.brandId)
       .where(sql`${table.parentReactionId} is not null`),
+    uniqueIndex("reactions_solo_pitch_user_top_level_unique_idx")
+      .on(table.soloPitchId, table.userId)
+      .where(sql`${table.parentReactionId} is null and ${table.userId} is not null`),
+    uniqueIndex("reactions_parent_reaction_user_unique_idx")
+      .on(table.parentReactionId, table.userId)
+      .where(sql`${table.parentReactionId} is not null and ${table.userId} is not null`),
   ],
 );
 

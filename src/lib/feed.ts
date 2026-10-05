@@ -16,6 +16,7 @@ import { getViewCountsForSoloPitches, getViewCountsForBattles } from "@/lib/anal
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
 import { getBlockedIds } from "@/lib/block";
 import { getSoloPitchContexts, type PitchContext } from "@/lib/pitch-context";
+import { buildFeedCommunityReactions, type FeedReaction } from "@/lib/community-feed";
 
 // Phase 9.1 — one feed entry per Duell (battle), not per side.
 //
@@ -301,6 +302,8 @@ export type FeedSoloPitch = {
 };
 
 export type FeedItem = FeedDuel | FeedSoloPitch;
+/** Phase E: nur die neue App bekommt auch Community-Reaktionen (Web/ältere App kennen die Art nicht). */
+export type FeedItemWithReactions = FeedItem | FeedReaction;
 
 async function buildFeedSoloPitches(viewerId: string | null): Promise<FeedSoloPitch[]> {
   const [allPitches, autoHiddenIds, blocked] = await Promise.all([
@@ -429,21 +432,27 @@ export async function getTrendingSoloPitches(limit = 12, viewerId: string | null
 // surfaces instead of losing to an old, vote-heavy Duell.
 const SOLO_INTERLEAVE_EVERY = 3;
 
-function interleaveFeed(duels: FeedDuel[], soloPitchItems: FeedSoloPitch[], followedBrandIds: string[]): FeedItem[] {
+function interleaveFeed<T extends FeedSoloPitch | FeedReaction>(
+  duels: FeedDuel[],
+  soloPitchItems: T[],
+  followedBrandIds: string[],
+): (FeedDuel | T)[] {
   const followedSet = new Set(followedBrandIds);
   const rankedDuels = [...duels].sort((a, b) => trendingScoreForDuel(b, followedSet) - trendingScoreForDuel(a, followedSet));
   // Same "nudge, not override" idea as Duelle: a paid Boost (Phase 26) ranks
   // ahead of a followed brand's pitch, which ranks ahead of everything else
   // — but recency inside each bucket is untouched, so the Phase 21 "newest
   // first" guarantee for solo pitches still holds within any one bucket.
-  const soloBucket = (p: FeedSoloPitch) => (p.boosted ? 0 : followedSet.has(p.brandId) ? 1 : 2);
+  // Phase E: Community-Reaktionen laufen im selben Strom wie Solo-Pitches mit (nach Aktualität).
+  const soloBucket = (p: FeedSoloPitch | FeedReaction) =>
+    p.kind === "reaction" ? 2 : p.boosted ? 0 : followedSet.has(p.brandId) ? 1 : 2;
   const freshSolos = [...soloPitchItems].sort((a, b) => {
     const bucketDiff = soloBucket(a) - soloBucket(b);
     if (bucketDiff !== 0) return bucketDiff;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const merged: FeedItem[] = [];
+  const merged: (FeedDuel | T)[] = [];
   let duelIdx = 0;
   let soloIdx = 0;
   while (duelIdx < rankedDuels.length || soloIdx < freshSolos.length) {
@@ -467,6 +476,22 @@ export async function getForYouFeed(viewerId: string | null, offset = 0, limit =
     viewerId ? getFollowedBrandIds(viewerId) : Promise.resolve([]),
   ]);
   const items = interleaveFeed(duels, soloPitchItems, followedBrandIds);
+  return { items: items.slice(offset, offset + limit), total: items.length };
+}
+
+/** Phase E: wie getForYouFeed, zusätzlich mit Community-Reaktionen (nur für die neue App). */
+export async function getForYouFeedWithReactions(
+  viewerId: string | null,
+  offset = 0,
+  limit = 6,
+): Promise<{ items: FeedItemWithReactions[]; total: number }> {
+  const [duels, soloPitchItems, followedBrandIds, communityReactions] = await Promise.all([
+    buildFeedDuels(viewerId),
+    buildFeedSoloPitches(viewerId),
+    viewerId ? getFollowedBrandIds(viewerId) : Promise.resolve([]),
+    buildFeedCommunityReactions(viewerId),
+  ]);
+  const items = interleaveFeed<FeedSoloPitch | FeedReaction>(duels, [...soloPitchItems, ...communityReactions], followedBrandIds);
   return { items: items.slice(offset, offset + limit), total: items.length };
 }
 

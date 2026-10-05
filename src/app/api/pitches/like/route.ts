@@ -37,14 +37,18 @@ export async function POST(request: NextRequest) {
 
   if (typeof reactionId === "string" && reactionId) {
     const [reaction] = await db
-      .select({ brandId: reactions.brandId, soloPitchId: reactions.soloPitchId })
+      .select({ brandId: reactions.brandId, userId: reactions.userId, soloPitchId: reactions.soloPitchId })
       .from(reactions)
       .where(eq(reactions.id, reactionId))
       .limit(1);
     if (!reaction) return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
     const result = await toggleReactionLikeForUser(viewer.id, reactionId, reaction.brandId);
     if (result.liked) {
-      const [memberIds, actor] = await Promise.all([getBrandMemberUserIds(reaction.brandId), getActorLabel(viewer.id)]);
+      // Phase E: Community-Reaktion → das Zuschauer-Konto selbst benachrichtigen.
+      const [memberIds, actor] = await Promise.all([
+        reaction.brandId ? getBrandMemberUserIds(reaction.brandId) : Promise.resolve(reaction.userId ? [reaction.userId] : []),
+        getActorLabel(viewer.id),
+      ]);
       await notifyUsers(memberIds, `${actor.label} gefällt deine Reaktion.`, `/?pitch=${reaction.soloPitchId}`, viewer.id);
     }
     return NextResponse.json(result);

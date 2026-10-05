@@ -71,7 +71,7 @@ export function ReactionsGrid({
                       className="aspect-[9/16] w-full rounded-lg bg-black object-cover"
                     />
                     <span className="absolute bottom-1 left-1 right-1 truncate rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                      {reaction.brand.name}
+                      {reaction.brand?.name ?? reaction.community?.name}
                     </span>
                     {replyCount > 0 && (
                       <span className="absolute right-1 top-1 rounded-full bg-orange-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
