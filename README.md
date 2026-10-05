@@ -14,7 +14,9 @@ gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreic
   - Creator-Challenge (monatlich, meiste Likes gewinnen),
   - Partner-Casting (Marken bewerben sich als Partner, Community wählt),
   - Link-Knopf unter jedem Video, Folgen, Benachrichtigungen, Suche/Trends,
-  - Kommentare, Melden/Blockieren, Moderation, Marken-Statistik.
+  - Kommentare mit Filter (Wortliste, keine Links, Spam-Bremse) und Löschen, Melden/Blockieren, Moderation,
+  - Marken-Statistik inkl. Link-Klicks und Zahlen pro Video (`/dashboard`, App: `/api/mobile/stats`).
+- **Feed** in zwei Stufen (`src/lib/feed.ts`): Reihenfolge aus schlanken Daten, volle Karten nur für die angefragte Seite.
 - **Rollen:** *Acro* = Marken-Konto (darf posten), *Assent* = Zuschauer (schaut, stimmt ab, folgt).
 - **Dieses Repo ist auch das Backend der nativen App:** alle `/api/mobile/*`-Routen (Bearer-Token-Auth).
 - **Native iOS-App** (Expo/React Native) läuft auf Testgeräten. Für den App Store fehlt noch der Apple-Developer-Account.
