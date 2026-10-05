@@ -23,7 +23,7 @@ const DUPLICATE_WINDOW_MS = 30 * 60 * 1000;
  * Ganze Wörter (nach Vereinfachung, siehe normalize). Nur Begriffe, die
  * praktisch nie harmlos vorkommen — mehrdeutige Wörter fehlen absichtlich.
  */
-const BLOCKED_WORDS = new Set([
+const BLOCKED_WORD_LIST = [
   // Deutsch — Beleidigungen
   "arschloch", "arschlöcher", "wichser", "wixer", "wichsa", "fotze", "fotzen", "hurensohn", "hurensöhne", "hurenkind",
   "missgeburt", "missgeburten", "spast", "spasti", "spastiker", "behindi", "schlampe", "schlampen", "nutte",
@@ -34,19 +34,17 @@ const BLOCKED_WORDS = new Set([
   "fuck", "fucking", "fucker", "motherfucker", "fuckin", "cunt", "cunts", "bitch", "bitches", "asshole", "assholes",
   "dickhead", "retard", "retarded", "faggot", "faggots", "fag", "nigger", "niggers", "whore", "whores", "slut", "sluts",
   "kys", "pedo", "pedophile",
-]);
+];
 
 /** Feste Wendungen (auch über Wortgrenzen hinweg), z. B. Drohungen und Hetze. */
-const BLOCKED_PHRASES = [
+const BLOCKED_PHRASE_LIST = [
   "heil hitler",
   "sieg heil",
   "kill yourself",
   "bring dich um",
   "häng dich auf",
-  "haeng dich auf",
   "ich bring dich um",
   "ich töte dich",
-  "ich toete dich",
   "vergasen",
 ];
 
@@ -54,16 +52,25 @@ const BLOCKED_PHRASES = [
  * Lange, eindeutige Begriffe, die auch mit Leer- oder Sonderzeichen
  * dazwischen erkannt werden („h u r e n s o h n", „arsch-loch").
  */
-const BLOCKED_SQUASHED = ["hurensohn", "arschloch", "missgeburt", "kinderficker", "motherfucker", "nigger", "faggot", "judensau"];
+const BLOCKED_SQUASHED_LIST = ["hurensohn", "arschloch", "missgeburt", "kinderficker", "motherfucker", "nigger", "faggot", "judensau"];
 
 const LEET: Record<string, string> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", $: "s", "!": "i" };
 
 function normalize(text: string): string {
   return text
     .toLowerCase()
+    // „Arschlöcher“ = „Arschloecher“: Umlaute einheitlich ausschreiben.
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
     .replace(/[013457@$!]/g, (c) => LEET[c] ?? c)
     .replace(/(.)\1{2,}/g, "$1$1"); // „fuuuuck“ → „fuuck“, Doppelbuchstaben bleiben
 }
+
+const BLOCKED_WORDS = new Set(BLOCKED_WORD_LIST.map(normalize));
+const BLOCKED_PHRASES = BLOCKED_PHRASE_LIST.map(normalize);
+const BLOCKED_SQUASHED = BLOCKED_SQUASHED_LIST.map(normalize);
 
 function containsBlockedLanguage(text: string): boolean {
   const normalized = normalize(text);
