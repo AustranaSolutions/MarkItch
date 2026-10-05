@@ -26,6 +26,17 @@ export async function getLikeCounts(keys: LikeKey[]): Promise<Map<string, number
   return map;
 }
 
+/** Phase F (H3): Likes beider Seiten zusammen pro Duell — für die Feed-Reihenfolge, eine Abfrage. */
+export async function getBattleLikeTotals(battleIds: string[]): Promise<Map<string, number>> {
+  if (battleIds.length === 0) return new Map();
+  const rows = await db
+    .select({ battleId: likes.battleId, n: count() })
+    .from(likes)
+    .where(inArray(likes.battleId, battleIds))
+    .groupBy(likes.battleId);
+  return new Map(rows.map((row) => [row.battleId!, row.n]));
+}
+
 /** Which of these cards this user has already liked. */
 export async function getUserLikedKeys(userId: string, keys: LikeKey[]): Promise<Set<string>> {
   if (keys.length === 0) return new Set();

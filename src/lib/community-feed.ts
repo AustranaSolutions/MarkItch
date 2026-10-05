@@ -32,7 +32,17 @@ export type FeedReaction = {
   createdAt: string; // ISO
 };
 
-export async function buildFeedCommunityReactions(viewerId: string | null): Promise<FeedReaction[]> {
+export type CommunityReactionRow = {
+  reaction: typeof reactions.$inferSelect;
+  userName: string | null;
+  userEmail: string;
+  brandId: string;
+  brandName: string;
+  brandSlug: string;
+};
+
+/** Phase F (H3): Stufe 1 — sichtbare Community-Reaktionen ohne Zählungen, neueste zuerst. */
+export async function getEligibleCommunityReactions(viewerId: string | null): Promise<CommunityReactionRow[]> {
   const [allRows, autoHiddenIds, blocked] = await Promise.all([
     db
       .select({
@@ -52,12 +62,16 @@ export async function buildFeedCommunityReactions(viewerId: string | null): Prom
     getAutoHiddenTargetIds(["reaction"]),
     getBlockedIds(viewerId),
   ]);
-  const rows = allRows.filter(
+  return allRows.filter(
     (r) =>
       !autoHiddenIds.has(r.reaction.id) &&
       !blocked.userIds.has(r.reaction.userId!) &&
       !blocked.brandIds.has(r.brandId),
   );
+}
+
+/** Phase F (H3): Stufe 2 — Likes/Kommentare nur für die Reaktionen, die auf der Feed-Seite landen. */
+export async function enrichCommunityReactions(viewerId: string | null, rows: CommunityReactionRow[]): Promise<FeedReaction[]> {
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.reaction.id);

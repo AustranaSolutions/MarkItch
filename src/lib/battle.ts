@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, or, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { battles, brands, type Battle } from "@/db/schema";
 
@@ -48,7 +48,9 @@ const brandCols = {
 
 async function attachBrands(rows: Battle[]): Promise<BattleWithBrands[]> {
   if (rows.length === 0) return [];
-  const allBrands = await db.select(brandCols).from(brands);
+  // Phase F (H3): nur die Marken der geladenen Duelle, nicht alle.
+  const brandIds = [...new Set(rows.flatMap((b) => [b.brandAId, b.brandBId]))];
+  const allBrands = await db.select(brandCols).from(brands).where(inArray(brands.id, brandIds));
   const byId = new Map(allBrands.map((b) => [b.id, b]));
   return rows
     .map((battle) => {
@@ -60,8 +62,9 @@ async function attachBrands(rows: Battle[]): Promise<BattleWithBrands[]> {
     .filter((b): b is BattleWithBrands => b !== null);
 }
 
-export async function getAllBattles(): Promise<BattleWithBrands[]> {
-  const rows = await db.select().from(battles).orderBy(desc(battles.createdAt));
+/** Phase F (H3): `where` filtert schon in der DB (eine Marke, ein Duell) statt alles zu laden. */
+export async function getAllBattles(where?: SQL): Promise<BattleWithBrands[]> {
+  const rows = await db.select().from(battles).where(where).orderBy(desc(battles.createdAt));
   return attachBrands(rows);
 }
 
@@ -74,8 +77,7 @@ export async function getBattleById(id: string): Promise<BattleWithBrands | null
 
 /** Battles this brand is part of, either side. */
 export async function getBattlesForBrand(brandId: string): Promise<BattleWithBrands[]> {
-  const all = await getAllBattles();
-  return all.filter((b) => b.brandAId === brandId || b.brandBId === brandId);
+  return getAllBattles(or(eq(battles.brandAId, brandId), eq(battles.brandBId, brandId)));
 }
 
 

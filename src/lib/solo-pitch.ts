@@ -1,5 +1,5 @@
 import "server-only";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { soloPitches, brands, type SoloPitch } from "@/db/schema";
 import { getBrandForUser } from "@/lib/brand";
@@ -20,11 +20,13 @@ export type SoloPitchWithBrand = SoloPitch & { brand: SoloPitchBrand };
 
 const brandCols = { id: brands.id, name: brands.name, slug: brands.slug, logoUrl: brands.logoUrl, verifiedAt: brands.verifiedAt };
 
-export async function getAllSoloPitches(): Promise<SoloPitchWithBrand[]> {
+/** Phase F (H3): `where` filtert schon in der DB (eine Marke, ein Video, eine Challenge). */
+export async function getAllSoloPitches(where?: SQL): Promise<SoloPitchWithBrand[]> {
   const rows = await db
     .select({ pitch: soloPitches, brand: brandCols })
     .from(soloPitches)
     .innerJoin(brands, eq(soloPitches.brandId, brands.id))
+    .where(where)
     .orderBy(desc(soloPitches.createdAt));
   return rows.map((r) => ({ ...r.pitch, brand: r.brand }));
 }
