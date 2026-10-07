@@ -33,6 +33,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="de" className="h-full antialiased dark">
       <body className="flex min-h-full flex-col bg-black text-white font-sans">
+        {/* Luca 07.10.: Browser-Fehler (auch vor dem Start von React) an den Server melden, max. 5 pro Seite. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var n=0;function s(m){if(n++>=5)return;try{navigator.sendBeacon("/api/client-error",location.pathname+" :: "+m)}catch(e){}}addEventListener("error",function(e){s((e.message||"Ladefehler")+" @ "+(e.filename||(e.target&&(e.target.src||e.target.href))||"")+":"+(e.lineno||""))},true);addEventListener("unhandledrejection",function(e){s("Promise: "+(e.reason&&(e.reason.stack||e.reason.message)||e.reason))})})();`,
+          }}
+        />
         <SplashScreen />
         <SessionBoot />
         {children}

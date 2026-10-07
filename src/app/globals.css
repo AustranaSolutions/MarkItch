@@ -58,3 +58,17 @@ body {
     opacity: 0;
   }
 }
+
+/* Luca 07.10.: Der Ladebildschirm blendet sich per CSS aus, nicht per
+   JavaScript — vorher blieb er für immer stehen (und blockierte jeden
+   Klick), sobald im Browser ein Skript nicht lud, z. B. eine alte
+   zwischengespeicherte Version nach einem Deploy. */
+@keyframes splash-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+.splash-screen {
+  animation: splash-out 300ms ease 900ms forwards;
+}
