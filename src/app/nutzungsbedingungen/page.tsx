@@ -16,7 +16,7 @@ export default function NutzungsbedingungenPage() {
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       <h1 className="mb-2 text-2xl font-bold text-white">Nutzungsbedingungen</h1>
-      <p className="mb-6 text-xs text-zinc-600">Stand: {new Date().toLocaleDateString("de-DE")}</p>
+      <p className="mb-6 text-xs text-zinc-600">Stand: 7. Oktober 2026</p>
 
       <Section title="Geltungsbereich">
         <p>
@@ -32,8 +32,9 @@ export default function NutzungsbedingungenPage() {
       <Section title="Dein Account">
         <p>
           Du bist für die Richtigkeit deiner Angaben und die Sicherheit deines Passworts selbst verantwortlich.
-          Ein Account pro Person bzw. pro Marke. Als &quot;Acro&quot; (Marke) darfst du nur eine Marke vertreten, die du
-          tatsächlich repräsentierst.
+          Ein Account pro Person bzw. pro Marke. Als &quot;Acro&quot; (Marke) darfst du nur eine Marke vertreten, die du tatsächlich repräsentierst. Als &quot;Assent&quot; (Zuschauer:in) kannst du
+        abstimmen, liken, kommentieren, folgen und mit eigenen Videos auf Marken-Videos reagieren. Für die Nutzung
+        musst du mindestens 16 Jahre alt sein. Dein Konto kannst du jederzeit selbst in den Einstellungen löschen.
         </p>
       </Section>
 
@@ -53,7 +54,9 @@ export default function NutzungsbedingungenPage() {
           dafür gilt null Toleranz.
         </p>
         <p>
-          Jedes Video, jede Reaktion und jeden Kommentar kannst du melden. Wir prüfen Meldungen in der Regel innerhalb
+          Kommentare werden beim Absenden automatisch auf unzulässige Wörter, Links und Spam geprüft. Unter
+        deinen eigenen Videos kannst du Kommentare löschen. Jedes Video, jede Reaktion und jeden Kommentar kannst
+        du melden. Wir prüfen Meldungen in der Regel innerhalb
           von 24 Stunden, entfernen unzulässige Inhalte und sperren die verantwortlichen Accounts. In der App
           kannst du außerdem Marken und Nutzer:innen blockieren — ihre Inhalte werden dir dann nicht mehr angezeigt.
         </p>

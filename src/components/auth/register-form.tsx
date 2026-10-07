@@ -102,7 +102,7 @@ export function RegisterForm() {
       />
       <SubmitButton>Account erstellen</SubmitButton>
       <p className="mt-3 text-center text-xs text-zinc-500">
-        Mit der Registrierung akzeptierst du die{" "}
+        Mit der Registrierung bestätigst du, dass du mindestens 16 Jahre alt bist, und akzeptierst die{" "}
         <Link href="/nutzungsbedingungen" className="text-orange-400 hover:underline">
           Nutzungsbedingungen
         </Link>{" "}
