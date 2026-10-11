@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { battles, brands, votes } from "@/db/schema";
+import { battles, brands, notifications, votes } from "@/db/schema";
 import { getVoteTallyAsOf } from "@/lib/vote";
 import { sendPushToUser } from "@/lib/push";
 
@@ -42,7 +42,10 @@ export async function finalizeAndNotifyBattle(battleId: string): Promise<void> {
     getVoteTallyAsOf(battle.id, battle.brandAId, battle.brandBId, battle.votingEndsAt),
     db.select({ name: brands.name }).from(brands).where(eq(brands.id, battle.brandAId)).limit(1),
     db.select({ name: brands.name }).from(brands).where(eq(brands.id, battle.brandBId)).limit(1),
-    db.selectDistinct({ userId: votes.userId }).from(votes).where(eq(votes.battleId, battle.id)),
+    db
+      .selectDistinct({ userId: votes.userId, votedForBrandId: votes.votedForBrandId })
+      .from(votes)
+      .where(eq(votes.battleId, battle.id)),
   ]);
   const brandAName = brandARows[0]?.name ?? "Marke A";
   const brandBName = brandBRows[0]?.name ?? "Marke B";
@@ -53,8 +56,24 @@ export async function finalizeAndNotifyBattle(battleId: string): Promise<void> {
       : official.brandAVotes > official.brandBVotes
         ? `🏆 ${brandAName} gewinnt gegen ${brandBName}!`
         : `🏆 ${brandBName} gewinnt gegen ${brandAName}!`;
-  const body = `Ergebnis: ${official.brandAVotes} : ${official.brandBVotes} — sieh dir den Pitch an.`;
   const url = `/?battle=${battle.id}`;
 
-  await Promise.all(voters.map((v) => sendPushToUser(v.userId, { title, body, url })));
+  // Luca 11.10.: persönlich, aber ohne „richtig/falsch“ — wer gewinnt, ist
+  // keine Wette. Nur: wofür du gestimmt hast und wie viele es so sahen wie du.
+  // So lohnt sich ehrliches Abstimmen, nicht das Raten der Mehrheit.
+  const total = official.brandAVotes + official.brandBVotes;
+  const messageFor = (votedForBrandId: string) => {
+    const pickedA = votedForBrandId === battle.brandAId;
+    const picked = pickedA ? brandAName : brandBName;
+    const same = pickedA ? official.brandAVotes : official.brandBVotes;
+    const share = total > 0 ? Math.round((same / total) * 100) : 0;
+    return `Ergebnis ${brandAName} vs. ${brandBName}: Du hast ${picked} gewählt — ${share} % sahen es wie du.`;
+  };
+
+  if (voters.length > 0) {
+    await db.insert(notifications).values(voters.map((v) => ({ userId: v.userId, message: messageFor(v.votedForBrandId), link: url })));
+  }
+  await Promise.all(
+    voters.map((v) => sendPushToUser(v.userId, { title, body: messageFor(v.votedForBrandId), url }).catch(() => {})),
+  );
 }
