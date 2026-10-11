@@ -1,23 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOptionalUser } from "@/lib/session";
-import { isAdminEmail } from "@/lib/moderation";
 import { listBrandsForAdmin, setBrandVerified } from "@/lib/brand-verify";
-import { isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
+import { isUuid, readJsonBody } from "@/lib/mobile-auth";
+import { requireMobileAdmin } from "@/lib/mobile-admin";
 
 // Luca 11.10.: Marken verifizieren direkt in der App (vorher nur über die
 // Website /admin/brands, im In-App-Browser ohne Login). Nur ADMIN_EMAILS.
 
-async function requireAdmin() {
-  const viewer = await getOptionalUser();
-  if (!viewer) return { error: unauthorized() };
-  if (!isAdminEmail(viewer.email)) {
-    return { error: NextResponse.json({ error: "Nur für Admins." }, { status: 403 }) };
-  }
-  return { viewer };
-}
-
 export async function GET() {
-  const { error } = await requireAdmin();
+  const { error } = await requireMobileAdmin();
   if (error) return error;
   const brands = await listBrandsForAdmin();
   return NextResponse.json({
@@ -36,7 +26,7 @@ export async function GET() {
 
 /** Body: `{ brandId, verified }` */
 export async function POST(request: NextRequest) {
-  const { error } = await requireAdmin();
+  const { error } = await requireMobileAdmin();
   if (error) return error;
   const body = await readJsonBody(request);
   if (typeof body.brandId !== "string" || !isUuid(body.brandId) || typeof body.verified !== "boolean") {
