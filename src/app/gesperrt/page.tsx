@@ -10,8 +10,8 @@ export default function GesperrtPage() {
       <p className="mb-6 text-sm text-zinc-400">
         Dein Account wurde wegen eines Verstoßes gegen unsere Nutzungsbedingungen gesperrt. Wenn du glaubst, das ist
         ein Fehler, schreib uns an{" "}
-        <a href="mailto:markitch@outlook.de" className="text-orange-400 hover:underline">
-          markitch@outlook.de
+        <a href="mailto:support@markitch.com" className="text-orange-400 hover:underline">
+          support@markitch.com
         </a>
         .
       </p>

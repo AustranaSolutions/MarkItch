@@ -28,7 +28,7 @@ export default function ImpressumPage() {
 
       <section className="mb-6 space-y-1 text-sm text-zinc-300">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">Kontakt</h2>
-        <p>E-Mail: markitch@outlook.de</p>
+        <p>E-Mail: office@markitch.com · Support: support@markitch.com</p>
       </section>
 
       <section className="mb-6 space-y-1 text-sm text-zinc-300">

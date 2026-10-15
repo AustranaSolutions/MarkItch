@@ -27,7 +27,7 @@ export default function DatenschutzPage() {
           <Link href="/impressum" className="text-orange-400 hover:underline">
             Impressum
           </Link>
-          . Kontakt für Datenschutzanliegen: markitch@outlook.de
+          . Kontakt für Datenschutzanliegen: support@markitch.com
         </p>
       </Section>
 
@@ -112,7 +112,7 @@ export default function DatenschutzPage() {
         <p>
           Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit
           und Widerspruch (Art. 15–21 DSGVO) sowie das Recht, dich bei einer Aufsichtsbehörde zu beschweren (in
-          Österreich: die Datenschutzbehörde, dsb.gv.at). Wende dich dafür an markitch@outlook.de.
+          Österreich: die Datenschutzbehörde, dsb.gv.at). Wende dich dafür an support@markitch.com.
         </p>
       </Section>
 
