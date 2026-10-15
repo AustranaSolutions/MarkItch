@@ -5,7 +5,7 @@
 Ein Kurzvideo-Feed wie TikTok/Reels, in dem **nur Marken posten**. Sie treten
 gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreich.
 
-**Live:** https://markitch.vercel.app · **Native App:** [AustranaSolutions/MarkItch-mobile](https://github.com/AustranaSolutions/MarkItch-mobile)
+**Live:** https://www.markitch.com · **Native App:** [AustranaSolutions/MarkItch-mobile](https://github.com/AustranaSolutions/MarkItch-mobile)
 
 ## Stand (Oktober 2026)
 
@@ -28,7 +28,7 @@ Stack: Next.js 16 (App Router, TypeScript) · Tailwind CSS 4 · Drizzle ORM · P
 (Supabase) · Auth.js v5 (Credentials) · Supabase Storage für Videos · Vercel.
 
 **Schema-Änderungen in Produktion:** Migrationen liegen in `drizzle/`. Nach dem Deploy
-`curl -X POST -H "x-admin-key: <ADMIN_SEED_KEY>" https://markitch.vercel.app/api/admin/migrate` aufrufen (nur per Header, seit Oktober 2026). Neue Spalten an bestehenden
+`curl -X POST -H "x-admin-key: <ADMIN_SEED_KEY>" https://www.markitch.com/api/admin/migrate` aufrufen (nur per Header, seit Oktober 2026). Neue Spalten an bestehenden
 Tabellen in zwei Schritten ausrollen: erst nur die Migration pushen und ausführen,
 dann `schema.ts` und den Code.
 Jede neue Tabelle bekommt in ihrer Migration sofort `ENABLE ROW LEVEL SECURITY` (siehe `drizzle/0036_enable_rls.sql`).
