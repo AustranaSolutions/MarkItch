@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { battles, challenges, soloPitches } from "@/db/schema";
 import { getBrandForUser, getBrandMemberUserIds } from "@/lib/brand";
@@ -79,6 +79,28 @@ async function parseChallengerVideo(
   };
 }
 
+/**
+ * Luca 17.10.: Eine abgelaufene Einladung steht in der DB weiter als
+ * „pending“ (abgelaufen ist sie nur über effectiveStatus). Der Unique-Index
+ * auf (Herausforderer, Herausgeforderter) WHERE status = 'pending' blockierte
+ * dann jede neue Einladung zwischen denselben Marken mit einem 500er.
+ * Vor dem Einfügen deshalb abgelaufene Einträge dieses Paars endgültig auf
+ * „expired“ setzen.
+ */
+async function closeExpiredPending(challengerBrandId: string, challengedBrandId: string): Promise<void> {
+  await db
+    .update(challenges)
+    .set({ status: "expired" })
+    .where(
+      and(
+        eq(challenges.challengerBrandId, challengerBrandId),
+        eq(challenges.challengedBrandId, challengedBrandId),
+        eq(challenges.status, "pending"),
+        lt(challenges.expiresAt, new Date()),
+      ),
+    );
+}
+
 /** Brand A challenges Brand B. Triggered from B's public profile page. */
 export async function sendChallengeFor(
   user: { id: string },
@@ -115,6 +137,7 @@ export async function sendChallengeFor(
     return { ok: false, error: RATE_LIMIT_MESSAGE };
   }
 
+  await closeExpiredPending(myBrand.id, challengedBrandId);
   await db.insert(challenges).values({
     challengerBrandId: myBrand.id,
     challengedBrandId,
@@ -197,6 +220,7 @@ export async function sendChallengeFromSoloPitchFor(
     return { ok: false, error: RATE_LIMIT_MESSAGE };
   }
 
+  await closeExpiredPending(myBrand.id, pitch.brandId);
   await db.insert(challenges).values({
     challengerBrandId: myBrand.id,
     challengedBrandId: pitch.brandId,
