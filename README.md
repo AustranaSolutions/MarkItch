@@ -605,6 +605,12 @@ fact.
   still in-app-only); re-prompting a viewer who dismissed the opt-in but later changes
   their mind (they'd have to be offered it again some other way — no UI for that yet).
 
+- **Design „Tiefsee-Petrol & Orange“ (17.10.2026).** `globals.css` overrides
+  Tailwind's `black` / `zinc-*` / `orange-*` in an `@theme` block, so every existing
+  class picks up the new palette without touching ~650 class names. Same values as the
+  app (`MarkItch-mobile/src/theme/tokens.ts`). New `icon.png` / `apple-icon.png` /
+  `favicon.ico` in `src/app`, `themeColor` in the viewport, OG image recoloured.
+
 ## 4. The two-real-inboxes test
 
 This is the test described for Phase 1 — two different people, two real inboxes,
