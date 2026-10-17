@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Mic, Search, User, Plus, type LucideIcon } from "lucide-react";
+import { Home, Mic, Search, User, Smartphone, type LucideIcon } from "lucide-react";
 
 // Phase 12d: real line icons instead of emoji. Emoji render inconsistently
 // across platforms (different weight/style per OS, some look like clip art)
@@ -26,7 +26,9 @@ export function BottomNav({ isLoggedIn }: { isLoggedIn: boolean }) {
   // (Solo-Pitch, Creator-Video, Partner-Casting) lives behind this one
   // entry point now instead of being buried as forms inside /profile. See
   // src/app/post/page.tsx for the picker itself.
-  const postTab = { href: isLoggedIn ? "/post" : "/login", label: "Posten", icon: Plus };
+  // Phase W (Luca 17.10.): Posten gibt es nur noch in der App — der mittlere
+  // Knopf führt Website-Besucher (z. B. aus einer Instagram-Story) zur App.
+  const postTab = { href: "/app", label: "App", icon: Smartphone };
   const profileTab = { href: isLoggedIn ? "/profile" : "/login", label: isLoggedIn ? "Profil" : "Anmelden", icon: User };
 
   // Phase 33: Posten belongs dead center (Luca) — Suche and Posten swapped

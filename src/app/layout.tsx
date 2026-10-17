@@ -6,10 +6,14 @@ import { BottomNav } from "@/components/nav/bottom-nav";
 import { NotificationBellButton } from "@/components/nav/notification-bell-button";
 import { SplashScreen } from "@/components/splash-screen";
 import { SessionBoot } from "@/components/analytics/session-boot";
+import { APP_STORE_ID } from "@/lib/feature-flags";
 
 export const metadata: Metadata = {
   title: "MarkItch",
   description: "Werbung wird zum Entertainment.",
+  metadataBase: new URL("https://www.markitch.com"),
+  // Phase W: Safaris eigenes App-Banner („Öffnen“ / „Laden“) — erscheint erst, wenn die App im App Store ist.
+  itunes: { appId: APP_STORE_ID },
 };
 
 // Phase 41: no viewport config existed at all, so pinch-zoom and double-tap-
