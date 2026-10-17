@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import { getOptionalUser } from "@/lib/session";
 import { getUnreadNotificationCount } from "@/lib/notification";
@@ -7,6 +8,9 @@ import { NotificationBellButton } from "@/components/nav/notification-bell-butto
 import { SplashScreen } from "@/components/splash-screen";
 import { SessionBoot } from "@/components/analytics/session-boot";
 import { APP_STORE_ID } from "@/lib/feature-flags";
+
+// Luca 17.10.: Manrope wie in der App (variable Schrift, alle Schnitte).
+const manrope = Manrope({ subsets: ["latin", "latin-ext"], variable: "--font-manrope" });
 
 export const metadata: Metadata = {
   title: "MarkItch",
@@ -36,7 +40,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const unreadCount = user ? await getUnreadNotificationCount(user.id) : 0;
 
   return (
-    <html lang="de" className="h-full antialiased dark">
+    <html lang="de" className={`h-full antialiased dark ${manrope.variable}`}>
       <body className="flex min-h-full flex-col bg-black text-white font-sans">
         {/* Luca 07.10.: Browser-Fehler (auch vor dem Start von React) an den Server melden, max. 5 pro Seite. */}
         <script

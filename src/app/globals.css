@@ -18,7 +18,7 @@
 }
 
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
@@ -46,7 +46,7 @@
 body {
   background: #06171b;
   color: #ffffff;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
   /* iOS Safari's own elastic overscroll bounce (rubber-banding past the top/
      bottom of a scroll container) can compound the "dragging the whole
      screen like a zoomed photo" feeling on a duel swipe even with pinch-zoom
