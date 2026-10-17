@@ -38,7 +38,7 @@ export async function removeMobilePushToken(userId: string, token: string): Prom
     .where(and(eq(mobilePushTokens.token, token), eq(mobilePushTokens.userId, userId)));
 }
 
-type ExpoTicket = { status: "ok" | "error"; details?: { error?: string } };
+type ExpoTicket = { status: "ok" | "error"; message?: string; details?: { error?: string } };
 
 export async function sendMobilePushToUser(userId: string, payload: { title: string; body: string; url: string }): Promise<void> {
   try {
@@ -70,6 +70,13 @@ export async function sendMobilePushToUser(userId: string, payload: { title: str
     // Tickets kommen in derselben Reihenfolge wie die Nachrichten zurück.
     // „DeviceNotRegistered" = App gelöscht oder Push abgeschaltet → Token weg.
     const { data } = (await res.json()) as { data?: ExpoTicket[] };
+    // Luca 17.10.: Fehler je Gerät ins Log (z. B. fehlender APNs-Schlüssel bei
+    // Expo = „InvalidCredentials“), sonst bleibt ein ausbleibender Push unsichtbar.
+    (data ?? []).forEach((ticket, i) => {
+      if (ticket.status === "error") {
+        console.error(`[mobile-push] Ticket-Fehler für user ${userId}:`, ticket.details?.error ?? "unbekannt", ticket.message ?? "", rows[i]?.platform ?? "");
+      }
+    });
     const dead = (data ?? [])
       .map((ticket, i) => (ticket.status === "error" && ticket.details?.error === "DeviceNotRegistered" ? rows[i]?.token : null))
       .filter((t): t is string => Boolean(t));
