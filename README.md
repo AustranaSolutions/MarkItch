@@ -9,6 +9,7 @@ gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreic
 
 ## Stand (Oktober 2026)
 
+- **Phase W (Okt. 2026):** Die Website ist die Begleit-Seite zur App: ansehen, abstimmen, `/app` mit Download, Rechtstexte. Posten nur noch in der App (`/post` → `/app`, Schalter `APP_STORE_LIVE` in `src/lib/feature-flags.ts`).
 - **Web-App live**, alle Formate fertig:
   - Solo-Pitch, Duell (7 Tage Abstimmung, Ergebnis verdeckt), Reaktion,
   - Creator-Challenge (monatlich, meiste Likes gewinnen),
