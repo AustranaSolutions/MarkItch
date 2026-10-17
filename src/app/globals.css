@@ -22,8 +22,29 @@
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
+/* Luca 17.10.: Farbwelt „Tiefsee-Petrol & Orange“ (wie die App,
+   MarkItch-mobile/src/theme/tokens.ts). Statt hunderte Klassen umzuschreiben,
+   tragen die genutzten Tailwind-Namen jetzt die neuen Töne: black = dunkles
+   Petrol (Grund), zinc = Petrol-Grautöne, orange = wärmeres Orange. */
+@theme {
+  --color-black: #06171b;
+  --color-zinc-200: #e2eeee;
+  --color-zinc-300: #cfe0e1;
+  --color-zinc-400: #93aeb0;
+  --color-zinc-500: #76938f;
+  --color-zinc-600: #4e6b6e;
+  --color-zinc-700: #2a4a52;
+  --color-zinc-800: #1d3a41;
+  --color-zinc-900: #163038;
+  --color-zinc-950: #0e2328;
+  --color-orange-300: #ffb98a;
+  --color-orange-400: #ffa266;
+  --color-orange-500: #ff8a3d;
+  --color-orange-600: #f0701f;
+}
+
 body {
-  background: #000000;
+  background: #06171b;
   color: #ffffff;
   font-family: Arial, Helvetica, sans-serif;
   /* iOS Safari's own elastic overscroll bounce (rubber-banding past the top/

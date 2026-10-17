@@ -6,10 +6,10 @@ import { getVoteTally, getVoteTallyAsOf } from "@/lib/vote";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const BG = "#09090b";
-const ORANGE = "#f97316";
-const ZINC = "#3f3f46";
-const ZINC_LIGHT = "#a1a1aa";
+const BG = "#06171b";
+const ORANGE = "#ff8a3d";
+const ZINC = "#2a4a52";
+const ZINC_LIGHT = "#93aeb0";
 
 function fallbackImage() {
   return new ImageResponse(
