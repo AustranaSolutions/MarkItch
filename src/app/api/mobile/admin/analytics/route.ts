@@ -45,7 +45,8 @@ async function withTimeout<T>(label: string, task: () => Promise<T>, fallback: T
 export async function GET() {
   const { error } = await requireMobileAdmin();
   if (error) return error;
-  const [visitors, videosPerSession, retention, cta, voteFunnel, referrals, brands] = await Promise.all([
+  // „Marken“ erst danach — sonst warten zu viele Abfragen gleichzeitig auf Datenbank-Verbindungen.
+  const [visitors, videosPerSession, retention, cta, voteFunnel, referrals] = await Promise.all([
     withTimeout("visitors", () => getVisitorStats(30), { uniqueVisitors: 0, sessionStarts: 0, dailyUniqueVisitors: [] }),
     withTimeout("videosPerSession", () => getVideosPerSessionStats(14), {
       sessionsWithViews: 0,
@@ -65,7 +66,7 @@ export async function GET() {
       voteCompleted: 0,
     }),
     withTimeout("referrals", () => getReferralStats(30), { totalSessions: 0, withRef: 0, topRefs: [] }),
-    withTimeout("brands", () => getActiveBrandsStats(), { totalBrands: 0, activeLast30d: 0, postedMoreThanOnce: 0 }),
   ]);
+  const brands = await withTimeout("brands", () => getActiveBrandsStats(), { totalBrands: 0, activeLast30d: 0, postedMoreThanOnce: 0 });
   return NextResponse.json({ visitors, videosPerSession, retention, cta, voteFunnel, referrals, brands });
 }

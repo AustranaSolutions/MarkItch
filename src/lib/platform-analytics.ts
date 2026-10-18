@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, countDistinct, eq, gte, isNotNull, max, sql } from "drizzle-orm";
+import { and, count, countDistinct, eq, gte, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { brandAnalyticsEvents, visitorEvents, battles, brands, soloPitches, users, votes } from "@/db/schema";
 
@@ -240,38 +240,26 @@ export type ActiveBrandsStats = { totalBrands: number; activeLast30d: number; po
 /** "Aktive Marken" / "Marken, die erneut posten" — direkt aus den Content-Tabellen, keine eigenen Events nötig. */
 export async function getActiveBrandsStats(): Promise<ActiveBrandsStats> {
   const cutoff = daysAgo(30);
-  // Luca 18.10.: zusammengefasst in der Datenbank (Anzahl + letzter Post je Marke) statt alle Zeilen zu laden.
-  const [[total], soloRows, battleARows, battleBRows] = await Promise.all([
-    db.select({ n: count() }).from(brands),
-    db
-      .select({ brandId: soloPitches.brandId, n: count(), last: max(soloPitches.createdAt) })
-      .from(soloPitches)
-      .groupBy(soloPitches.brandId),
-    db
-      .select({ brandId: battles.brandAId, n: count(), last: max(battles.brandASubmittedAt) })
-      .from(battles)
-      .where(isNotNull(battles.brandASubmittedAt))
-      .groupBy(battles.brandAId),
-    db
-      .select({ brandId: battles.brandBId, n: count(), last: max(battles.brandBSubmittedAt) })
-      .from(battles)
-      .where(isNotNull(battles.brandBSubmittedAt))
-      .groupBy(battles.brandBId),
-  ]);
-
-  const postCountByBrand = new Map<string, number>();
-  const lastPostedByBrand = new Map<string, Date>();
-  for (const r of [...soloRows, ...battleARows, ...battleBRows]) {
-    postCountByBrand.set(r.brandId, (postCountByBrand.get(r.brandId) ?? 0) + Number(r.n));
-    const last = r.last ? new Date(r.last) : null;
-    const prev = lastPostedByBrand.get(r.brandId);
-    if (last && (!prev || last > prev)) lastPostedByBrand.set(r.brandId, last);
-  }
+  // Luca 18.10.: zwei kleine Abfragen nacheinander statt vier parallel — live
+  // wartete dieser Teil sonst auf freie Datenbank-Verbindungen und kam nie dran.
+  const [total] = await db.select({ n: count() }).from(brands);
+  const rows = await db.execute<{ brand_id: string; n: string | number; last: string | Date | null }>(sql`
+    select brand_id, count(*) as n, max(posted_at) as last from (
+      select ${soloPitches.brandId} as brand_id, ${soloPitches.createdAt} as posted_at from ${soloPitches}
+      union all
+      select ${battles.brandAId}, ${battles.brandASubmittedAt} from ${battles} where ${battles.brandASubmittedAt} is not null
+      union all
+      select ${battles.brandBId}, ${battles.brandBSubmittedAt} from ${battles} where ${battles.brandBSubmittedAt} is not null
+    ) posts
+    group by brand_id
+  `);
 
   let activeLast30d = 0;
   let postedMoreThanOnce = 0;
-  for (const [, n] of postCountByBrand) if (n > 1) postedMoreThanOnce += 1;
-  for (const [, lastAt] of lastPostedByBrand) if (lastAt >= cutoff) activeLast30d += 1;
+  for (const r of rows) {
+    if (Number(r.n) > 1) postedMoreThanOnce += 1;
+    if (r.last && new Date(r.last) >= cutoff) activeLast30d += 1;
+  }
 
   return { totalBrands: Number(total?.n ?? 0), activeLast30d, postedMoreThanOnce };
 }
