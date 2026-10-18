@@ -295,6 +295,13 @@
       "when": 1792316708804,
       "tag": "0041_brand_kind_paid_partnership",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792343558953,
+      "tag": "0042_terms_acceptance",
+      "breakpoints": true
     }
   ]
 }
