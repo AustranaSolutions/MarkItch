@@ -616,6 +616,12 @@ fact.
   creators pick "Bezahlte Kooperation / Werbung" when posting; feed items carry `brandKind` and
   `adLabel` (brand → always "Anzeige", creator → only when paid). Categories are validated per kind.
 
+- **Rechtstexte + Datenschutz (18.10.2026).** Retention in `src/lib/retention.ts` (run by the
+  nightly cron: rate-limit rows 7 days, analytics 13 months, resolved reports 3 years). Analytics
+  never store a userId; the web stats cookie needs consent (`components/analytics/consent-banner.tsx`).
+  Terms acceptance: `users.terms_version`, bump `TERMS_VERSION` in `src/lib/legal.ts` on every
+  material change. Removals/bans notify the affected users (Art. 17 DSA). Vercel region `fra1`.
+
 ## 4. The two-real-inboxes test
 
 This is the test described for Phase 1 — two different people, two real inboxes,
