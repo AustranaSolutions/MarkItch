@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         description: brands.description,
         logoUrl: brands.logoUrl,
         verifiedAt: brands.verifiedAt,
+        kind: brands.kind,
       })
       .from(brands)
       .orderBy(desc(brands.createdAt)),

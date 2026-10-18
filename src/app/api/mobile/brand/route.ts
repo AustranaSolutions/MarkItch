@@ -15,6 +15,7 @@ function readBrandForm(form: FormData): BrandInput {
     category: form.get("category"),
     country: form.get("country"),
     logo: logo instanceof File ? logo : null,
+    kind: form.get("kind") ?? undefined,
   };
 }
 

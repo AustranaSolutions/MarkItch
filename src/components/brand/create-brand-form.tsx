@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { createBrand, type BrandFormState } from "@/app/actions/brand";
 import { Field, FormError, SubmitButton } from "@/components/ui";
-import { BrandCategories, BrandCountries } from "@/lib/validation";
+import { BrandCategories, BrandCountries, CreatorCategories } from "@/lib/validation";
 
 const COUNTRY_LABELS: Record<(typeof BrandCountries)[number], string> = {
   AT: "Österreich",
@@ -17,6 +17,9 @@ export function CreateBrandForm() {
   // Phase 23: controlled, same reason as register-form.tsx — this form has
   // enough fields that a single rejected one (e.g. missing category)
   // wiping everything else typed so far would be genuinely painful.
+  // Luca 18.10.: Marke oder Creator — andere Texte und Kategorien.
+  const [kind, setKind] = useState<"brand" | "creator">("brand");
+  const categories: readonly string[] = kind === "creator" ? CreatorCategories : BrandCategories;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -27,7 +30,39 @@ export function CreateBrandForm() {
     <form action={action}>
       <FormError message={state?.errors?._form?.[0]} />
 
-      <Field label="Markenname" name="name" errors={state?.errors?.name} value={name} onChange={setName} />
+      <input type="hidden" name="kind" value={kind} />
+      <div className="mb-4 flex gap-2">
+        {(
+          [
+            ["brand", "Marke", "Unternehmen, Shop, Lokal"],
+            ["creator", "Creator", "Influencer, Content Creator"],
+          ] as const
+        ).map(([value, title, text]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => {
+              setKind(value);
+              if (!(value === "creator" ? (CreatorCategories as readonly string[]) : (BrandCategories as readonly string[])).includes(category)) setCategory("");
+            }}
+            className={
+              "flex-1 rounded-lg border p-3 text-left transition-colors " +
+              (kind === value ? "border-orange-500 bg-orange-500/10" : "border-zinc-700 hover:border-zinc-500")
+            }
+          >
+            <p className={"text-sm font-semibold " + (kind === value ? "text-orange-400" : "text-white")}>{title}</p>
+            <p className="mt-0.5 text-xs text-zinc-500">{text}</p>
+          </button>
+        ))}
+      </div>
+
+      <Field
+        label={kind === "creator" ? "Profilname" : "Markenname"}
+        name="name"
+        errors={state?.errors?.name}
+        value={name}
+        onChange={setName}
+      />
 
       <div className="mb-4">
         <label htmlFor="description" className="mb-1 block text-sm font-medium text-zinc-300">
@@ -64,7 +99,7 @@ export function CreateBrandForm() {
             <option value="" disabled>
               Wählen…
             </option>
-            {BrandCategories.map((cat) => (
+            {categories.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>

@@ -19,6 +19,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     ctaLabel: body?.ctaLabel,
     ctaUrl: body?.ctaUrl,
     containsAiContent: typeof body?.containsAiContent === "boolean" ? body.containsAiContent : undefined,
+    paidPartnership: typeof body?.paidPartnership === "boolean" ? body.paidPartnership : undefined,
   });
   if (!result.ok) {
     const first = Object.values(result.errors).find((messages) => messages?.length)?.[0];
@@ -29,6 +30,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     ctaLabel: result.ctaLabel,
     ctaUrl: result.ctaUrl,
     containsAiContent: result.containsAiContent,
+    paidPartnership: result.paidPartnership,
   });
 }
 

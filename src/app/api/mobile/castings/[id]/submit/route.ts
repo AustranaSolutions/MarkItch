@@ -20,6 +20,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   form.set("ctaUrl", text(body.ctaUrl));
   if (body.audioRightsConfirmed === true) form.set("audioRightsConfirmed", "on");
   if (body.containsAiContent === true) form.set("containsAiContent", "on");
+  if (body.paidPartnership === true) form.set("paidPartnership", "on");
 
   const result = await submitCastingEntryFor(viewer, form);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });

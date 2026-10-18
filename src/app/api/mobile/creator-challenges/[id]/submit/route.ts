@@ -19,6 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   form.set("ctaUrl", text(body.ctaUrl));
   if (body.audioRightsConfirmed === true) form.set("audioRightsConfirmed", "on");
   if (body.containsAiContent === true) form.set("containsAiContent", "on");
+  if (body.paidPartnership === true) form.set("paidPartnership", "on");
   const result = await submitToChallengeFor(viewer, id, form);
   if (!result.ok) return fieldErrorResponse(result.errors);
   return NextResponse.json({ soloPitchId: result.soloPitchId }, { status: 201 });

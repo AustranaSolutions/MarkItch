@@ -38,7 +38,9 @@ function RoleCard({
 
 export function RegisterForm() {
   const [state, action] = useActionState<FormState, FormData>(registerUser, undefined);
-  const [accountType, setAccountType] = useState<AccountType>("assent");
+  // Luca 18.10.: Marke und Creator sind beide Acro — die Art wählt man danach beim Profil.
+  const [role, setRole] = useState<"brand" | "creator" | "assent">("assent");
+  const accountType: AccountType = role === "assent" ? "assent" : "acro";
   // Phase 23: kept in local state (not left to the native form) so a failed
   // submission — e.g. "Passwort braucht eine Zahl" — doesn't also wipe the
   // name/email the person already typed. See Field's `onChange` doc in
@@ -60,20 +62,27 @@ export function RegisterForm() {
       <div className="mb-4">
         <p className="mb-2 text-sm font-medium text-zinc-300">Wer bist du?</p>
         <input type="hidden" name="accountType" value={accountType} />
-        <div className="flex gap-2">
-          <RoleCard
-            value="acro"
-            title="Acro"
-            description="Marke — postet Pitches"
-            selected={accountType === "acro"}
-            onSelect={() => setAccountType("acro")}
-          />
+        <div className="flex flex-col gap-2 sm:flex-row">
           <RoleCard
             value="assent"
-            title="Assent"
+            title="Zuschauer"
             description="Schaut zu & stimmt ab"
-            selected={accountType === "assent"}
-            onSelect={() => setAccountType("assent")}
+            selected={role === "assent"}
+            onSelect={() => setRole("assent")}
+          />
+          <RoleCard
+            value="acro"
+            title="Marke"
+            description="Unternehmen — postet Videos & Duelle"
+            selected={role === "brand"}
+            onSelect={() => setRole("brand")}
+          />
+          <RoleCard
+            value="acro"
+            title="Creator"
+            description="Influencer — postet Videos & Duelle"
+            selected={role === "creator"}
+            onSelect={() => setRole("creator")}
           />
         </div>
         {state?.errors?.accountType?.map((err) => (

@@ -7,6 +7,7 @@ import { validateCtaLink } from "@/lib/cta-link";
 import { readVideoUrlField } from "@/lib/storage";
 import { DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
 import { AudioRightsSchema } from "@/lib/validation";
+import { readPaidPartnership } from "@/lib/brand-kind";
 
 export type SoloPitchBrand = {
   id: string;
@@ -14,11 +15,12 @@ export type SoloPitchBrand = {
   slug: string;
   logoUrl: string | null;
   verifiedAt: Date | null;
+  kind: string;
 };
 
 export type SoloPitchWithBrand = SoloPitch & { brand: SoloPitchBrand };
 
-const brandCols = { id: brands.id, name: brands.name, slug: brands.slug, logoUrl: brands.logoUrl, verifiedAt: brands.verifiedAt };
+const brandCols = { id: brands.id, name: brands.name, slug: brands.slug, logoUrl: brands.logoUrl, verifiedAt: brands.verifiedAt, kind: brands.kind };
 
 /** Phase F (H3): `where` filtert schon in der DB (eine Marke, ein Video, eine Challenge). */
 export async function getAllSoloPitches(where?: SQL): Promise<SoloPitchWithBrand[]> {
@@ -77,9 +79,9 @@ async function checkOwnSoloPitch(userId: string, soloPitchId: string): Promise<O
 export async function updateOwnSoloPitch(
   userId: string,
   soloPitchId: string,
-  input: { description: unknown; ctaLabel: unknown; ctaUrl: unknown; containsAiContent?: boolean },
+  input: { description: unknown; ctaLabel: unknown; ctaUrl: unknown; containsAiContent?: boolean; paidPartnership?: boolean },
 ): Promise<
-  | { ok: true; description: string; ctaLabel: string; ctaUrl: string; containsAiContent?: boolean }
+  | { ok: true; description: string; ctaLabel: string; ctaUrl: string; containsAiContent?: boolean; paidPartnership?: boolean }
   | { ok: false; errors: Record<string, string[]> }
 > {
   const owner = await checkOwnSoloPitch(userId, soloPitchId);
@@ -94,6 +96,10 @@ export async function updateOwnSoloPitch(
   const cta = validateCtaLink(ctaForm);
   if ("errors" in cta) return { ok: false, errors: cta.errors };
 
+  // Kooperation nur für Creator änderbar (Marken-Inhalte sind immer Anzeige).
+  const myBrand = input.paidPartnership === undefined ? null : await getBrandForUser(userId);
+  const paidPartnership = myBrand?.kind === "creator" ? input.paidPartnership : undefined;
+
   await db
     .update(soloPitches)
     .set({
@@ -101,6 +107,7 @@ export async function updateOwnSoloPitch(
       ctaLabel: cta.ctaLabel,
       ctaUrl: cta.ctaUrl,
       ...(input.containsAiContent === undefined ? {} : { containsAiContent: input.containsAiContent }),
+      ...(paidPartnership === undefined ? {} : { paidPartnership }),
     })
     .where(eq(soloPitches.id, soloPitchId));
   return {
@@ -109,6 +116,7 @@ export async function updateOwnSoloPitch(
     ctaLabel: cta.ctaLabel,
     ctaUrl: cta.ctaUrl,
     ...(input.containsAiContent === undefined ? {} : { containsAiContent: input.containsAiContent }),
+    ...(paidPartnership === undefined ? {} : { paidPartnership }),
   };
 }
 
@@ -130,7 +138,7 @@ export async function createSoloPitchForUser(
   formData: FormData,
   // RN-7: Einreichung zu einer Creator-Challenge (Prüfung macht der Aufrufer).
   options: { creatorChallengeId?: string } = {},
-): Promise<{ ok: true; id: string; videoUrl: string; description: string; ctaLabel: string; ctaUrl: string; containsAiContent: boolean } | { ok: false; errors: Record<string, string[]> }> {
+): Promise<{ ok: true; id: string; videoUrl: string; description: string; ctaLabel: string; ctaUrl: string; containsAiContent: boolean; paidPartnership: boolean } | { ok: false; errors: Record<string, string[]> }> {
   const myBrand = await getBrandForUser(userId);
   if (!myBrand) return { ok: false, errors: { _form: ["Du musst zuerst eine Marke erstellen."] } };
 
@@ -147,6 +155,7 @@ export async function createSoloPitchForUser(
   if (!audioRights.success) return { ok: false, errors: audioRights.error.flatten().fieldErrors };
 
   const containsAiContent = formData.get("containsAiContent") === "on";
+  const paidPartnership = readPaidPartnership(formData, myBrand);
   const [pitch] = await db
     .insert(soloPitches)
     .values({
@@ -157,6 +166,7 @@ export async function createSoloPitchForUser(
       ctaLabel: cta.ctaLabel,
       ctaUrl: cta.ctaUrl,
       containsAiContent,
+      paidPartnership,
       creatorChallengeId: options.creatorChallengeId ?? null,
     })
     .returning({ id: soloPitches.id });
@@ -168,5 +178,6 @@ export async function createSoloPitchForUser(
     ctaLabel: cta.ctaLabel,
     ctaUrl: cta.ctaUrl,
     containsAiContent,
+    paidPartnership,
   };
 }

@@ -5,7 +5,8 @@ import { brands, brandMembers, users } from "@/db/schema";
 import { getBrandForUser } from "@/lib/brand";
 import { uploadImage } from "@/lib/storage";
 import { validateImageFile } from "@/lib/account";
-import { CreateBrandSchema, IndustryComplianceSchema } from "@/lib/validation";
+import { BrandCategories, CreateBrandSchema, CreatorCategories, IndustryComplianceSchema } from "@/lib/validation";
+import { parseBrandKind, type BrandKind } from "@/lib/brand-kind";
 import { withHttps } from "@/lib/cta-link";
 
 // RN-4: Marke anlegen/bearbeiten — gemeinsam für die Web-Actions
@@ -20,6 +21,8 @@ export type BrandInput = {
   category: unknown;
   country: unknown;
   logo: File | null;
+  /** Luca 18.10.: "brand" | "creator" — fehlt er (alte App-Version), bleibt es eine Marke bzw. unverändert. */
+  kind?: unknown;
 };
 
 function slugify(name: string): string {
@@ -61,7 +64,17 @@ async function nameTaken(name: string, exceptBrandId?: string): Promise<boolean>
   return Boolean(clash);
 }
 
-const NAME_TAKEN_ERROR = "Diesen Markennamen gibt es schon. Wenn das deine Marke ist, melde dich bei uns.";
+function nameTakenError(kind: BrandKind): string {
+  return kind === "creator"
+    ? "Diesen Profilnamen gibt es schon. Wenn das du bist, melde dich bei uns."
+    : "Diesen Markennamen gibt es schon. Wenn das deine Marke ist, melde dich bei uns.";
+}
+
+/** Kategorie muss zur Art passen (Marken- bzw. Creator-Liste). */
+function categoryError(kind: BrandKind, category: string): FieldErrors | null {
+  const allowed: readonly string[] = kind === "creator" ? CreatorCategories : BrandCategories;
+  return allowed.includes(category) ? null : { category: ["Bitte Kategorie wählen."] };
+}
 
 function parseBrand(input: BrandInput) {
   return CreateBrandSchema.safeParse({
@@ -97,7 +110,11 @@ export async function createBrandForUser(
   const parsed = parseBrand(input);
   if (!parsed.success) return { ok: false, errors: parsed.error.flatten().fieldErrors as FieldErrors };
 
-  if (await nameTaken(parsed.data.name)) return { ok: false, errors: { name: [NAME_TAKEN_ERROR] } };
+  const kind = parseBrandKind(input.kind);
+  const wrongCategory = categoryError(kind, parsed.data.category);
+  if (wrongCategory) return { ok: false, errors: wrongCategory };
+
+  if (await nameTaken(parsed.data.name)) return { ok: false, errors: { name: [nameTakenError(kind)] } };
 
   // Phase 46: Branchen-Compliance-Attestierung, nur bei der Erstellung.
   const compliance = IndustryComplianceSchema.safeParse({ industryCompliance: input.industryCompliance });
@@ -116,6 +133,7 @@ export async function createBrandForUser(
       website: parsed.data.website || null,
       category: parsed.data.category,
       country: parsed.data.country,
+      kind,
       logoUrl: logo.url,
       industryComplianceConfirmedAt: new Date(),
     })
@@ -138,7 +156,10 @@ export async function updateBrandForUser(
 
   const parsed = parseBrand(input);
   if (!parsed.success) return { ok: false, errors: parsed.error.flatten().fieldErrors as FieldErrors };
-  if (await nameTaken(parsed.data.name, brand.id)) return { ok: false, errors: { name: [NAME_TAKEN_ERROR] } };
+  const kind = input.kind === undefined ? parseBrandKind(brand.kind) : parseBrandKind(input.kind);
+  const wrongCategory = categoryError(kind, parsed.data.category);
+  if (wrongCategory) return { ok: false, errors: wrongCategory };
+  if (await nameTaken(parsed.data.name, brand.id)) return { ok: false, errors: { name: [nameTakenError(kind)] } };
 
   const logo = await uploadLogoIfAny(input.logo);
   if ("errors" in logo) return { ok: false, errors: logo.errors };
@@ -151,6 +172,7 @@ export async function updateBrandForUser(
       website: parsed.data.website || null,
       category: parsed.data.category,
       country: parsed.data.country,
+      kind,
       logoUrl: logo.url ?? brand.logoUrl,
       updatedAt: new Date(),
     })

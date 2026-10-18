@@ -25,6 +25,7 @@ import {
   type CommunityReactionRow,
   type FeedReaction,
 } from "@/lib/community-feed";
+import { parseBrandKind, showsAdLabel, type BrandKind } from "@/lib/brand-kind";
 
 // Phase 9.1 — one feed entry per Duell (battle), not per side.
 //
@@ -57,6 +58,10 @@ export type FeedDuelSide = {
   ctaUrl: string | null;
   /** Phase 46: EU-AI-Act-Kennzeichnungspflicht. */
   containsAiContent: boolean;
+  /** Luca 18.10.: "brand" | "creator". */
+  brandKind: BrandKind;
+  /** „Anzeige“ zeigen — Marke immer, Creator nur bei bezahlter Kooperation. */
+  adLabel: boolean;
 };
 
 export type FeedDuel = {
@@ -212,6 +217,7 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
     const ctaLabels = [battle.brandACtaLabel, battle.brandBCtaLabel];
     const ctaUrls = [battle.brandACtaUrl ?? battle.brandA.website, battle.brandBCtaUrl ?? battle.brandB.website];
     const aiContentFlags = [battle.brandAContainsAiContent, battle.brandBContainsAiContent];
+    const paidFlags = [battle.brandAPaidPartnership, battle.brandBPaidPartnership];
     const sides = rawSides.map((brand, i): FeedDuelSide => {
       const key = `${battle.id}:${brand.id}`;
       return {
@@ -228,6 +234,8 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
         ctaLabel: ctaLabels[i] ?? (ctaUrls[i] ? "Zur Website" : null),
         ctaUrl: ctaUrls[i],
         containsAiContent: aiContentFlags[i]!,
+        brandKind: parseBrandKind(brand.kind),
+        adLabel: showsAdLabel(brand.kind, paidFlags[i]!),
       };
     }) as [FeedDuelSide, FeedDuelSide];
 
@@ -345,6 +353,8 @@ export type FeedSoloPitch = {
   ctaUrl: string | null;
   /** Phase 46: EU-AI-Act-Kennzeichnungspflicht. */
   containsAiContent: boolean;
+  brandKind: BrandKind;
+  adLabel: boolean;
   /** RN-7: Einreichung zu einer Creator-Challenge bzw. einem Partner-Casting → Knopf dorthin. */
   context: PitchContext | null;
   /** RN-7: für die Challenge-Seite (Einreichungen filtern). */
@@ -410,6 +420,8 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
     ctaLabel: pitch.ctaLabel,
     ctaUrl: pitch.ctaUrl,
     containsAiContent: pitch.containsAiContent,
+    brandKind: parseBrandKind(pitch.brand.kind),
+    adLabel: showsAdLabel(pitch.brand.kind, pitch.paidPartnership),
     context: contexts.get(pitch.id) ?? null,
     creatorChallengeId: pitch.creatorChallengeId,
   }));

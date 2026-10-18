@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
   form.set("ctaUrl", text(body.ctaUrl));
   if (body.audioRightsConfirmed === true) form.set("audioRightsConfirmed", "on");
   if (body.containsAiContent === true) form.set("containsAiContent", "on");
+  if (body.paidPartnership === true) form.set("paidPartnership", "on");
 
   const result = await createSoloPitchForUser(viewer.id, form);
   if (!result.ok) return fieldErrorResponse(result.errors);

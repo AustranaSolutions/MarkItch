@@ -192,7 +192,7 @@ export function FeedSoloPitchCard({
         className="pointer-events-none absolute left-2 flex flex-col items-start gap-1"
         style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
       >
-        <AdLabel />
+        {pitch.adLabel && <AdLabel />}
         {pitch.containsAiContent && <AiContentLabel />}
       </div>
 

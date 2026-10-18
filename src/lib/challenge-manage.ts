@@ -11,6 +11,7 @@ import { activateBattleIfBothSidesReady } from "@/lib/battle-stage";
 import { readVideoUrlField } from "@/lib/storage";
 import { validateCtaLink } from "@/lib/cta-link";
 import { AudioRightsSchema } from "@/lib/validation";
+import { readPaidPartnership } from "@/lib/brand-kind";
 
 // RN-5b: Duell-Einladungen — gemeinsam genutzt von den Web-Actions
 // (actions/challenge.ts) und den App-Routen (/api/mobile/challenges*).
@@ -57,12 +58,13 @@ function parseCategory(category: unknown): string | { error: string } {
  * Musikrechte, KI). Kein Video = wie bisher, Upload nach der Annahme.
  */
 type ChallengerVideo =
-  | { challengerVideoUrl: string; challengerCtaLabel: string; challengerCtaUrl: string; challengerContainsAiContent: boolean }
+  | { challengerVideoUrl: string; challengerCtaLabel: string; challengerCtaUrl: string; challengerContainsAiContent: boolean; challengerPaidPartnership: boolean }
   | Record<string, never>;
 
 async function parseChallengerVideo(
   video: FormData | null | undefined,
   userId: string,
+  brand: { kind: string },
 ): Promise<ChallengerVideo | { error: string }> {
   if (!video || !video.get("videoUrl")) return {};
   const parsed = await readVideoUrlField(video, "battle-videos", userId);
@@ -76,6 +78,7 @@ async function parseChallengerVideo(
     challengerCtaLabel: cta.ctaLabel,
     challengerCtaUrl: cta.ctaUrl,
     challengerContainsAiContent: video.get("containsAiContent") === "on",
+    challengerPaidPartnership: readPaidPartnership(video, brand),
   };
 }
 
@@ -129,7 +132,7 @@ export async function sendChallengeFor(
   const productionDays = parseProductionDays(input.productionDays);
   if (typeof productionDays !== "number") return { ok: false, error: productionDays.error };
 
-  const challengerVideo = await parseChallengerVideo(input.video, user.id);
+  const challengerVideo = await parseChallengerVideo(input.video, user.id, myBrand);
   if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };
 
   const { allowed } = await checkRateLimit("challenge", myBrand.id);
@@ -212,7 +215,7 @@ export async function sendChallengeFromSoloPitchFor(
   const productionDays = parseProductionDays(input.productionDays);
   if (typeof productionDays !== "number") return { ok: false, error: productionDays.error };
 
-  const challengerVideo = await parseChallengerVideo(input.video, user.id);
+  const challengerVideo = await parseChallengerVideo(input.video, user.id, myBrand);
   if ("error" in challengerVideo) return { ok: false, error: challengerVideo.error as string };
 
   const { allowed } = await checkRateLimit("challenge", myBrand.id);
@@ -338,6 +341,7 @@ export async function respondToChallengeFor(
           brandBCtaLabel: pitch.ctaLabel,
           brandBCtaUrl: pitch.ctaUrl,
           brandBContainsAiContent: pitch.containsAiContent,
+          brandBPaidPartnership: pitch.paidPartnership,
         };
       }
     }
@@ -349,6 +353,7 @@ export async function respondToChallengeFor(
           brandACtaLabel: challenge.challengerCtaLabel,
           brandACtaUrl: challenge.challengerCtaUrl,
           brandAContainsAiContent: challenge.challengerContainsAiContent,
+          brandAPaidPartnership: challenge.challengerPaidPartnership,
         }
       : {};
     const [battle] = await db

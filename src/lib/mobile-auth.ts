@@ -16,6 +16,8 @@ export type MobileUser = {
   avatarUrl: string | null;
   /** RN-4: eigene Marke (Acro), sonst null — die App zeigt damit das passende Profil. */
   brandSlug: string | null;
+  /** Luca 18.10.: "brand" | "creator" (null ohne Marke). */
+  brandKind: string | null;
 };
 
 type UserRow = typeof users.$inferSelect;
@@ -30,6 +32,7 @@ export async function toMobileUser(row: UserRow): Promise<MobileUser> {
     accountType: row.accountType,
     avatarUrl: row.avatarUrl,
     brandSlug: brand?.slug ?? null,
+    brandKind: brand?.kind ?? null,
   };
 }
 

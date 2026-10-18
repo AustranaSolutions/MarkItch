@@ -34,6 +34,7 @@ export async function GET() {
           country: brand.country,
           website: brand.website,
           logoUrl: brand.logoUrl,
+          kind: brand.kind,
         }
       : null,
   });

@@ -63,13 +63,29 @@ export const BrandCategories = [
   "Other",
 ] as const;
 
+// Luca 18.10.: eigene Kategorien für Creator (Influencer) — gleiche Spalte.
+export const CreatorCategories = [
+  "Comedy",
+  "Fitness",
+  "Food",
+  "Beauty",
+  "Fashion",
+  "Lifestyle",
+  "Tech",
+  "Gaming",
+  "Music",
+  "Travel",
+  "Education",
+  "Other",
+] as const;
+
 export const BrandCountries = ["AT", "DE", "CH", "Other"] as const;
 
 export const CreateBrandSchema = z.object({
   name: z.string().trim().min(2, "Mindestens 2 Zeichen.").max(80, "Maximal 80 Zeichen."),
   description: z.string().trim().max(500, "Maximal 500 Zeichen.").optional().or(z.literal("")),
   website: z.union([z.url("Ungültige URL (z. B. https://example.com)."), z.literal("")]).optional(),
-  category: z.enum(BrandCategories, "Bitte Kategorie wählen."),
+  category: z.enum([...new Set([...BrandCategories, ...CreatorCategories])] as [string, ...string[]], "Bitte Kategorie wählen."),
   country: z.enum(BrandCountries, "Bitte Land wählen."),
 });
 

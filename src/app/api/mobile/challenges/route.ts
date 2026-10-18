@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
     video.set("ctaUrl", text(body.ctaUrl));
     if (body.audioRightsConfirmed === true) video.set("audioRightsConfirmed", "on");
     if (body.containsAiContent === true) video.set("containsAiContent", "on");
+    if (body.paidPartnership === true) video.set("paidPartnership", "on");
   }
   const result = body.soloPitchId
     ? await sendChallengeFromSoloPitchFor(viewer, {

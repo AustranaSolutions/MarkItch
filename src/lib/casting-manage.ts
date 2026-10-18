@@ -92,6 +92,7 @@ export async function submitCastingEntryFor(user: { id: string }, formData: Form
       ctaLabel: pitch.ctaLabel,
       ctaUrl: pitch.ctaUrl,
       containsAiContent: pitch.containsAiContent,
+      paidPartnership: pitch.paidPartnership,
       soloPitchId: pitch.id,
     });
   } catch {

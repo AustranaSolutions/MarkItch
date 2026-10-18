@@ -516,7 +516,7 @@ export function FeedDuelCard({
         className="pointer-events-none absolute left-2 flex flex-col items-start gap-1"
         style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
       >
-        <AdLabel />
+        {side.adLabel && <AdLabel />}
         {side.containsAiContent && <AiContentLabel />}
       </div>
 

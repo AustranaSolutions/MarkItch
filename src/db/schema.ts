@@ -76,6 +76,10 @@ export const brands = pgTable(
     website: text("website"),
     category: text("category").notNull(),
     country: text("country").notNull(),
+    // Luca 18.10.: Marke oder Creator (Influencer) — technisch dasselbe
+    // Acro-Konto, nur andere Texte/Kategorien und eine andere Werbe-
+    // Kennzeichnung (Marke = immer „Anzeige“, Creator nur bei bezahlter Kooperation).
+    kind: text("kind").notNull().default("brand"),
     // Phase 46: Branchen-Compliance-Attestierung (Rechtskonformitäts-Audit,
     // Phase 45) — Österreich verbietet/beschränkt Werbung für bestimmte
     // Produkte strikt (Tabak, E-Zigaretten, Rx-Medikamente). Ein
@@ -162,6 +166,8 @@ export const challenges = pgTable(
     challengerCtaLabel: text("challenger_cta_label"),
     challengerCtaUrl: text("challenger_cta_url"),
     challengerContainsAiContent: boolean("challenger_contains_ai_content").notNull().default(false),
+    // Luca 18.10.: nur für Creator relevant — „bezahlte Kooperation / Werbung“ → Anzeige-Label.
+    challengerPaidPartnership: boolean("challenger_paid_partnership").notNull().default(false),
     // Phase B (Luca 04.10.): Frist zum Filmen nach dem Annehmen, gewählt von
     // der einladenden Marke — 3, 7, 14 oder 30 Tage (30 = große Ankündigung,
     // „wie vor einem Boxkampf“). Die eingeladene Marke sieht sie vor dem
@@ -248,6 +254,9 @@ export const battles = pgTable(
     // Duell, da jede Seite ihr Video unabhängig hochlädt.
     brandAContainsAiContent: boolean("brand_a_contains_ai_content").notNull().default(false),
     brandBContainsAiContent: boolean("brand_b_contains_ai_content").notNull().default(false),
+    // Luca 18.10.: siehe challenges.challengerPaidPartnership — je Seite.
+    brandAPaidPartnership: boolean("brand_a_paid_partnership").notNull().default(false),
+    brandBPaidPartnership: boolean("brand_b_paid_partnership").notNull().default(false),
     brandASubmittedAt: timestamp("brand_a_submitted_at", { withTimezone: true }),
     brandBSubmittedAt: timestamp("brand_b_submitted_at", { withTimezone: true }),
     productionDeadline: timestamp("production_deadline", { withTimezone: true }),
@@ -517,6 +526,8 @@ export const soloPitches = pgTable("solo_pitches", {
   // "nein" — ein Pflichtfeld hätte jeden bestehenden Upload-Flow für ein
   // Rand-Feature verkompliziert.
   containsAiContent: boolean("contains_ai_content").notNull().default(false),
+  // Luca 18.10.: siehe challenges.challengerPaidPartnership.
+  paidPartnership: boolean("paid_partnership").notNull().default(false),
   // RN-7 (Luca 30.09.): Einreichung zu einer Creator-Challenge — der Post
   // läuft ganz normal im Feed (Likes = Rangliste), führt aber per Knopf zur
   // Challenge. Null = normaler Solo-Pitch. Wird die Challenge gelöscht,
@@ -727,6 +738,7 @@ export const castingSubmissions = pgTable(
     ctaUrl: text("cta_url"),
     // Phase 46: siehe soloPitches.containsAiContent.
     containsAiContent: boolean("contains_ai_content").notNull().default(false),
+    paidPartnership: boolean("paid_partnership").notNull().default(false),
     // RN-7 (Luca 30.09.): neue Einreichungen laufen zusätzlich als Solo-Pitch
     // im Feed (mit Knopf „Zum Casting“). Löscht die Marke den Post, fällt
     // auch die Einreichung weg. Null bei älteren Einreichungen.
@@ -816,6 +828,7 @@ export const creatorSubmissions = pgTable("creator_submissions", {
   ctaUrl: text("cta_url"),
   // Phase 46: siehe soloPitches.containsAiContent.
   containsAiContent: boolean("contains_ai_content").notNull().default(false),
+  paidPartnership: boolean("paid_partnership").notNull().default(false),
   period: text("period").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

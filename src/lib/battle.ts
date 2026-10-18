@@ -11,6 +11,7 @@ type BattleBrand = {
   verifiedAt: Date | null;
   videoUrl: string | null;
   website: string | null;
+  kind: string;
 };
 
 export type BattleWithBrands = Battle & { brandA: BattleBrand; brandB: BattleBrand };
@@ -44,6 +45,7 @@ const brandCols = {
   verifiedAt: brands.verifiedAt,
   videoUrl: brands.videoUrl,
   website: brands.website,
+  kind: brands.kind,
 };
 
 async function attachBrands(rows: Battle[]): Promise<BattleWithBrands[]> {

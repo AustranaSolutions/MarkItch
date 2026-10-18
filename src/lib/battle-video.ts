@@ -7,6 +7,7 @@ import { activateBattleIfBothSidesReady } from "@/lib/battle-stage";
 import { readVideoUrlField } from "@/lib/storage";
 import { validateCtaLink } from "@/lib/cta-link";
 import { AudioRightsSchema } from "@/lib/validation";
+import { readPaidPartnership } from "@/lib/brand-kind";
 
 /**
  * RN-5b: eigene Seite eines Duells einreichen — gemeinsam genutzt von der
@@ -60,6 +61,7 @@ export async function submitBattleVideoFor(
   const now = new Date();
 
   const containsAiContent = formData.get("containsAiContent") === "on";
+  const paidPartnership = readPaidPartnership(formData, myBrand);
 
   await db
     .update(battles)
@@ -71,6 +73,7 @@ export async function submitBattleVideoFor(
             brandACtaLabel: cta.ctaLabel,
             brandACtaUrl: cta.ctaUrl,
             brandAContainsAiContent: containsAiContent,
+            brandAPaidPartnership: paidPartnership,
           }
         : {
             brandBVideoUrl: video.videoUrl,
@@ -78,6 +81,7 @@ export async function submitBattleVideoFor(
             brandBCtaLabel: cta.ctaLabel,
             brandBCtaUrl: cta.ctaUrl,
             brandBContainsAiContent: containsAiContent,
+            brandBPaidPartnership: paidPartnership,
           },
     )
     .where(eq(battles.id, battleId));
