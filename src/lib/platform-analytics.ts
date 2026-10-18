@@ -1,11 +1,11 @@
 import "server-only";
-import { and, eq, gte, isNotNull, or } from "drizzle-orm";
+import { and, count, countDistinct, eq, gte, isNotNull, max, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { brandAnalyticsEvents, visitorEvents, battles, brands, soloPitches, users, votes } from "@/db/schema";
 
 // Phase 47: interne Metriken für /admin/analytics — deckt BETA-2-F/G aus
 // MarkItch_Launch_Minimum_Claude_Code_Prompt.md ab ("Produkt-/Funnel-
-// Analytics", "Vote-Funnel"). Bewusst alles in JS aggregiert statt mit
+// Analytics", "Vote-Funnel"). Ursprünglich alles in JS aggregiert statt mit
 // SQL-Datums-Funktionen — bei Beta-Datenmengen (niedrige Tausenderstellen)
 // unproblematisch, und deutlich einfacher lesbar/wartbar als
 // dialektspezifisches SQL. "Kein überdimensioniertes Data-Warehouse" (siehe
@@ -62,21 +62,17 @@ export type VideosPerSessionStats = {
 
 /** "Videos pro Session" / "3/5/10 Videos angesehen" — (anonId, Kalendertag) als Session-Näherung, siehe SessionBoot. */
 export async function getVideosPerSessionStats(days = 14): Promise<VideosPerSessionStats> {
+  // Luca 18.10.: in der Datenbank zählen statt jede Zeile zu laden (live > 8 s).
+  const day = sql<string>`to_char(${brandAnalyticsEvents.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
   const rows = await db
-    .select({ anonId: brandAnalyticsEvents.anonId, createdAt: brandAnalyticsEvents.createdAt })
+    .select({ n: count() })
     .from(brandAnalyticsEvents)
     .where(
       and(eq(brandAnalyticsEvents.kind, "view"), isNotNull(brandAnalyticsEvents.anonId), gte(brandAnalyticsEvents.createdAt, daysAgo(days))),
-    );
+    )
+    .groupBy(brandAnalyticsEvents.anonId, day);
 
-  const perSession = new Map<string, number>();
-  for (const r of rows) {
-    if (!r.anonId) continue;
-    const key = `${r.anonId}:${dayKey(r.createdAt)}`;
-    perSession.set(key, (perSession.get(key) ?? 0) + 1);
-  }
-
-  const counts = [...perSession.values()];
+  const counts = rows.map((r) => Number(r.n));
   const sessionsWithViews = counts.length;
   if (sessionsWithViews === 0) {
     return { sessionsWithViews: 0, avgVideosPerSession: 0, pctReaching3: 0, pctReaching5: 0, pctReaching10: 0 };
@@ -111,26 +107,28 @@ export type RetentionStats = {
  */
 export async function getRetention(): Promise<RetentionStats> {
   const since = daysAgo(45);
+  // Luca 18.10.: nur eindeutige (Kennung, Tag)-Paare aus der Datenbank holen statt aller Zeilen.
+  const sessionDay = sql<string>`to_char(${visitorEvents.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+  const viewDay = sql<string>`to_char(${brandAnalyticsEvents.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
   const [sessionRows, viewRows] = await Promise.all([
     db
-      .select({ anonId: visitorEvents.anonId, createdAt: visitorEvents.createdAt })
+      .selectDistinct({ anonId: visitorEvents.anonId, day: sessionDay })
       .from(visitorEvents)
       .where(and(eq(visitorEvents.kind, "session_start"), gte(visitorEvents.createdAt, since))),
     db
-      .select({ anonId: brandAnalyticsEvents.anonId, createdAt: brandAnalyticsEvents.createdAt })
+      .selectDistinct({ anonId: brandAnalyticsEvents.anonId, day: viewDay })
       .from(brandAnalyticsEvents)
       .where(and(eq(brandAnalyticsEvents.kind, "view"), isNotNull(brandAnalyticsEvents.anonId), gte(brandAnalyticsEvents.createdAt, since))),
   ]);
 
   const activeByDay = new Map<string, Set<string>>();
-  const addActive = (anonId: string | null, createdAt: Date) => {
+  const addActive = (anonId: string | null, day: string) => {
     if (!anonId) return;
-    const key = dayKey(createdAt);
-    if (!activeByDay.has(key)) activeByDay.set(key, new Set());
-    activeByDay.get(key)!.add(anonId);
+    if (!activeByDay.has(day)) activeByDay.set(day, new Set());
+    activeByDay.get(day)!.add(anonId);
   };
-  for (const r of sessionRows) addActive(r.anonId, r.createdAt);
-  for (const r of viewRows) addActive(r.anonId, r.createdAt);
+  for (const r of sessionRows) addActive(r.anonId, r.day);
+  for (const r of viewRows) addActive(r.anonId, r.day);
 
   const days = [...activeByDay.keys()].sort();
 
@@ -158,11 +156,13 @@ export type CtaStats = { views: number; clicks: number; ctr: number | null };
 /** "CTA Clicks und CTA CTR". */
 export async function getCtaStats(days = 30): Promise<CtaStats> {
   const rows = await db
-    .select({ kind: brandAnalyticsEvents.kind })
+    .select({ kind: brandAnalyticsEvents.kind, n: count() })
     .from(brandAnalyticsEvents)
-    .where(gte(brandAnalyticsEvents.createdAt, daysAgo(days)));
-  const views = rows.filter((r) => r.kind === "view").length;
-  const clicks = rows.filter((r) => r.kind === "cta_click").length;
+    .where(gte(brandAnalyticsEvents.createdAt, daysAgo(days)))
+    .groupBy(brandAnalyticsEvents.kind);
+  const of = (kind: string) => Number(rows.find((r) => r.kind === kind)?.n ?? 0);
+  const views = of("view");
+  const clicks = of("cta_click");
   return { views, clicks, ctr: views > 0 ? (clicks / views) * 100 : null };
 }
 
@@ -186,26 +186,28 @@ export type VoteFunnelStats = {
  */
 export async function getVoteFunnel(days = 30): Promise<VoteFunnelStats> {
   const since = daysAgo(days);
-  const [battleEvents, registerStartedRows, registerCompletedRows, voteRows] = await Promise.all([
+  const [battleEvents, [registerStarted], [registerCompleted], [voteCompleted]] = await Promise.all([
     db
-      .select({ kind: brandAnalyticsEvents.kind })
+      .select({ kind: brandAnalyticsEvents.kind, n: count() })
       .from(brandAnalyticsEvents)
-      .where(and(isNotNull(brandAnalyticsEvents.battleId), gte(brandAnalyticsEvents.createdAt, since))),
+      .where(and(isNotNull(brandAnalyticsEvents.battleId), gte(brandAnalyticsEvents.createdAt, since)))
+      .groupBy(brandAnalyticsEvents.kind),
     db
-      .select({ anonId: visitorEvents.anonId })
+      .select({ n: countDistinct(visitorEvents.anonId) })
       .from(visitorEvents)
       .where(and(eq(visitorEvents.kind, "register_started"), gte(visitorEvents.createdAt, since))),
-    db.select({ id: users.id }).from(users).where(gte(users.createdAt, since)),
-    db.select({ id: votes.id }).from(votes).where(gte(votes.createdAt, since)),
+    db.select({ n: count() }).from(users).where(gte(users.createdAt, since)),
+    db.select({ n: count() }).from(votes).where(gte(votes.createdAt, since)),
   ]);
+  const of = (kind: string) => Number(battleEvents.find((r) => r.kind === kind)?.n ?? 0);
 
   return {
-    contentOpened: battleEvents.filter((r) => r.kind === "view").length,
-    voteClicked: battleEvents.filter((r) => r.kind === "vote_click").length,
-    loginRequired: battleEvents.filter((r) => r.kind === "login_required").length,
-    registerStarted: new Set(registerStartedRows.map((r) => r.anonId)).size,
-    registerCompleted: registerCompletedRows.length,
-    voteCompleted: voteRows.length,
+    contentOpened: of("view"),
+    voteClicked: of("vote_click"),
+    loginRequired: of("login_required"),
+    registerStarted: Number(registerStarted?.n ?? 0),
+    registerCompleted: Number(registerCompleted?.n ?? 0),
+    voteCompleted: Number(voteCompleted?.n ?? 0),
   };
 }
 
@@ -238,37 +240,38 @@ export type ActiveBrandsStats = { totalBrands: number; activeLast30d: number; po
 /** "Aktive Marken" / "Marken, die erneut posten" — direkt aus den Content-Tabellen, keine eigenen Events nötig. */
 export async function getActiveBrandsStats(): Promise<ActiveBrandsStats> {
   const cutoff = daysAgo(30);
-  const [totalBrandsRow, soloRows, battleRows] = await Promise.all([
-    db.select({ id: brands.id }).from(brands),
-    db.select({ brandId: soloPitches.brandId, createdAt: soloPitches.createdAt }).from(soloPitches),
+  // Luca 18.10.: zusammengefasst in der Datenbank (Anzahl + letzter Post je Marke) statt alle Zeilen zu laden.
+  const [[total], soloRows, battleARows, battleBRows] = await Promise.all([
+    db.select({ n: count() }).from(brands),
     db
-      .select({
-        brandAId: battles.brandAId,
-        brandBId: battles.brandBId,
-        brandASubmittedAt: battles.brandASubmittedAt,
-        brandBSubmittedAt: battles.brandBSubmittedAt,
-      })
+      .select({ brandId: soloPitches.brandId, n: count(), last: max(soloPitches.createdAt) })
+      .from(soloPitches)
+      .groupBy(soloPitches.brandId),
+    db
+      .select({ brandId: battles.brandAId, n: count(), last: max(battles.brandASubmittedAt) })
       .from(battles)
-      .where(or(isNotNull(battles.brandASubmittedAt), isNotNull(battles.brandBSubmittedAt))),
+      .where(isNotNull(battles.brandASubmittedAt))
+      .groupBy(battles.brandAId),
+    db
+      .select({ brandId: battles.brandBId, n: count(), last: max(battles.brandBSubmittedAt) })
+      .from(battles)
+      .where(isNotNull(battles.brandBSubmittedAt))
+      .groupBy(battles.brandBId),
   ]);
 
   const postCountByBrand = new Map<string, number>();
   const lastPostedByBrand = new Map<string, Date>();
-  const bump = (brandId: string, at: Date) => {
-    postCountByBrand.set(brandId, (postCountByBrand.get(brandId) ?? 0) + 1);
-    const prev = lastPostedByBrand.get(brandId);
-    if (!prev || at > prev) lastPostedByBrand.set(brandId, at);
-  };
-  for (const r of soloRows) bump(r.brandId, r.createdAt);
-  for (const r of battleRows) {
-    if (r.brandASubmittedAt) bump(r.brandAId, r.brandASubmittedAt);
-    if (r.brandBSubmittedAt) bump(r.brandBId, r.brandBSubmittedAt);
+  for (const r of [...soloRows, ...battleARows, ...battleBRows]) {
+    postCountByBrand.set(r.brandId, (postCountByBrand.get(r.brandId) ?? 0) + Number(r.n));
+    const last = r.last ? new Date(r.last) : null;
+    const prev = lastPostedByBrand.get(r.brandId);
+    if (last && (!prev || last > prev)) lastPostedByBrand.set(r.brandId, last);
   }
 
   let activeLast30d = 0;
   let postedMoreThanOnce = 0;
-  for (const [, count] of postCountByBrand) if (count > 1) postedMoreThanOnce += 1;
+  for (const [, n] of postCountByBrand) if (n > 1) postedMoreThanOnce += 1;
   for (const [, lastAt] of lastPostedByBrand) if (lastAt >= cutoff) activeLast30d += 1;
 
-  return { totalBrands: totalBrandsRow.length, activeLast30d, postedMoreThanOnce };
+  return { totalBrands: Number(total?.n ?? 0), activeLast30d, postedMoreThanOnce };
 }
