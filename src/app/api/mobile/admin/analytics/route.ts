@@ -23,7 +23,10 @@ async function withTimeout<T>(label: string, task: () => Promise<T>, fallback: T
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      task(),
+      task().then((value) => {
+        console.log(`[admin/analytics] ${label}: ${Date.now() - started} ms`);
+        return value;
+      }),
       new Promise<T>((resolve) => {
         timer = setTimeout(() => {
           console.error(`[admin/analytics] ${label}: Zeitlimit ${SECTION_TIMEOUT_MS} ms überschritten`);
