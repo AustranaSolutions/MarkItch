@@ -124,7 +124,7 @@ export async function sendChallengeFor(
 
   const existing = await getLivePendingChallengeBetween(myBrand.id, challengedBrandId);
   if (existing) {
-    return { ok: false, error: "Zwischen euch läuft bereits eine offene Einladung." };
+    return { ok: false, error: "Mit dieser Marke bzw. diesem Creator läuft bereits eine offene Einladung." };
   }
 
   const category = parseCategory(input.category);
@@ -207,7 +207,7 @@ export async function sendChallengeFromSoloPitchFor(
 
   const existing = await getLivePendingChallengeBetween(myBrand.id, pitch.brandId);
   if (existing) {
-    return { ok: false, error: "Zwischen euch läuft bereits eine offene Einladung." };
+    return { ok: false, error: "Mit dieser Marke bzw. diesem Creator läuft bereits eine offene Einladung." };
   }
 
   const category = parseCategory(input.category);
@@ -378,7 +378,7 @@ export async function respondToChallengeFor(
     await notifyUsers(
       challengerMemberIds,
       challenge.challengerVideoUrl
-        ? `${actor.label} hat deine Duell-Einladung angenommen — euer Video ist schon drin!`
+        ? `${actor.label} hat deine Duell-Einladung angenommen — dein Video ist schon drin!`
         : `${actor.label} hat deine Duell-Einladung angenommen — jetzt dein Video hochladen!`,
       `/pitches/${battle.id}`,
       user.id,
