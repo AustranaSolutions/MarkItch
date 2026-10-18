@@ -165,7 +165,7 @@ export default function DatenschutzPage() {
           Push-Benachrichtigungen in der App; im Web der Push-Dienst deines Browsers.
         </p>
         <p>
-          Mit allen Auftragsverarbeitern besteht ein Auftragsverarbeitungsvertrag nach Art. 28 DSGVO. Übermittlungen
+          Mit unseren Auftragsverarbeitern bestehen Auftragsverarbeitungsverträge nach Art. 28 DSGVO oder werden vor dem öffentlichen Start abgeschlossen. Übermittlungen
           in die USA stützen wir auf das EU-US Data Privacy Framework bzw. EU-Standardvertragsklauseln (Art. 45, 46
           DSGVO).
         </p>
