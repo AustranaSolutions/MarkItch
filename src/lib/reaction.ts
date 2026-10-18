@@ -79,7 +79,7 @@ export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: st
       brand: r.brandId ? { id: r.brandId, name: r.brandName!, slug: r.brandSlug!, logoUrl: r.brandLogoUrl } : null,
       community:
         r.reaction.userId && !r.brandId
-          ? { userId: r.reaction.userId, name: communityName(r.userName, r.userEmail) }
+          ? { userId: r.reaction.userId, name: communityName(r.userName) }
           : null,
       likeCount: likeCountById.get(r.reaction.id) ?? 0,
       viewerLiked: viewerLikedSet.has(r.reaction.id),
@@ -88,9 +88,9 @@ export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: st
     .sort((a, b) => b.likeCount - a.likeCount || a.createdAt.getTime() - b.createdAt.getTime());
 }
 
-/** Wie bei Kommentaren: nie die volle E-Mail öffentlich, höchstens der Teil vor dem @. */
-export function communityName(name: string | null, email: string | null): string {
-  return name || email?.split("@")[0] || "Jemand";
+/** Luca 18.10.: öffentlich nur der Anzeigename — ohne Namen „Nutzer:in“, nie ein Teil der E-Mail. */
+export function communityName(name: string | null): string {
+  return name || "Nutzer:in";
 }
 
 export async function getReactionCounts(soloPitchIds: string[]): Promise<Map<string, number>> {

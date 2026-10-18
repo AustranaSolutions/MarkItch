@@ -56,7 +56,8 @@ export async function recordVisitorEvent(
   kind: VisitorEventKind,
   extra?: { userId?: string | null; ref?: string | null },
 ): Promise<void> {
-  await db.insert(visitorEvents).values({ anonId, kind, userId: extra?.userId ?? null, ref: extra?.ref ?? null });
+  // Luca 18.10.: bewusst ohne userId — die Statistik hat keinen Konto-Bezug (Datenschutzerklärung).
+  await db.insert(visitorEvents).values({ anonId, kind, userId: null, ref: extra?.ref ?? null });
 }
 
 async function getEventCount(brandId: string, kind: AnalyticsEventKind): Promise<number> {

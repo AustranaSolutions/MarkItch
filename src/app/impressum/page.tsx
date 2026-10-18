@@ -32,10 +32,45 @@ export default function ImpressumPage() {
       </section>
 
       <section className="mb-6 space-y-1 text-sm text-zinc-300">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">Unternehmen</h2>
+        <p>Rechtsform: Kommanditgesellschaft (KG), Sitz: Wien</p>
+        <p>Vertretungsbefugt: Luca Lenz (unbeschränkt haftender Gesellschafter)</p>
+        <p>Unternehmensgegenstand: Dienstleistungen in der automatischen Datenverarbeitung und Informationstechnik</p>
+        <p>Gewerbe: Dienstleistungen in der automatischen Datenverarbeitung und Informationstechnik (freies Gewerbe)</p>
+        <p>Gewerbebehörde: Magistrat der Stadt Wien</p>
+        <p>
+          Kammer: Wirtschaftskammer Wien, Fachgruppe Unternehmensberatung, Buchhaltung und Informationstechnologie
+          (UBIT)
+        </p>
+        <p>
+          Berufsrecht: Gewerbeordnung 1994, abrufbar unter{" "}
+          <a href="https://www.ris.bka.gv.at" className="text-orange-400 hover:underline" rel="noopener noreferrer">
+            www.ris.bka.gv.at
+          </a>
+        </p>
+      </section>
+      <section className="mb-6 space-y-1 text-sm text-zinc-300">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          Verantwortlich für den Inhalt
+          Offenlegung gemäß § 25 MedienG
         </h2>
-        <p>Austrana Solutions KG, wie oben</p>
+        <p>Medieninhaberin: Austrana Solutions KG, Edi-Finger-Straße 7/6/602, 1210 Wien</p>
+        <p>
+          Grundlegende Richtung: Plattform, auf der Unternehmen und Creator kurze Videos zeigen und in Duellen
+          gegeneinander antreten, über die das Publikum abstimmt. Die Videos stammen von den jeweiligen Nutzer:innen.
+        </p>
+      </section>
+      <section className="mb-6 space-y-1 text-sm text-zinc-300">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">Streitbeilegung</h2>
+        <p>
+          Wir sind nicht verpflichtet und nicht bereit, an einem Streitbeilegungsverfahren vor einer
+          Verbraucherschlichtungsstelle teilzunehmen. Anliegen klären wir gern direkt: support@markitch.com
+        </p>
+      </section>
+      <section className="mb-6 space-y-1 text-sm text-zinc-300">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+          Kontaktstelle nach dem Digital Services Act
+        </h2>
+        <p>Für Behörden und Nutzer:innen (Art. 11, 12 DSA): support@markitch.com — Deutsch oder Englisch.</p>
       </section>
 
       <p className="mt-8 text-xs text-zinc-600">

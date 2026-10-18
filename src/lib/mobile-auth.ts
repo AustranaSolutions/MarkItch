@@ -4,6 +4,7 @@ import type * as z from "zod";
 import type { users } from "@/db/schema";
 import { issueMobileToken } from "@/lib/mobile-token";
 import { getBrandForUser } from "@/lib/brand";
+import { hasAcceptedCurrentTerms } from "@/lib/legal";
 
 // RN-2: gemeinsame Bausteine der /api/mobile/auth/*-Routen.
 
@@ -18,6 +19,8 @@ export type MobileUser = {
   brandSlug: string | null;
   /** Luca 18.10.: "brand" | "creator" (null ohne Marke). */
   brandKind: string | null;
+  /** Luca 18.10.: false → App fragt vor der weiteren Nutzung nach Zustimmung zu den neuen Bedingungen. */
+  termsAccepted: boolean;
 };
 
 type UserRow = typeof users.$inferSelect;
@@ -33,6 +36,7 @@ export async function toMobileUser(row: UserRow): Promise<MobileUser> {
     avatarUrl: row.avatarUrl,
     brandSlug: brand?.slug ?? null,
     brandKind: brand?.kind ?? null,
+    termsAccepted: hasAcceptedCurrentTerms(row),
   };
 }
 

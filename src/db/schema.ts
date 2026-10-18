@@ -29,6 +29,11 @@ export const users = pgTable(
     // (session.ts), so a ban actually cuts an already-active session off,
     // not just future logins.
     bannedAt: timestamp("banned_at", { withTimezone: true }),
+    // Luca 18.10.: Zustimmung zu Nutzungsbedingungen/Datenschutz — Version
+    // (Datum der Fassung, siehe lib/legal.ts) + Zeitpunkt. Ist die Version
+    // älter als die aktuelle, fragt App/Web vor der weiteren Nutzung nach.
+    termsVersion: text("terms_version"),
+    termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

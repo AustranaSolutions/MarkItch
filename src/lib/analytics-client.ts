@@ -2,17 +2,48 @@
 
 const ANON_ID_COOKIE = "mi_vid";
 const ANON_ID_MAX_AGE_DAYS = 400; // Safaris eigene Obergrenze für client-gesetzte Cookies
+const CONSENT_KEY = "mi_consent"; // "stats" | "necessary" — die Wahl selbst ist technisch notwendig
 
 /**
- * Phase 47: anonymes, zufälliges Besucher-Kennzeichen (kein Personenbezug —
- * kein Name/E-Mail/Login nötig) für Sessions/Besucher-Zählung, "Videos pro
- * Session" und D1/D7/D30-Retention (siehe visitorEvents in schema.ts). Bleibt
- * über Logins hinweg dasselbe Cookie, wird aber nie mit einer Identität
- * verknüpft, nur optional mit userId, wenn zum Zeitpunkt des Events
- * eingeloggt war (serverseitig in /api/analytics/visit ergänzt).
+ * Luca 18.10. (§ 165 Abs. 3 TKG 2021): ein wiedererkennbares Statistik-
+ * Kennzeichen (Cookie) gibt es nur nach Einwilligung im Banner. Ohne
+ * Einwilligung zählen wir weiter Aufrufe, aber mit einer Kennung, die nur im
+ * Arbeitsspeicher dieser Seite lebt und nirgends auf dem Gerät landet.
  */
+export type StatsConsent = "stats" | "necessary" | null;
+
+export function getStatsConsent(): StatsConsent {
+  try {
+    const value = localStorage.getItem(CONSENT_KEY);
+    return value === "stats" || value === "necessary" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStatsConsent(value: "stats" | "necessary") {
+  try {
+    localStorage.setItem(CONSENT_KEY, value);
+  } catch {
+    // ohne Speicher gilt einfach „nur notwendige“
+  }
+  if (value === "necessary") {
+    document.cookie = `${ANON_ID_COOKIE}=; path=/; max-age=0`;
+    try {
+      localStorage.removeItem("mi_session_date");
+    } catch {}
+  }
+}
+
+let memoryAnonId: string | null = null;
+
+/** Zufällige Kennung ohne Personenbezug — dauerhaft (Cookie) nur mit Einwilligung, sonst nur für diesen Seitenaufruf. */
 export function getOrCreateAnonId(): string {
   if (typeof document === "undefined") return "";
+  if (getStatsConsent() !== "stats") {
+    memoryAnonId ??= crypto.randomUUID();
+    return memoryAnonId;
+  }
   const match = document.cookie.match(new RegExp(`(?:^|; )${ANON_ID_COOKIE}=([^;]+)`));
   if (match) return decodeURIComponent(match[1]);
   const id = crypto.randomUUID();

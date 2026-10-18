@@ -54,3 +54,12 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
     resetUrl,
   );
 }
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** Luca 18.10. (Art. 17 DSA): Begründung bei Entfernung oder Sperre — schlichter Text, ohne Links. */
+export async function sendModerationEmail(to: string, subject: string, paragraphs: string[]) {
+  await sendEmail(to, subject, paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("\n"), "(Moderation, kein Link)");
+}

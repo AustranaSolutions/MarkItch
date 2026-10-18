@@ -7,6 +7,7 @@ import { uploadImage, ALLOWED_IMAGE_TYPES } from "@/lib/storage";
 import { ChangePasswordSchema, DeleteAccountSchema, UpdateProfileSchema } from "@/lib/validation";
 import { generateRawToken, hashToken, expiresInHours } from "@/lib/tokens";
 import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
+import { TERMS_VERSION } from "@/lib/legal";
 
 // RN-2: aus app/actions/auth.ts herausgelöst, damit die Web-Formulare (Server
 // Actions) und die App-Routen (/api/mobile/auth/*) exakt dieselbe Logik
@@ -41,7 +42,15 @@ export async function createAccount(input: {
   const passwordHash = await hashPassword(input.password);
   const [user] = await db
     .insert(users)
-    .values({ email: input.email, passwordHash, name: input.name || null, accountType: input.accountType })
+    // Mit der Registrierung wird den aktuellen Bedingungen zugestimmt (Hinweis im Formular).
+    .values({
+      email: input.email,
+      passwordHash,
+      name: input.name || null,
+      accountType: input.accountType,
+      termsVersion: TERMS_VERSION,
+      termsAcceptedAt: new Date(),
+    })
     .returning();
   await issueVerificationToken(user.id, user.email);
   return user;
@@ -174,4 +183,9 @@ export async function resendVerificationFor(userId: string): Promise<{ ok: boole
   await db.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, dbUser.id));
   await issueVerificationToken(dbUser.id, dbUser.email);
   return { ok: true };
+}
+
+/** Luca 18.10.: Zustimmung zur aktuellen Fassung von Nutzungsbedingungen und Datenschutzerklärung. */
+export async function acceptCurrentTerms(userId: string): Promise<void> {
+  await db.update(users).set({ termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() }).where(eq(users.id, userId));
 }

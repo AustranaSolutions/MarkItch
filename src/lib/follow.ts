@@ -84,7 +84,7 @@ export async function getFollowersForBrand(brandId: string): Promise<FollowerEnt
     const user = userById.get(r.userId);
     // Nie die volle E-Mail öffentlich zeigen (die Liste ist für alle sichtbar) —
     // wie bei Kommentaren nur der Teil vor dem @.
-    return { userId: r.userId, label: user?.name || user?.email?.split("@")[0] || "Jemand", link: null };
+    return { userId: r.userId, label: user?.name || "Nutzer:in", link: null };
   });
 }
 

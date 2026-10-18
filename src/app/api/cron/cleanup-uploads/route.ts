@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminKey } from "@/lib/admin-key";
 import { cleanupOrphanedUploads } from "@/lib/upload-cleanup";
+import { applyRetention } from "@/lib/retention";
 
 // Audit 04.10. (H5): verwaiste Uploads aufräumen (siehe lib/upload-cleanup.ts).
 //
@@ -14,7 +15,9 @@ export async function GET(request: NextRequest) {
   }
   try {
     const result = await cleanupOrphanedUploads({ dryRun: false });
-    return NextResponse.json({ checked: result.checked, deleted: result.deleted });
+    // Luca 18.10.: Löschfristen laut Datenschutzerklärung (lib/retention.ts).
+    const retention = await applyRetention();
+    return NextResponse.json({ checked: result.checked, deleted: result.deleted, retention });
   } catch (err) {
     console.error("[cron/cleanup-uploads]", err);
     return NextResponse.json({ error: "Aufräumen fehlgeschlagen." }, { status: 500 });

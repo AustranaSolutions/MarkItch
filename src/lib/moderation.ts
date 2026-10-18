@@ -3,6 +3,8 @@ import { and, countDistinct, desc, eq, inArray, isNotNull, lte, sql } from "driz
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { requireUser } from "@/lib/session";
+import { sendModerationEmail } from "@/lib/email";
+import { notifyUsers } from "@/lib/notification";
 import {
   battles,
   brandMembers,
@@ -323,7 +325,108 @@ export async function resolveReport(reportId: string): Promise<void> {
  * brands/voters are part of, too destructive to trigger from a report;
  * ban the brand's owner(s) instead.
  */
+const CONTENT_LABEL: Record<ReportTargetType, string> = {
+  solo_pitch: "dein Video",
+  reaction: "deine Reaktion",
+  comment: "deinen Kommentar",
+  battle_a: "dein Duell-Video",
+  battle_b: "dein Duell-Video",
+  casting_submission: "deine Casting-Einreichung",
+  creator_submission: "deine Challenge-Einreichung",
+  brand: "dein Profil",
+};
+
+async function brandMemberIds(brandId: string | null | undefined): Promise<string[]> {
+  if (!brandId) return [];
+  const rows = await db.select({ userId: brandMembers.userId }).from(brandMembers).where(eq(brandMembers.brandId, brandId));
+  return rows.map((r) => r.userId);
+}
+
+/** Wem gehört der gemeldete Inhalt? (vor dem Löschen ermitteln) */
+async function contentOwnerIds(targetType: ReportTargetType, targetId: string): Promise<string[]> {
+  switch (targetType) {
+    case "solo_pitch": {
+      const [row] = await db.select({ brandId: soloPitches.brandId }).from(soloPitches).where(eq(soloPitches.id, targetId)).limit(1);
+      return brandMemberIds(row?.brandId);
+    }
+    case "reaction": {
+      const [row] = await db
+        .select({ userId: reactions.userId, brandId: reactions.brandId })
+        .from(reactions)
+        .where(eq(reactions.id, targetId))
+        .limit(1);
+      return row?.userId ? [row.userId] : brandMemberIds(row?.brandId);
+    }
+    case "comment": {
+      const [row] = await db.select({ userId: comments.userId }).from(comments).where(eq(comments.id, targetId)).limit(1);
+      return row ? [row.userId] : [];
+    }
+    case "casting_submission": {
+      const [row] = await db
+        .select({ brandId: castingSubmissions.brandId })
+        .from(castingSubmissions)
+        .where(eq(castingSubmissions.id, targetId))
+        .limit(1);
+      return brandMemberIds(row?.brandId);
+    }
+    case "creator_submission": {
+      const [row] = await db
+        .select({ brandId: creatorSubmissions.creatorBrandId })
+        .from(creatorSubmissions)
+        .where(eq(creatorSubmissions.id, targetId))
+        .limit(1);
+      return brandMemberIds(row?.brandId);
+    }
+    case "battle_a":
+    case "battle_b": {
+      const [row] = await db
+        .select({ a: battles.brandAId, b: battles.brandBId })
+        .from(battles)
+        .where(eq(battles.id, targetId))
+        .limit(1);
+      return brandMemberIds(targetType === "battle_a" ? row?.a : row?.b);
+    }
+    case "brand":
+      return brandMemberIds(targetId);
+  }
+}
+
+/**
+ * Luca 18.10. (Art. 17 DSA, Nutzungsbedingungen Punkt 6): Betroffene erfahren,
+ * was entfernt wurde und warum, und wie sie widersprechen können — als
+ * Mitteilung in der App/Glocke und per E-Mail.
+ */
+async function notifyRemoval(ownerIds: string[], targetType: ReportTargetType, targetId: string): Promise<void> {
+  if (ownerIds.length === 0) return;
+  const [latest] = await db
+    .select({ reason: reports.reason })
+    .from(reports)
+    .where(and(eq(reports.targetType, targetType), eq(reports.targetId, targetId)))
+    .orderBy(desc(reports.createdAt))
+    .limit(1);
+  const reason = latest?.reason ?? "Verstoß gegen die Nutzungsbedingungen";
+  const label = CONTENT_LABEL[targetType];
+  const message = `Wir haben ${label} entfernt. Grund: ${reason}. Widerspruch: support@markitch.com`;
+  await notifyUsers(ownerIds, message, null);
+  const owners = await db.select({ email: users.email }).from(users).where(inArray(users.id, ownerIds));
+  await Promise.all(
+    owners.map((o) =>
+      sendModerationEmail(o.email, "MarkItch: Inhalt entfernt", [
+        `Wir haben ${label} auf MarkItch entfernt.`,
+        `Grund: ${reason}. Die Entscheidung beruht auf einer Meldung und wurde von uns geprüft; maßgeblich sind unsere Nutzungsbedingungen (www.markitch.com/nutzungsbedingungen).`,
+        "Wenn du das für falsch hältst, antworte einfach auf diese E-Mail oder schreib an support@markitch.com — wir prüfen die Entscheidung dann erneut. Daneben stehen dir die gesetzlichen Wege offen.",
+      ]).catch(() => {}),
+    ),
+  );
+}
+
 export async function removeReportedContent(targetType: ReportTargetType, targetId: string): Promise<void> {
+  const ownerIds = targetType === "brand" ? [] : await contentOwnerIds(targetType, targetId);
+  await deleteReportedContent(targetType, targetId);
+  await notifyRemoval(ownerIds, targetType, targetId).catch((err) => console.error("[moderation] notify", err));
+}
+
+async function deleteReportedContent(targetType: ReportTargetType, targetId: string): Promise<void> {
   switch (targetType) {
     case "solo_pitch":
       await db.delete(soloPitches).where(eq(soloPitches.id, targetId));
@@ -353,6 +456,14 @@ export async function removeReportedContent(targetType: ReportTargetType, target
 
 export async function banUser(userId: string): Promise<void> {
   await db.update(users).set({ bannedAt: new Date() }).where(eq(users.id, userId));
+  // Luca 18.10. (Art. 17 DSA): gesperrte Konten können sich nicht mehr anmelden — daher per E-Mail.
+  const [row] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  if (row) {
+    await sendModerationEmail(row.email, "MarkItch: Konto gesperrt", [
+      "Wir haben dein MarkItch-Konto gesperrt, weil es schwer oder wiederholt gegen unsere Nutzungsbedingungen verstoßen hat (www.markitch.com/nutzungsbedingungen).",
+      "Wenn du das für falsch hältst, antworte auf diese E-Mail oder schreib an support@markitch.com — wir prüfen die Entscheidung dann erneut. Daneben stehen dir die gesetzlichen Wege offen.",
+    ]).catch(() => {});
+  }
 }
 
 export async function unbanUser(userId: string): Promise<void> {

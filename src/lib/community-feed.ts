@@ -95,7 +95,7 @@ export async function enrichCommunityReactions(viewerId: string | null, rows: Co
     soloPitchId: r.reaction.soloPitchId,
     parentReactionId: r.reaction.parentReactionId,
     authorUserId: r.reaction.userId!,
-    authorName: communityName(r.userName, r.userEmail),
+    authorName: communityName(r.userName),
     original: { brandId: r.brandId, brandName: r.brandName, brandSlug: r.brandSlug },
     videoUrl: r.reaction.videoUrl,
     likeCount: likeCounts.get(r.reaction.id) ?? 0,

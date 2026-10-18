@@ -113,7 +113,7 @@ async function loadComments(where: SQL, viewerId: string | null, target: Comment
       createdAt: row.createdAt,
       // Most accounts have no display name set yet — the email's local part
       // reads better than "—" under a comment.
-      authorName: row.brandName ?? (row.name || row.email.split("@")[0]),
+      authorName: row.brandName ?? (row.name || "Nutzer:in"),
       authorId: row.userId,
       authorBrand: row.brandId && row.brandSlug ? { id: row.brandId, slug: row.brandSlug, verified: row.brandVerifiedAt !== null } : null,
       viewerCanDelete: viewerOwnsTarget || row.userId === viewerId,

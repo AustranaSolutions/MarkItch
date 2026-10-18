@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { trackVisitorEvent } from "@/lib/analytics-client";
+import { getStatsConsent, trackVisitorEvent } from "@/lib/analytics-client";
 
 const SESSION_DATE_KEY = "mi_session_date";
 
@@ -16,6 +16,8 @@ const SESSION_DATE_KEY = "mi_session_date";
  */
 export function SessionBoot() {
   useEffect(() => {
+    // Luca 18.10.: Besuche/Wiederkehr nur mit Einwilligung (braucht Speicher auf dem Gerät).
+    if (getStatsConsent() !== "stats") return;
     const today = new Date().toISOString().slice(0, 10);
     try {
       if (localStorage.getItem(SESSION_DATE_KEY) === today) return;

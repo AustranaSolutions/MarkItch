@@ -101,7 +101,7 @@ export async function listBlocksFor(viewerId: string): Promise<BlockedEntry[]> {
       seenBrands.add(brand.brandId);
       entries.push({ kind: "brand", brandId: brand.brandId, name: brand.name, slug: brand.slug, logoUrl: brand.logoUrl });
     } else {
-      entries.push({ kind: "user", userId: row.userId, name: row.name || row.email.split("@")[0] });
+      entries.push({ kind: "user", userId: row.userId, name: row.name || "Nutzer:in" });
     }
   }
   return entries;
