@@ -288,6 +288,13 @@
       "when": 1791213028308,
       "tag": "0040_likes_brand_optional",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792316708804,
+      "tag": "0041_brand_kind_paid_partnership",
+      "breakpoints": true
     }
   ]
 }
