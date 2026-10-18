@@ -611,6 +611,11 @@ fact.
   app (`MarkItch-mobile/src/theme/tokens.ts`). New `icon.png` / `apple-icon.png` /
   `favicon.ico` in `src/app`, `themeColor` in the viewport, OG image recoloured.
 
+- **Creator-Profile (18.10.2026).** `brands.kind` = `brand` | `creator` (Migration 0041,
+  plus `paid_partnership` on every content table). `src/lib/brand-kind.ts` holds the rules:
+  creators pick "Bezahlte Kooperation / Werbung" when posting; feed items carry `brandKind` and
+  `adLabel` (brand → always "Anzeige", creator → only when paid). Categories are validated per kind.
+
 ## 4. The two-real-inboxes test
 
 This is the test described for Phase 1 — two different people, two real inboxes,
