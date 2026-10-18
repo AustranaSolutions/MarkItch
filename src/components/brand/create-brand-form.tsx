@@ -34,7 +34,7 @@ export function CreateBrandForm() {
       <div className="mb-4 flex gap-2">
         {(
           [
-            ["brand", "Marke", "Unternehmen, Shop, Lokal"],
+            ["brand", "Unternehmen", "Friseur, Lokal, Nagelstudio, Shop oder Marke"],
             ["creator", "Creator", "Influencer, Content Creator"],
           ] as const
         ).map(([value, title, text]) => (
@@ -57,7 +57,7 @@ export function CreateBrandForm() {
       </div>
 
       <Field
-        label={kind === "creator" ? "Profilname" : "Markenname"}
+        label={kind === "creator" ? "Profilname" : "Name (Unternehmen oder Marke)"}
         name="name"
         errors={state?.errors?.name}
         value={name}

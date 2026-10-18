@@ -72,8 +72,8 @@ export function RegisterForm() {
           />
           <RoleCard
             value="acro"
-            title="Marke"
-            description="Unternehmen — postet Videos & Duelle"
+            title="Unternehmen"
+            description="Friseur, Lokal, Shop, Marke — Videos & Duelle"
             selected={role === "brand"}
             onSelect={() => setRole("brand")}
           />

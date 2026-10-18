@@ -52,6 +52,11 @@ export const DeleteAccountSchema = z.object({
 // product spec; kept as a plain string column in the DB so adding one later
 // is a code change, not a migration.
 export const BrandCategories = [
+  // Luca 18.10.: lokale Betriebe genauer (Döner vs. Döner, Friseur vs. Friseur).
+  "Gastronomy",
+  "Salon",
+  "Craft",
+  "Gym",
   "Food",
   "Fashion",
   "Beauty",
