@@ -41,7 +41,7 @@ export async function postComment(_prevState: CommentFormState, formData: FormDa
     getBrandMemberUserIds(battle.brandBId),
     getActorLabel(user.id),
   ]);
-  await notifyUsers([...memberIdsA, ...memberIdsB], `${actor.label} hat dein Duell kommentiert.`, `/?battle=${battleId}`, user.id);
+  await notifyUsers([...memberIdsA, ...memberIdsB], `${actor.label} hat eine Meinung zu deinem Duell geschrieben.`, `/?battle=${battleId}`, user.id);
 
   refresh();
   return undefined;

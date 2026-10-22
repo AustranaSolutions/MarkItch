@@ -40,7 +40,7 @@ export default function DatenschutzPage() {
       <Section title="Kurz zusammengefasst">
         <p>
           Wir verarbeiten nur, was MarkItch zum Funktionieren braucht. Keine Werbenetzwerke, kein Verkauf von Daten,
-          kein Tracking über andere Apps oder Websites. Videos, Profile von Unternehmen und Creator, Kommentare und
+          kein Tracking über andere Apps oder Websites. Videos, Profile von Unternehmen und Creator, Meinungen (Kommentare) und
           Reaktionen sind öffentlich. Wie du abstimmst, sieht niemand außer dir.
         </p>
       </Section>
@@ -65,7 +65,7 @@ export default function DatenschutzPage() {
       <Section title="2. Was andere von dir sehen">
         <p>
           Öffentlich sind: dein Anzeigename (ohne Namen steht dort „Nutzer:in“, nie ein Teil deiner E-Mail-Adresse),
-          dein Profilbild, deine Kommentare, deine Reaktions-Videos und, wem du folgst bzw. wer dir folgt. Deine
+          dein Profilbild, deine Meinungen, deine Reaktions-Videos und, wem du folgst bzw. wer dir folgt. Deine
           E-Mail-Adresse ist nie öffentlich.
         </p>
         <p>
@@ -79,7 +79,7 @@ export default function DatenschutzPage() {
       <Section title="3. Inhalte und Interaktionen">
         <p>
           Videos, die du hochlädst (mit Beschreibung, Link und den Angaben zu Musikrechten, KI-Inhalten und bezahlter
-          Kooperation), Kommentare, Likes, Stimmen, Reaktionen, wem du folgst, wen du blockierst, was du meldest und
+          Kooperation), Meinungen, Likes, Stimmen, Reaktionen, wem du folgst, wen du blockierst, was du meldest und
           deine Benachrichtigungen. Videos werden beim Hochladen auf deinem Gerät verkleinert; wir erzeugen daraus
           Vorschaubilder.
         </p>
@@ -92,8 +92,8 @@ export default function DatenschutzPage() {
 
       <Section title="4. Moderation und Sicherheit">
         <p>
-          <B>Automatische Prüfung:</B> Kommentare werden beim Absenden automatisch auf unzulässige Wörter, Links und
-          wiederholte Inhalte geprüft; abgelehnte Kommentare werden nicht veröffentlicht und nicht gespeichert. Melden
+          <B>Automatische Prüfung:</B> Meinungen werden beim Absenden automatisch auf unzulässige Wörter, Links und
+          wiederholte Inhalte geprüft; abgelehnte Meinungen werden nicht veröffentlicht und nicht gespeichert. Melden
           mindestens drei verschiedene, mindestens 7 Tage alte Konten ein Video, wird es bis zur Prüfung automatisch
           ausgeblendet. Über Löschungen und Sperren entscheidet immer ein Mensch.
         </p>
@@ -174,7 +174,7 @@ export default function DatenschutzPage() {
       <Section title="9. Speicherdauer">
         <p>
           <B>Konto und Inhalte:</B> bis du sie bzw. dein Konto löschst (jederzeit selbst in den Einstellungen). Mit dem
-          Konto werden Videos, Kommentare, Likes, Stimmen, Reaktionen, Benachrichtigungen und Push-Kennungen gelöscht;
+          Konto werden Videos, Meinungen, Likes, Stimmen, Reaktionen, Benachrichtigungen und Push-Kennungen gelöscht;
           bist du das letzte Mitglied eines Unternehmens- oder Creator-Profils, auch dieses Profil mit allen Inhalten.
           Nicht mehr verwendete Dateien entfernen wir automatisch nach 48 Stunden. Sicherungskopien unseres
           Datenbank-Anbieters werden nach dessen Fristen überschrieben.

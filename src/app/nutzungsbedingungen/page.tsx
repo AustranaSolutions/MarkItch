@@ -121,11 +121,11 @@ export default function NutzungsbedingungenPage() {
 
       <Section title="6. Melden, Moderation, Sperren">
         <p>
-          <B>Melden:</B> Jedes Video, jede Reaktion und jedes Profil lässt sich über „…“ melden, Kommentare per langem
+          <B>Melden:</B> Jedes Video, jede Reaktion und jedes Profil lässt sich über „…“ melden, Meinungen (Kommentare) per langem
           Drücken; außerdem per E-Mail an support@markitch.com. Konten, die dich stören, kannst du blockieren.
         </p>
         <p>
-          <B>Automatische Maßnahmen:</B> Kommentare werden beim Absenden automatisch auf unzulässige Wörter, Links und
+          <B>Automatische Maßnahmen:</B> Meinungen werden beim Absenden automatisch auf unzulässige Wörter, Links und
           Spam geprüft. Melden mindestens drei verschiedene Konten ein Video, wird es bis zur Prüfung ausgeblendet. Über
           Entfernungen und Sperren entscheidet ein Mensch.
         </p>

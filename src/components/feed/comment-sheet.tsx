@@ -79,14 +79,14 @@ export function CommentSheet({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Kommentar konnte nicht gespeichert werden.");
+        setError(data.error ?? "Meinung konnte nicht gespeichert werden.");
         return;
       }
       setComments(data.comments ?? []);
       setContent("");
       onCommentPosted(target.id);
     } catch {
-      setError("Kommentar konnte nicht gespeichert werden.");
+      setError("Meinung konnte nicht gespeichert werden.");
     } finally {
       setPosting(false);
     }
@@ -100,7 +100,7 @@ export function CommentSheet({
       >
         <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
           <h2 className="text-sm font-semibold text-white">
-            Kommentare {comments && comments.length > 0 ? `(${comments.length})` : ""}
+            Meinungen {comments && comments.length > 0 ? `(${comments.length})` : ""}
           </h2>
           <button onClick={onClose} aria-label="Schließen" className="text-zinc-500 hover:text-white">
             <X size={18} />
@@ -111,7 +111,7 @@ export function CommentSheet({
           {comments === null ? (
             <p className="text-sm text-zinc-600">Lädt…</p>
           ) : comments.length === 0 ? (
-            <p className="text-sm text-zinc-600">Noch keine Kommentare — sei der Erste.</p>
+            <p className="text-sm text-zinc-600">Noch keine Meinungen — sag als Erste:r, was du denkst.</p>
           ) : (
             <ul className="space-y-3">
               {comments.map((c) => (

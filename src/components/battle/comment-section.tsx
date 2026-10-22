@@ -62,7 +62,7 @@ export function CommentSection({
       )}
 
       {comments.length === 0 ? (
-        <p className="text-sm text-zinc-600">Noch keine Kommentare — sei der Erste.</p>
+        <p className="text-sm text-zinc-600">Noch keine Meinungen — sag als Erste:r, was du denkst.</p>
       ) : (
         <ul className="space-y-3">
           {comments.map((c) => (

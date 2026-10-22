@@ -59,10 +59,10 @@ export type DeleteCommentResult = { ok: true; target: CommentTarget } | { ok: fa
 export async function deleteCommentFor(userId: string, commentId: string): Promise<DeleteCommentResult> {
   if (!isUuid(commentId)) return { ok: false, error: "Ungültige Anfrage." };
   const [comment] = await db.select().from(comments).where(eq(comments.id, commentId)).limit(1);
-  if (!comment) return { ok: false, error: "Dieser Kommentar existiert nicht mehr." };
+  if (!comment) return { ok: false, error: "Diese Meinung gibt es nicht mehr." };
   if (comment.userId !== userId) {
     const owners = await getTargetOwnerUserIds(comment);
-    if (!owners.has(userId)) return { ok: false, error: "Du darfst diesen Kommentar nicht löschen." };
+    if (!owners.has(userId)) return { ok: false, error: "Du darfst diese Meinung nicht löschen." };
   }
   await db.delete(comments).where(eq(comments.id, commentId));
   return {

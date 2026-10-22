@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkAdminKey } from "@/lib/admin-key";
 import { cleanupOrphanedUploads } from "@/lib/upload-cleanup";
 import { applyRetention } from "@/lib/retention";
+import { finalizeDueBattles } from "@/lib/battle-notify";
 
 // Audit 04.10. (H5): verwaiste Uploads aufräumen (siehe lib/upload-cleanup.ts).
 //
@@ -17,7 +18,9 @@ export async function GET(request: NextRequest) {
     const result = await cleanupOrphanedUploads({ dryRun: false });
     // Luca 18.10.: Löschfristen laut Datenschutzerklärung (lib/retention.ts).
     const retention = await applyRetention();
-    return NextResponse.json({ checked: result.checked, deleted: result.deleted, retention });
+    // Luca 22.10.: beendete Duelle abschließen, die kein Feed-Aufruf ausgelöst hat.
+    const finalizedBattles = await finalizeDueBattles();
+    return NextResponse.json({ checked: result.checked, deleted: result.deleted, retention, finalizedBattles });
   } catch (err) {
     console.error("[cron/cleanup-uploads]", err);
     return NextResponse.json({ error: "Aufräumen fehlgeschlagen." }, { status: 500 });

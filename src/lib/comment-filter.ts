@@ -101,15 +101,15 @@ export type CommentCheck = { ok: true; content: string } | { ok: false; error: s
  */
 export async function checkComment(userId: string, raw: unknown): Promise<CommentCheck> {
   const content = typeof raw === "string" ? raw.trim() : "";
-  if (!content) return { ok: false, error: "Kommentar darf nicht leer sein." };
+  if (!content) return { ok: false, error: "Deine Meinung darf nicht leer sein." };
   if (content.length > MAX_COMMENT_LENGTH) {
-    return { ok: false, error: `Kommentar darf maximal ${MAX_COMMENT_LENGTH} Zeichen lang sein.` };
+    return { ok: false, error: `Deine Meinung darf maximal ${MAX_COMMENT_LENGTH} Zeichen lang sein.` };
   }
   if (containsBlockedLanguage(content)) {
-    return { ok: false, error: "Dein Kommentar enthält Wörter, die hier nicht erlaubt sind. Bitte bleib respektvoll." };
+    return { ok: false, error: "Deine Meinung enthält Wörter, die hier nicht erlaubt sind. Bitte bleib respektvoll." };
   }
   if (containsLink(content)) {
-    return { ok: false, error: "Links sind in Kommentaren nicht erlaubt." };
+    return { ok: false, error: "Links sind in Meinungen nicht erlaubt." };
   }
 
   const [duplicate] = await db
@@ -123,7 +123,7 @@ export async function checkComment(userId: string, raw: unknown): Promise<Commen
       ),
     )
     .limit(1);
-  if (duplicate) return { ok: false, error: "Diesen Kommentar hast du gerade schon geschrieben." };
+  if (duplicate) return { ok: false, error: "Diese Meinung hast du gerade schon geschrieben." };
 
   const { allowed } = await checkRateLimit("comment", userId);
   if (!allowed) return { ok: false, error: RATE_LIMIT_MESSAGE };

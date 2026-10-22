@@ -328,7 +328,7 @@ export async function resolveReport(reportId: string): Promise<void> {
 const CONTENT_LABEL: Record<ReportTargetType, string> = {
   solo_pitch: "dein Video",
   reaction: "deine Reaktion",
-  comment: "deinen Kommentar",
+  comment: "deine Meinung",
   battle_a: "dein Duell-Video",
   battle_b: "dein Duell-Video",
   casting_submission: "deine Casting-Einreichung",

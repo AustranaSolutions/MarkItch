@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     getBrandMemberUserIds(battle.brandBId),
     getActorLabel(viewer.id),
   ]);
-  await notifyUsers([...memberIdsA, ...memberIdsB], `${actor.label} hat dein Duell kommentiert.`, `/?battle=${battleId}`, viewer.id);
+  await notifyUsers([...memberIdsA, ...memberIdsB], `${actor.label} hat eine Meinung zu deinem Duell geschrieben.`, `/?battle=${battleId}`, viewer.id);
   const list = await getCommentsForBattle(battleId, viewer.id);
   return NextResponse.json({ comments: list });
 }

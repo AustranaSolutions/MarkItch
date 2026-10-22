@@ -20,7 +20,7 @@ export function DeleteAccountForm({ hasBrand }: { hasBrand: boolean }) {
   return (
     <div>
       <p className="mb-3 text-sm text-zinc-400">
-        Dein Account und deine Daten (Kommentare, Likes, Stimmen, Follows) werden dauerhaft gelöscht. Das kann nicht
+        Dein Account und deine Daten (Meinungen, Likes, Stimmen, Follows) werden dauerhaft gelöscht. Das kann nicht
         rückgängig gemacht werden.
         {hasBrand &&
           " Bist du das einzige Mitglied deiner Marke, wird auch die Marke gelöscht — mit allen Videos, Duellen und Reaktionen."}

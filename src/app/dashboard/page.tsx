@@ -47,7 +47,7 @@ export default async function DashboardPage() {
         <StatCard label="Views" value={summary.views} />
         <StatCard label="Likes" value={summary.likesReceived} />
         <StatCard label="Stimmen" value={summary.votesReceived} />
-        <StatCard label="Kommentare" value={summary.commentsReceived} />
+        <StatCard label="Meinungen" value={summary.commentsReceived} />
         <StatCard label="Reaktionen" value={summary.reactionsReceived} />
         <StatCard label="Shares" value={summary.shares} />
       </div>

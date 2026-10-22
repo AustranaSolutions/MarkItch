@@ -128,7 +128,8 @@ async function getEligibleBattles(viewerId: string | null, where?: SQL): Promise
     // — 'awaiting_videos' is still hidden, and a walkover/no_show never got
     // a second video to show at all.
     const eligible = stage.stage === "voting" || (stage.stage === "finished" && stage.resolution === "voted");
-    if (eligible && stage.stage === "finished" && !battle.resultNotifiedAt) {
+    // Luca 22.10.: auch ausgefallene Duelle (ohne Abstimmung) abschließen → Benachrichtigung an beide Seiten.
+    if (stage.stage === "finished" && !battle.resultNotifiedAt) {
       // Fire-and-forget, scheduled to run after this response is sent
       // (next/server's after()) — see battle-notify.ts for why this piggy-
       // backs on ordinary feed reads instead of a cron job. Guarded by
