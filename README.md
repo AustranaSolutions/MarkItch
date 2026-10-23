@@ -648,6 +648,13 @@ receive mail, and everyone else's flow has to be tested via the printed console 
 4. Run `npm run db:migrate` once against that URL (from your machine, with
    `DATABASE_URL` pointed at Supabase) to create the tables.
 
+### Cloudflare R2 (Videos und Bilder, seit 23.10.2026)
+
+- Bucket `markitch-media` (Jurisdiction EU), öffentlich über `https://media.markitch.com` (DNS von markitch.com liegt bei Cloudflare).
+- Vercel-Variablen: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_JURISDICTION=eu`, `R2_PUBLIC_URL`. Fehlt eine, läuft alles über Supabase Storage (`src/lib/storage.ts`, `src/lib/r2.ts`).
+- Umzug alter Dateien: `POST /api/admin/migrate-media` (x-admin-key), `{"dryRun":true}` bzw. `{"dryRun":false,"limit":20}`.
+- Einzelnes Duell löschen: `POST /api/admin/delete-battle` (x-admin-key), `{"battleId":"…"}` zeigt an, mit `"confirm":true` wird gelöscht.
+
 ### Vercel (hosting)
 
 1. Push this repo to GitHub (see below), then import it at vercel.com/new.
