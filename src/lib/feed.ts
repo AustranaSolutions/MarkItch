@@ -513,8 +513,8 @@ export async function getTrendingSoloPitches(limit = 12, viewerId: string | null
 // competing on the same score — guarantees a fresh solo pitch actually
 // surfaces instead of losing to an old, vote-heavy Duell.
 const SOLO_INTERLEAVE_EVERY = 3;
-/** So lange steht ein eigener neuer Beitrag für den Verfasser ganz oben im Feed. */
-const OWN_POST_PIN_MS = 24 * 60 * 60 * 1000;
+/** Luca 23.10.: wie Instagram — direkt nach dem Posten oben, danach normal einsortiert. */
+const OWN_POST_PIN_MS = 15 * 60 * 1000;
 
 /** Stufe-1-Eintrag im Solo-Strom: ein Solo-Pitch oder (Phase E) eine Community-Reaktion. */
 type StreamEntry =
