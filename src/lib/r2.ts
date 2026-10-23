@@ -53,7 +53,9 @@ export async function r2PresignedPut(key: string): Promise<string> {
 }
 
 export async function r2Put(key: string, body: Uint8Array, contentType: string): Promise<void> {
-  const res = await r2().fetch(objectUrl(key), {
+  // Über die signierte Adresse wie beim App-Upload, nicht über aws4fetch.fetch:
+  // dort ging der Body auf Vercel als Stream ohne Content-Length raus (R2: 411).
+  const res = await fetch(await r2PresignedPut(key), {
     method: "PUT",
     headers: { "Content-Type": contentType },
     body: body as unknown as BodyInit,

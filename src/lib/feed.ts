@@ -513,6 +513,8 @@ export async function getTrendingSoloPitches(limit = 12, viewerId: string | null
 // competing on the same score — guarantees a fresh solo pitch actually
 // surfaces instead of losing to an old, vote-heavy Duell.
 const SOLO_INTERLEAVE_EVERY = 3;
+/** So lange steht ein eigener neuer Beitrag für den Verfasser ganz oben im Feed. */
+const OWN_POST_PIN_MS = 24 * 60 * 60 * 1000;
 
 /** Stufe-1-Eintrag im Solo-Strom: ein Solo-Pitch oder (Phase E) eine Community-Reaktion. */
 type StreamEntry =
@@ -572,11 +574,12 @@ async function materializePage(viewerId: string | null, plan: PlanEntry[]): Prom
 }
 
 async function forYouPlan(viewerId: string | null, withReactions: boolean): Promise<PlanEntry[]> {
-  const [battles, pitches, followedBrandIds, communityRows] = await Promise.all([
+  const [battles, pitches, followedBrandIds, communityRows, viewerBrand] = await Promise.all([
     getEligibleBattles(viewerId),
     getEligibleSoloPitches(viewerId),
     viewerId ? getFollowedBrandIds(viewerId) : Promise.resolve([]),
     withReactions ? getEligibleCommunityReactions(viewerId) : Promise.resolve([]),
+    viewerId ? getBrandForUser(viewerId) : Promise.resolve(null),
   ]);
   const followedSet = new Set(followedBrandIds);
   const [rankedDuels, boostedIds] = await Promise.all([
@@ -587,7 +590,15 @@ async function forYouPlan(viewerId: string | null, withReactions: boolean): Prom
     ...pitches.map((pitch): StreamEntry => ({ kind: "solo", pitch, createdAt: pitch.createdAt, boosted: boostedIds.has(pitch.id) })),
     ...communityRows.map((row): StreamEntry => ({ kind: "reaction", row, createdAt: row.reaction.createdAt })),
   ];
-  return interleaveFeed(rankedDuels, stream, followedSet);
+  // Luca 23.10.: Wer gerade selbst gepostet hat, sieht den Beitrag ganz oben —
+  // so prüft man sofort, wie er im Feed wirkt, und kann ihn notfalls löschen
+  // oder bearbeiten. Gilt nur für den Verfasser und nur für frische Beiträge.
+  const isOwnFresh = (e: StreamEntry) =>
+    Date.now() - e.createdAt.getTime() < OWN_POST_PIN_MS &&
+    (e.kind === "solo" ? e.pitch.brandId === viewerBrand?.id : viewerId !== null && e.row.reaction.userId === viewerId);
+  const ownFresh = stream.filter(isOwnFresh).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const rest = stream.filter((e) => !isOwnFresh(e));
+  return [...ownFresh, ...interleaveFeed(rankedDuels, rest, followedSet)];
 }
 
 /** "Feed" — every live/finished Duell plus every solo pitch; solo pitches are interleaved by recency, see interleaveFeed. */
