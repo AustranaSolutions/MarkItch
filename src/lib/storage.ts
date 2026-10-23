@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { mkdir, open as openFile, writeFile } from "fs/promises";
 import path from "path";
 import { VIDEO_EXTENSION_BY_MIME_TYPE, type VideoUploadFolder } from "@/lib/video-constants";
+import { r2Enabled, r2PresignedPut, r2PublicPrefix, r2PublicUrl, r2Put } from "@/lib/r2";
 
 // Local disk in dev (zero setup), Supabase Storage in prod once configured.
 // Vercel's filesystem is ephemeral/read-only outside /tmp, so the local
@@ -33,6 +34,11 @@ async function uploadFile(
   const extension = extensionByMimeType[file.type] ?? "bin";
   const key = `${folder}/${randomUUID()}.${extension}`;
 
+  // Luca 23.10.: Cloudflare R2, sobald eingerichtet; sonst wie bisher Supabase bzw. lokal.
+  if (r2Enabled) {
+    await r2Put(key, new Uint8Array(bytes), file.type);
+    return { url: r2PublicUrl(key) };
+  }
   if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
     return uploadToSupabase(key, bytes, file.type);
   }
@@ -84,6 +90,9 @@ export async function createVideoUploadTarget(
   const extension = VIDEO_EXTENSION_BY_MIME_TYPE[contentType] ?? "bin";
   const key = `${folder}/${userId}/${randomUUID()}.${extension}`;
 
+  if (r2Enabled) {
+    return { uploadUrl: await r2PresignedPut(key), publicUrl: r2PublicUrl(key) };
+  }
   if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/upload/sign/${SUPABASE_BUCKET}/${key}`, {
       method: "POST",
@@ -114,6 +123,7 @@ export async function createVideoUploadTarget(
 export function isOwnVideoUrl(url: string, folder: VideoUploadFolder, userId: string): boolean {
   const prefix = `${folder}/${userId}/`;
   if (url.startsWith(`/uploads/${prefix}`)) return true;
+  if (r2Enabled && url.startsWith(`${r2PublicPrefix()}${prefix}`)) return true;
   if (SUPABASE_URL && url.startsWith(`${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${prefix}`)) return true;
   return false;
 }

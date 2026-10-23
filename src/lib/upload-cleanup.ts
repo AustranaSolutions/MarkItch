@@ -4,6 +4,7 @@ import path from "path";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { VIDEO_UPLOAD_FOLDERS } from "@/lib/video-constants";
+import { r2Delete, r2Enabled, r2List, r2PublicPrefix } from "@/lib/r2";
 
 // Audit 04.10. (H5): Der Upload startet schon bei der Auswahl — wer danach
 // abbricht, hinterlässt eine Datei, die nie gepostet wird. Ohne Aufräumen
@@ -40,6 +41,7 @@ async function referencedKeys(): Promise<Set<string>> {
 
 function keyFromUrl(url: string): string | null {
   if (url.startsWith("/uploads/")) return decodeURIComponent(url.slice("/uploads/".length));
+  if (r2Enabled && url.startsWith(r2PublicPrefix())) return decodeURIComponent(url.slice(r2PublicPrefix().length));
   const marker = `/storage/v1/object/public/${SUPABASE_BUCKET}/`;
   const i = url.indexOf(marker);
   return i >= 0 ? decodeURIComponent(url.slice(i + marker.length)) : null;
@@ -85,9 +87,16 @@ async function listLocal(dir: string, keyPrefix: string): Promise<StoredFile[]> 
 export type CleanupResult = { checked: number; orphaned: string[]; deleted: number };
 
 export async function cleanupOrphanedUploads({ dryRun }: { dryRun: boolean }): Promise<CleanupResult> {
-  const useSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+  // Luca 23.10.: aufgeräumt wird nur im aktiven Speicher. Nach dem Umzug auf R2
+  // bleiben die alten Supabase-Dateien unangetastet (werden erst nach Prüfung
+  // von Hand entfernt) — sonst sähen sie hier alle „unbenutzt“ aus.
+  const useSupabase = !r2Enabled && Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
   const files: StoredFile[] = [];
   for (const folder of VIDEO_UPLOAD_FOLDERS) {
+    if (r2Enabled) {
+      files.push(...(await r2List(`${folder}/`)).map((o) => ({ key: o.key, createdAt: o.lastModified })));
+      continue;
+    }
     files.push(
       ...(useSupabase
         ? await listSupabase(`${folder}/`)
@@ -102,7 +111,12 @@ export async function cleanupOrphanedUploads({ dryRun }: { dryRun: boolean }): P
 
   let deleted = 0;
   if (!dryRun && orphaned.length > 0) {
-    if (useSupabase) {
+    if (r2Enabled) {
+      for (const key of orphaned) {
+        await r2Delete(key);
+        deleted++;
+      }
+    } else if (useSupabase) {
       for (let i = 0; i < orphaned.length; i += 100) {
         const batch = orphaned.slice(i, i + 100);
         const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}`, {
