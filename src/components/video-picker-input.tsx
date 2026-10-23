@@ -80,7 +80,7 @@ export function VideoPickerInput({
     }
     if (file.size > MAX_VIDEO_BYTES) {
       setStatus("error");
-      setError("Video darf maximal 50 MB groß sein.");
+      setError("Video darf maximal 200 MB groß sein.");
       return;
     }
 

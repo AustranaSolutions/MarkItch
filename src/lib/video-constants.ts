@@ -9,7 +9,9 @@ export const VIDEO_EXTENSION_BY_MIME_TYPE: Record<string, string> = {
 
 export const ALLOWED_VIDEO_TYPES = Object.keys(VIDEO_EXTENSION_BY_MIME_TYPE);
 
-export const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB — generous for a short vertical clip
+// Luca 23.10.: seit Cloudflare R2 200 MB (vorher 50 MB, Grenze des kostenlosen
+// Supabase-Speichers). Reicht für ca. 3 Minuten — so lang wie Instagram Reels.
+export const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
 
 // Phase 29: every place a video gets uploaded to, one flat whitelist so the
 // upload-target API route can validate a requested folder instead of
