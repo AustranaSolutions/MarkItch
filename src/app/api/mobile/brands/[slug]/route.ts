@@ -11,6 +11,10 @@ import { getBlockedIds } from "@/lib/block";
 import { brandAccent } from "@/lib/brand-color";
 import { defaultProfileButton, profileButtonOf, publicLocationLabel } from "@/lib/brand-details";
 
+// Luca 24.10.: hängt die Datenbank-Verbindung (Supabase-Aussetzer), nach 30 s
+// abbrechen statt 300 s Rechenzeit zu verbrauchen — die App zeigt dann „nochmal versuchen“.
+export const maxDuration = 30;
+
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [brand] = await db.select().from(brands).where(eq(brands.slug, slug)).limit(1);

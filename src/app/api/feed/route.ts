@@ -9,6 +9,10 @@ const PAGE_SIZE = 6;
 // server tree — fine for a form, disruptive for an infinite-scroll video
 // feed (would reset scroll position / re-fetch everything on every like).
 // Plain JSON fetches keep each interaction local to the one card.
+// Luca 24.10.: hängt die Datenbank-Verbindung (Supabase-Aussetzer), nach 30 s
+// abbrechen statt 300 s Rechenzeit zu verbrauchen — die App zeigt dann „nochmal versuchen“.
+export const maxDuration = 30;
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tab = searchParams.get("tab") === "following" ? "following" : "foryou";
