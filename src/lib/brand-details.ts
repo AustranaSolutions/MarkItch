@@ -1,3 +1,4 @@
+import type { brands } from "@/db/schema";
 import { withHttps } from "@/lib/cta-link";
 
 // Luca 24.10.: neues Profil — „Button im Profil“, Standort und Info-Blatt.
@@ -172,4 +173,96 @@ export function parseBrandDetails(get: (key: string) => unknown): { values: Bran
 export function publicLocationLabel(type: string | null, label: string | null): string | null {
   if (type === "online") return label || "Online";
   return label || null;
+}
+
+/** Deutsche Namen der Kategorie-Schlüssel (in der Datenbank bleiben die englischen). */
+const CATEGORY_LABELS: Record<string, string> = {
+  Gastronomy: "Gastronomie",
+  Salon: "Friseur & Kosmetik",
+  Craft: "Handwerk",
+  Gym: "Fitnessstudio",
+  Food: "Essen & Trinken",
+  Fashion: "Mode",
+  Beauty: "Beauty & Pflege",
+  Tech: "Technik",
+  Automotive: "Auto & Mobilität",
+  Gaming: "Gaming",
+  "Local Business": "Sonstiges Geschäft",
+  Startup: "Start-up",
+  Other: "Sonstiges",
+  Comedy: "Comedy & Unterhaltung",
+  Fitness: "Fitness & Sport",
+  Lifestyle: "Lifestyle",
+  Music: "Musik",
+  Travel: "Reisen",
+  Education: "Wissen & Bildung",
+};
+
+export function categoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? category;
+}
+
+type ButtonSource = {
+  profileButtonType: string | null;
+  profileButtonUrl: string | null;
+  phone: string | null;
+  contactEmail: string | null;
+  website: string | null;
+};
+
+/** Der eine Button im Profil — nur, wenn sein Ziel auch ausgefüllt ist. */
+export function profileButtonOf(brand: ButtonSource): { type: ProfileButtonType; label: string; target: string } | null {
+  const type = parseProfileButtonType(brand.profileButtonType);
+  if (!type) return null;
+  const source = profileButtonSource(type);
+  const target =
+    source === "phone"
+      ? brand.phone && `tel:${brand.phone.replace(/[^+0-9]/g, "")}`
+      : source === "email"
+        ? brand.contactEmail && `mailto:${brand.contactEmail}`
+        : source === "website"
+          ? brand.website
+          : source === "link"
+            ? brand.profileButtonUrl
+            : null;
+  return target ? { type, label: PROFILE_BUTTON_LABELS[type], target } : null;
+}
+
+/** Was das Info-Fenster (⋯ → Info) zeigt. */
+export type PublicBrandDetails = {
+  description: string | null;
+  address: string | null;
+  phone: string | null;
+  contactEmail: string | null;
+  website: string | null;
+  openingHours: string | null;
+  imprint: string | null;
+};
+
+/** Luca 24.10.: alles, was der neue Profilkopf (Web) braucht — aus der Marken-Zeile. */
+export function profileHeaderOf(brand: typeof brands.$inferSelect) {
+  return {
+    brand: {
+      name: brand.name,
+      slug: brand.slug,
+      logoUrl: brand.logoUrl,
+      bannerUrl: brand.bannerUrl,
+      introVideoUrl: brand.videoUrl,
+      verified: brand.verifiedAt !== null,
+      kind: brand.kind,
+      categoryLabel: categoryLabel(brand.category),
+      locationType: brand.locationType,
+      locationLabel: publicLocationLabel(brand.locationType, brand.locationLabel),
+    },
+    details: {
+      description: brand.description,
+      address: brand.locationType === "address" ? brand.address : null,
+      phone: brand.phone,
+      contactEmail: brand.contactEmail,
+      website: brand.website,
+      openingHours: brand.openingHours,
+      imprint: brand.imprint,
+    } satisfies PublicBrandDetails,
+    button: profileButtonOf(brand),
+  };
 }

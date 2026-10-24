@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -11,6 +12,8 @@ import { getBrandForUser } from "@/lib/brand";
 import { getBrandProfileExtras } from "@/lib/brand-profile";
 import { getFollowerCount, getFollowingCountForBrand, isFollowing } from "@/lib/follow";
 import { getFeedSoloPitchesForBrand, getFeedDuelsForBrand } from "@/lib/feed";
+import { profileHeaderOf } from "@/lib/brand-details";
+import { duelRecord } from "@/lib/duel-record";
 
 // Note: this page already reads the session (getOptionalUser -> auth(),
 // which touches cookies), so Next treats it as dynamic automatically —
@@ -43,29 +46,37 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
           this same set of components instead of keeping two copies that
           can silently drift apart again. */}
       <BrandProfileHeader
-        name={brand.name}
-        logoUrl={brand.logoUrl}
-        bio={brand.description}
-        postCount={soloPitches.length + duels.length}
+        {...profileHeaderOf(brand)}
         followerCount={followerCount}
         followingCount={followingCount}
+        record={duelRecord(duels, brand.id)}
         followersHref={`/brands/${brand.slug}/followers`}
         followingHref={`/brands/${brand.slug}/following`}
+        own={isOwnBrand}
         action={
-          viewer && !isOwnBrand ? (
-            <div className="flex flex-col items-center gap-3">
-              <FollowButton brandId={brand.id} isFollowing={viewerFollows} />
-              {viewerBrand &&
-                (extras.livePending ? (
-                  <p className="text-center text-sm text-zinc-400">
-                    {extras.livePending.challengerBrandId === viewerBrand.id
-                      ? "Du hast diese Marke bereits eingeladen — Antwort steht noch aus."
-                      : "Diese Marke hat dich bereits eingeladen — schau in deinem Profil vorbei."}
-                  </p>
-                ) : (
-                  <ChallengeButton challengedBrandId={brand.id} />
-                ))}
-            </div>
+          isOwnBrand ? undefined : viewer ? (
+            <FollowButton brandId={brand.id} isFollowing={viewerFollows} large />
+          ) : (
+            // Nicht angemeldet: Folgen führt zur Anmeldung (wie in der App).
+            <Link
+              href="/login"
+              className="flex h-10 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-[#0e2328] hover:bg-orange-400"
+            >
+              Folgen
+            </Link>
+          )
+        }
+        duelAction={
+          viewer && !isOwnBrand && viewerBrand ? (
+            extras.livePending ? (
+              <p className="text-center text-sm text-zinc-400">
+                {extras.livePending.challengerBrandId === viewerBrand.id
+                  ? "Du hast dieses Profil bereits eingeladen — Antwort steht noch aus."
+                  : "Dieses Profil hat dich bereits eingeladen — schau in deinem Profil vorbei."}
+              </p>
+            ) : (
+              <ChallengeButton challengedBrandId={brand.id} />
+            )
           ) : undefined
         }
       />

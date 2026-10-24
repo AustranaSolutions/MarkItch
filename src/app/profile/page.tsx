@@ -12,6 +12,8 @@ import { getBrandProfileExtras } from "@/lib/brand-profile";
 import { CreateBrandForm } from "@/components/brand/create-brand-form";
 import { ProfileContentTabs } from "@/components/profile/profile-content-tabs";
 import { BrandProfileHeader } from "@/components/profile/brand-profile-header";
+import { profileHeaderOf } from "@/lib/brand-details";
+import { duelRecord } from "@/lib/duel-record";
 
 /**
  * Phase 23: rebuilt to actually look like a profile tab (Instagram/TikTok
@@ -57,24 +59,25 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Profil</h1>
-        <Link href="/profile/settings" aria-label="Einstellungen" className="text-zinc-400 hover:text-white">
-          <Settings size={24} strokeWidth={1.75} />
-        </Link>
-      </div>
+      {!brand && (
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-white">Profil</h1>
+          <Link href="/profile/settings" aria-label="Einstellungen" className="text-zinc-400 hover:text-white">
+            <Settings size={24} strokeWidth={1.75} />
+          </Link>
+        </div>
+      )}
 
       {brand && extras ? (
         <>
           <BrandProfileHeader
-            name={brand.name}
-            logoUrl={brand.logoUrl}
-            bio={brand.description}
-            postCount={mySoloPitches.length + myDuels.length}
+            {...profileHeaderOf(brand)}
             followerCount={followerCount}
             followingCount={followingCount}
+            record={duelRecord(myDuels, brand.id)}
             followersHref={`/brands/${brand.slug}/followers`}
             followingHref={`/brands/${brand.slug}/following`}
+            own
           />
 
           <ProfileContentTabs

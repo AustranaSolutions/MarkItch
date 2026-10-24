@@ -10,7 +10,10 @@ import type { FeedSoloPitch } from "@/lib/feed";
 // hair into the clip once metadata is known is the standard trick.
 function showFirstFrame(video: HTMLVideoElement) {
   if (video.readyState >= 1) video.currentTime = 0.1;
-  else video.addEventListener("loadedmetadata", () => (video.currentTime = 0.1), { once: true });
+  else
+    video.addEventListener("loadedmetadata", () => (video.currentTime = 0.1), {
+      once: true,
+    });
 }
 
 /**
@@ -40,17 +43,30 @@ export function SoloPitchGrid({
       <ul className="grid grid-cols-3 gap-1">
         {pitches.map((pitch, index) => (
           <li key={pitch.soloPitchId}>
-            <button onClick={() => setOpenIndex(index)} className="block w-full">
-              <video
-                ref={(el) => {
-                  if (el) showFirstFrame(el);
-                }}
-                src={pitch.videoUrl}
-                muted
-                playsInline
-                preload="metadata"
-                className="aspect-[9/16] w-full rounded-lg bg-black object-cover"
-              />
+            <button
+              onClick={() => setOpenIndex(index)}
+              className="block w-full"
+            >
+              {/* Luca 24.10.: eigenes Titelbild, sonst das erste Bild des Videos. */}
+              {pitch.thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary source
+                <img
+                  src={pitch.thumbnailUrl}
+                  alt=""
+                  className="aspect-[9/16] w-full rounded-lg bg-black object-cover"
+                />
+              ) : (
+                <video
+                  ref={(el) => {
+                    if (el) showFirstFrame(el);
+                  }}
+                  src={pitch.videoUrl}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="aspect-[9/16] w-full rounded-lg bg-black object-cover"
+                />
+              )}
             </button>
           </li>
         ))}
@@ -64,9 +80,17 @@ export function SoloPitchGrid({
           viewerBrandId={viewerBrandId}
           onClose={() => setOpenIndex(null)}
           onPitchUpdated={(soloPitchId, patch) =>
-            setPitches((prev) => prev.map((p) => (p.soloPitchId === soloPitchId ? { ...p, ...patch } : p)))
+            setPitches((prev) =>
+              prev.map((p) =>
+                p.soloPitchId === soloPitchId ? { ...p, ...patch } : p,
+              ),
+            )
           }
-          onPitchDeleted={(soloPitchId) => setPitches((prev) => prev.filter((p) => p.soloPitchId !== soloPitchId))}
+          onPitchDeleted={(soloPitchId) =>
+            setPitches((prev) =>
+              prev.filter((p) => p.soloPitchId !== soloPitchId),
+            )
+          }
         />
       )}
     </>

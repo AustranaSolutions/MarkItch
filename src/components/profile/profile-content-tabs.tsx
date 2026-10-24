@@ -7,13 +7,6 @@ import { SoloPitchGrid } from "@/components/profile/solo-pitch-grid";
 import { DuelGrid } from "@/components/profile/duel-grid";
 import type { FeedSoloPitch, FeedDuel } from "@/lib/feed";
 
-const COUNTRY_LABELS: Record<string, string> = {
-  AT: "Österreich",
-  DE: "Deutschland",
-  CH: "Schweiz",
-  Other: "Andere",
-};
-
 export type ProfileInfo = {
   category: string;
   country: string;
@@ -44,7 +37,8 @@ export type ProfileInfo = {
  * a block below this whole component, after however many rows a brand's
  * grid takes — Luca: with ~100 posts nobody scrolls past the entire grid to
  * find it. Now a third tab, reachable with one tap regardless of grid
- * size. `info` is optional so a profile with nothing to show there (no
+ * size. Luca 24.10.: heißt jetzt „Aktionen“ (Challenges/Castings); die
+ * Infos selbst stehen unter ⋯ → Info im Profilkopf. `info` is optional so a profile with nothing to show there (no
  * chart/casting/website yet — shouldn't happen in practice, `brand.category`
  * is required) can simply omit the tab.
  */
@@ -84,7 +78,7 @@ export function ProfileContentTabs({
           onClick={() => setTab("info")}
           className={`flex-1 border-b-2 py-2.5 ${tab === "info" ? "border-orange-500 text-white" : "border-transparent text-zinc-500"}`}
         >
-          Info
+          Aktionen
         </button>
       </div>
 
@@ -102,17 +96,9 @@ export function ProfileContentTabs({
         )
       ) : (
         <div className="space-y-4">
-          <div className="flex gap-2 text-xs">
-            <span className="rounded-full bg-orange-500/10 px-2 py-0.5 font-medium text-orange-400">{info.category}</span>
-            <span className="rounded-full bg-zinc-800 px-2 py-0.5 font-medium text-zinc-400">
-              {COUNTRY_LABELS[info.country] ?? info.country}
-            </span>
-          </div>
-
-          {info.website && (
-            <a href={info.website} target="_blank" rel="noopener noreferrer" className="block text-sm text-orange-500 hover:underline">
-              {info.website} ↗
-            </a>
+          {/* Luca 24.10.: Kategorie/Website stehen jetzt oben bzw. unter ⋯ → Info. */}
+          {!info.challenges.length && !info.challengeWinners && !info.activeCasting && !info.castingWinner && (
+            <p className="py-8 text-center text-sm text-zinc-500">Gerade keine Challenges oder Castings.</p>
           )}
 
           {/* RN-7: Creator-Challenges eröffnet nur die Marke selbst (statt offener Monats-Charts). */}

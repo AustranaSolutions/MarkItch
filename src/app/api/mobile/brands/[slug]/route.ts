@@ -8,36 +8,8 @@ import { getBrandProfileExtras } from "@/lib/brand-profile";
 import { getFollowerCount, getFollowingCountForBrand, isFollowing } from "@/lib/follow";
 import { getFeedSoloPitchesForBrand, getFeedDuelsForBrand } from "@/lib/feed";
 import { getBlockedIds } from "@/lib/block";
-import {
-  defaultProfileButton,
-  parseProfileButtonType,
-  profileButtonSource,
-  PROFILE_BUTTON_LABELS,
-  publicLocationLabel,
-} from "@/lib/brand-details";
+import { defaultProfileButton, profileButtonOf, publicLocationLabel } from "@/lib/brand-details";
 
-/** Der eine Button im Profil — nur, wenn sein Ziel auch ausgefüllt ist. */
-function profileButtonOf(brand: typeof brands.$inferSelect): { type: string; label: string; target: string } | null {
-  const type = parseProfileButtonType(brand.profileButtonType);
-  if (!type) return null;
-  const source = profileButtonSource(type);
-  const target =
-    source === "phone"
-      ? brand.phone && `tel:${brand.phone.replace(/[^+0-9]/g, "")}`
-      : source === "email"
-        ? brand.contactEmail && `mailto:${brand.contactEmail}`
-        : source === "website"
-          ? brand.website
-          : source === "link"
-            ? brand.profileButtonUrl
-            : null;
-  return target ? { type, label: PROFILE_BUTTON_LABELS[type], target } : null;
-}
-
-/**
- * RN-4: Markenprofil für die App — dieselben Daten wie die Seite
- * /brands/[slug] (und damit /profile für die eigene Marke), als JSON.
- */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [brand] = await db.select().from(brands).where(eq(brands.slug, slug)).limit(1);

@@ -28,27 +28,41 @@ export function DuelGrid({ duels, isLoggedIn, ownBrandId }: { duels: FeedDuel[];
 
   return (
     <>
-      <ul className="grid grid-cols-3 gap-1">
+      {/* Luca 24.10.: zweispaltig, beide Titelbilder, dazwischen nur „VS“; Punkt = läuft gerade. */}
+      <ul className="grid grid-cols-2 gap-2">
         {duels.map((duel, index) => {
-          const mySideIndex = duel.sides[0].brandId === ownBrandId ? 0 : 1;
-          const mySide = duel.sides[mySideIndex];
-          const opponent = duel.sides[mySideIndex === 0 ? 1 : 0];
+          // Eigene Seite links.
+          const sides = duel.sides[1].brandId === ownBrandId ? [duel.sides[1], duel.sides[0]] : duel.sides;
           return (
             <li key={duel.key}>
-              <button onClick={() => setOpenIndex(index)} className="relative block w-full" aria-label={`Duell gegen ${opponent.brandName}`}>
-                <video
-                  ref={(el) => {
-                    if (el) showFirstFrame(el);
-                  }}
-                  src={mySide.videoUrl}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="aspect-[9/16] w-full rounded-lg bg-black object-cover"
-                />
-                <span className="absolute bottom-1 left-1 right-1 truncate rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                  vs. {opponent.brandName}
+              <button
+                onClick={() => setOpenIndex(index)}
+                className="relative flex aspect-[4/5] w-full gap-0.5 overflow-hidden rounded-xl"
+                aria-label={`Duell ${sides[0].brandName} gegen ${sides[1].brandName}`}
+              >
+                {sides.map((side) => (
+                  <span key={side.brandId} className="h-full flex-1 bg-zinc-900">
+                    {side.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary source
+                      <img src={side.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <video
+                        ref={(el) => {
+                          if (el) showFirstFrame(el);
+                        }}
+                        src={side.videoUrl}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </span>
+                ))}
+                <span className="absolute left-1/2 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-orange-500 bg-[#06171b] text-[11px] font-extrabold text-orange-500">
+                  VS
                 </span>
+                {!duel.isFinished && <span className="absolute left-2 top-2 h-2 w-2 rounded-full bg-orange-500" />}
               </button>
             </li>
           );
