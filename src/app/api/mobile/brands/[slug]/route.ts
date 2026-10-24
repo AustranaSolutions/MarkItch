@@ -8,6 +8,31 @@ import { getBrandProfileExtras } from "@/lib/brand-profile";
 import { getFollowerCount, getFollowingCountForBrand, isFollowing } from "@/lib/follow";
 import { getFeedSoloPitchesForBrand, getFeedDuelsForBrand } from "@/lib/feed";
 import { getBlockedIds } from "@/lib/block";
+import {
+  defaultProfileButton,
+  parseProfileButtonType,
+  profileButtonSource,
+  PROFILE_BUTTON_LABELS,
+  publicLocationLabel,
+} from "@/lib/brand-details";
+
+/** Der eine Button im Profil — nur, wenn sein Ziel auch ausgefüllt ist. */
+function profileButtonOf(brand: typeof brands.$inferSelect): { type: string; label: string; target: string } | null {
+  const type = parseProfileButtonType(brand.profileButtonType);
+  if (!type) return null;
+  const source = profileButtonSource(type);
+  const target =
+    source === "phone"
+      ? brand.phone && `tel:${brand.phone.replace(/[^+0-9]/g, "")}`
+      : source === "email"
+        ? brand.contactEmail && `mailto:${brand.contactEmail}`
+        : source === "website"
+          ? brand.website
+          : source === "link"
+            ? brand.profileButtonUrl
+            : null;
+  return target ? { type, label: PROFILE_BUTTON_LABELS[type], target } : null;
+}
 
 /**
  * RN-4: Markenprofil für die App — dieselben Daten wie die Seite
@@ -43,6 +68,33 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       // Audit 04.10. (C1): vom Betreiber geprüft → Haken am Namen.
       verified: brand.verifiedAt !== null,
       kind: brand.kind,
+      // Luca 24.10.: neues Profil.
+      category: brand.category,
+      bannerUrl: brand.bannerUrl,
+      introVideoUrl: brand.videoUrl,
+      locationType: brand.locationType,
+      locationLabel: publicLocationLabel(brand.locationType, brand.locationLabel),
+      profileButton: profileButtonOf(brand),
+    },
+    // Luca 24.10.: Info-Blatt (⋯ → Info) und eigene Einstellungen.
+    details: {
+      description: brand.description,
+      address: brand.locationType === "address" ? brand.address : null,
+      phone: brand.phone,
+      contactEmail: brand.contactEmail,
+      website: brand.website,
+      openingHours: brand.openingHours,
+      imprint: brand.imprint,
+      // Nur für die eigenen Einstellungen: was gespeichert ist, auch wenn der Button gerade nichts zeigt.
+      ...(isOwnBrand
+        ? {
+            profileButtonType: brand.profileButtonType,
+            profileButtonUrl: brand.profileButtonUrl,
+            suggestedButtonType: defaultProfileButton(brand.kind, brand.category),
+            rawLocationLabel: brand.locationLabel,
+            rawAddress: brand.address,
+          }
+        : {}),
     },
     isOwnBrand,
     viewerFollows,

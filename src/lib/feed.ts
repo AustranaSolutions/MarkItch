@@ -26,6 +26,7 @@ import {
   type FeedReaction,
 } from "@/lib/community-feed";
 import { parseBrandKind, showsAdLabel, type BrandKind } from "@/lib/brand-kind";
+import { getThumbnailMap } from "@/lib/video-thumbnails";
 
 // Phase 9.1 — one feed entry per Duell (battle), not per side.
 //
@@ -48,6 +49,8 @@ export type FeedDuelSide = {
   /** Audit 04.10. (C1): vom Betreiber verifizierte Marke. */
   brandVerified: boolean;
   videoUrl: string;
+  /** Luca 24.10.: eigenes Titelbild für die Profil-Kacheln, sonst null (dann erstes Bild des Videos). */
+  thumbnailUrl: string | null;
   likeCount: number;
   viewerLiked: boolean;
   /** Hide the follow button on your own brand's side. */
@@ -156,7 +159,7 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
     { battleId: b.id, brandId: b.brandBId },
   ]);
 
-  const [tallies, officialTallies, commentCounts, likeCounts, viewerLikedKeys, viewerVotes, viewerBrand, followedBrandIds, viewCounts] =
+  const [tallies, officialTallies, commentCounts, likeCounts, viewerLikedKeys, viewerVotes, viewerBrand, followedBrandIds, viewCounts, thumbnails] =
     await Promise.all([
       Promise.all(eligible.map((b) => getVoteTally(b.id, b.brandAId, b.brandBId))),
       // Phase 12: the frozen result at votingEndsAt — null for a battle
@@ -175,6 +178,12 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
       viewerId ? getBrandForUser(viewerId) : Promise.resolve(null),
       viewerId ? getFollowedBrandIds(viewerId) : Promise.resolve([]),
       getViewCountsForBattles(battleIds),
+      getThumbnailMap(
+        eligible.flatMap((b) => {
+          const { videoUrlA, videoUrlB } = resolveBattleVideos(b);
+          return [videoUrlA ?? "", videoUrlB ?? ""];
+        }),
+      ),
     ]);
 
   const talliesByBattle = new Map(eligible.map((b, i) => [b.id, tallies[i]]));
@@ -228,6 +237,7 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
         brandLogoUrl: brand.logoUrl,
         brandVerified: brand.verifiedAt !== null,
         videoUrl: videoUrls[i]!,
+        thumbnailUrl: thumbnails.get(videoUrls[i]!) ?? null,
         likeCount: likeCounts.get(key) ?? 0,
         viewerLiked: viewerLikedKeys.has(key),
         viewerOwnsThisBrand: viewerBrand?.id === brand.id,
@@ -336,6 +346,8 @@ export type FeedSoloPitch = {
   /** Audit 04.10. (C1): vom Betreiber verifizierte Marke. */
   brandVerified: boolean;
   videoUrl: string;
+  /** Luca 24.10.: siehe FeedDuelSide.thumbnailUrl. */
+  thumbnailUrl: string | null;
   /** Phase 30: null only for content posted before this existed. */
   description: string | null;
   likeCount: number;
@@ -383,7 +395,7 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
   if (pitches.length === 0) return [];
 
   const ids = pitches.map((p) => p.id);
-  const [likeCounts, commentCounts, reactionCounts, viewerLikedIds, viewerBrand, followedBrandIds, boostedIds, viewCounts, contexts] =
+  const [likeCounts, commentCounts, reactionCounts, viewerLikedIds, viewerBrand, followedBrandIds, boostedIds, viewCounts, contexts, thumbnails] =
     await Promise.all([
       getSoloPitchLikeCounts(ids),
       getCommentCountsForSoloPitches(ids),
@@ -394,6 +406,7 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
       getActiveBoostedSoloPitchIds(ids),
       getViewCountsForSoloPitches(ids),
       getSoloPitchContexts(pitches),
+      getThumbnailMap(pitches.map((p) => p.videoUrl)),
     ]);
   const followedSet = new Set(followedBrandIds);
 
@@ -408,6 +421,7 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
     brandLogoUrl: pitch.brand.logoUrl,
     brandVerified: pitch.brand.verifiedAt !== null,
     videoUrl: pitch.videoUrl,
+    thumbnailUrl: thumbnails.get(pitch.videoUrl) ?? null,
     description: pitch.description,
     likeCount: likeCounts.get(pitch.id) ?? 0,
     viewerLiked: viewerLikedIds.has(pitch.id),

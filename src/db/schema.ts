@@ -100,8 +100,21 @@ export const brands = pgTable(
     // Phase 3: one showcase video per brand for now. A brand's actual
     // battle submissions get their own table once Phase 4/5 need it — this
     // column is just "the video on my public profile".
+    // Luca 24.10.: seit dem neuen Profil das „Vorstellungsvideo“ (Ring ums Profilbild).
     videoUrl: text("video_url"),
     videoUploadedAt: timestamp("video_uploaded_at", { withTimezone: true }),
+    // Luca 24.10.: neues Profil — Banner, „Button im Profil“, Standort und
+    // Info-Blatt (⋯ → Info). Alles optional; siehe src/lib/brand-details.ts.
+    bannerUrl: text("banner_url"),
+    profileButtonType: text("profile_button_type"),
+    profileButtonUrl: text("profile_button_url"),
+    locationType: text("location_type"),
+    locationLabel: text("location_label"),
+    address: text("address"),
+    phone: text("phone"),
+    contactEmail: text("contact_email"),
+    openingHours: text("opening_hours"),
+    imprint: text("imprint"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -921,3 +934,15 @@ export const boosts = pgTable("boosts", {
 
 export type Boost = typeof boosts.$inferSelect;
 export type NewBoost = typeof boosts.$inferInsert;
+
+// Luca 24.10.: Titelbild je Video — nur für die Kacheln im Profil. Pro
+// Video-Adresse statt pro Tabelle, weil dasselbe Video als Pitch, Einladung
+// und Duell-Seite auftaucht; so hat es überall dasselbe Titelbild.
+export const videoThumbnails = pgTable("video_thumbnails", {
+  videoUrl: text("video_url").primaryKey(),
+  imageUrl: text("image_url").notNull(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

@@ -8,6 +8,7 @@ import { validateImageFile } from "@/lib/account";
 import { BrandCategories, CreateBrandSchema, CreatorCategories, IndustryComplianceSchema } from "@/lib/validation";
 import { parseBrandKind, type BrandKind } from "@/lib/brand-kind";
 import { withHttps } from "@/lib/cta-link";
+import { parseBrandDetails } from "@/lib/brand-details";
 
 // RN-4: Marke anlegen/bearbeiten — gemeinsam für die Web-Actions
 // (actions/brand.ts) und die App-Route (/api/mobile/brand).
@@ -23,6 +24,10 @@ export type BrandInput = {
   logo: File | null;
   /** Luca 18.10.: "brand" | "creator" — fehlt er (alte App-Version), bleibt es eine Marke bzw. unverändert. */
   kind?: unknown;
+  /** Luca 24.10.: Standort schon bei der Registrierung (nur beim Anlegen ausgewertet). */
+  locationType?: unknown;
+  locationLabel?: unknown;
+  address?: unknown;
 };
 
 function slugify(name: string): string {
@@ -120,6 +125,20 @@ export async function createBrandForUser(
   const compliance = IndustryComplianceSchema.safeParse({ industryCompliance: input.industryCompliance });
   if (!compliance.success) return { ok: false, errors: compliance.error.flatten().fieldErrors as FieldErrors };
 
+  // Luca 24.10.: Unternehmen geben gleich an, wo man sie findet (Creator freiwillig).
+  // Fehlt die Angabe ganz (ältere App-Version), wird nichts verlangt.
+  const location = parseBrandDetails((key) =>
+    key === "locationType" ? input.locationType : key === "locationLabel" ? input.locationLabel : key === "address" ? input.address : undefined,
+  );
+  if ("errors" in location) return { ok: false, errors: location.errors };
+  const { locationType, locationLabel, address } = location.values;
+  if (kind === "brand" && locationType && locationType !== "online" && !locationLabel) {
+    return {
+      ok: false,
+      errors: { locationLabel: [locationType === "area" ? "Bitte dein Einsatzgebiet angeben." : "Bitte den Ort angeben (z. B. Graz-Eggenberg)."] },
+    };
+  }
+
   const logo = await uploadLogoIfAny(input.logo);
   if ("errors" in logo) return { ok: false, errors: logo.errors };
 
@@ -135,6 +154,9 @@ export async function createBrandForUser(
       country: parsed.data.country,
       kind,
       logoUrl: logo.url,
+      locationType: locationType ?? null,
+      locationLabel: locationType === "online" ? null : (locationLabel ?? null),
+      address: locationType === "address" ? (address ?? null) : null,
       industryComplianceConfirmedAt: new Date(),
     })
     .returning({ id: brands.id, slug: brands.slug });
