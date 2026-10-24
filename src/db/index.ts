@@ -27,15 +27,49 @@ if (!process.env.DATABASE_URL) {
 // selbst (dafür müsste Vercels Function-Concurrency oder Supabases
 // Pool-Größe untersucht werden), macht aus einem unsichtbaren Totalausfall
 // aber einen sichtbaren, wiederholbaren Fehler.
-const client = postgres(process.env.DATABASE_URL, {
-  prepare: false,
-  connect_timeout: 10,
-  idle_timeout: 20,
-  max: 10,
-  connection: {
-    statement_timeout: 10000,
-    lock_timeout: 10000,
+const DATABASE_URL = process.env.DATABASE_URL;
+
+function createClient() {
+  return postgres(DATABASE_URL!, {
+    prepare: false,
+    connect_timeout: 10,
+    idle_timeout: 20,
+    max: 10,
+    connection: {
+      statement_timeout: 10000,
+      lock_timeout: 10000,
+    },
+  });
+}
+
+let client = createClient();
+let current = drizzle(client, { schema });
+let lastReset = 0;
+
+/**
+ * Luca 24.10. (Supabase-Störung): Nach einem Verbindungsabriss behielt der
+ * Server einzelne tote Verbindungen im Pool — Abfragen darauf bekamen nie
+ * eine Antwort (statement_timeout greift nicht, die Datenbank hat sie nie
+ * erhalten), angemeldete Feeds hingen bis zum Abbruch. Hängt eine Abfrage
+ * nachweislich (siehe feed.ts `timed`), wird der ganze Pool verworfen und neu
+ * aufgebaut. Höchstens einmal pro 30 s, damit kein Dauer-Neuaufbau entsteht.
+ */
+export function resetDbConnections(reason: string): void {
+  if (Date.now() - lastReset < 30_000) return;
+  lastReset = Date.now();
+  const old = client;
+  client = createClient();
+  current = drizzle(client, { schema });
+  console.error(`[db] Verbindungen neu aufgebaut: ${reason}`);
+  old.end({ timeout: 5 }).catch(() => {});
+}
+
+type Db = typeof current;
+
+// Alle Module nutzen weiter `db` — es zeigt immer auf den aktuellen Pool.
+export const db: Db = new Proxy({} as Db, {
+  get(_target, prop) {
+    const value = Reflect.get(current, prop, current);
+    return typeof value === "function" ? value.bind(current) : value;
   },
 });
-
-export const db = drizzle(client, { schema });

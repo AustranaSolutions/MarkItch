@@ -1,4 +1,5 @@
 import "server-only";
+import { resetDbConnections } from "@/db";
 import { after } from "next/server";
 import { eq, inArray, or, type SQL } from "drizzle-orm";
 import { battles as battlesTable, soloPitches } from "@/db/schema";
@@ -597,7 +598,12 @@ async function materializePage(viewerId: string | null, plan: PlanEntry[]): Prom
 function timed<T>(label: string, work: Promise<T>): Promise<T> {
   const started = Date.now();
   const warn = setTimeout(() => console.warn(`[feed-slow] ${label} läuft seit 3 s`), 3000);
-  const stuck = setTimeout(() => console.error(`[feed-slow] ${label} hängt seit 20 s`), 20000);
+  // Nach 12 s ist das kein langsamer Schritt mehr (statement_timeout = 10 s), sondern eine
+  // tote Verbindung → Pool neu aufbauen, damit die nächsten Aufrufe wieder durchgehen.
+  const stuck = setTimeout(() => {
+    console.error(`[feed-slow] ${label} hängt seit 12 s`);
+    resetDbConnections(`feed ${label} hängt`);
+  }, 12000);
   return work.finally(() => {
     clearTimeout(warn);
     clearTimeout(stuck);
