@@ -655,6 +655,12 @@ receive mail, and everyone else's flow has to be tested via the printed console 
 - Umzug alter Dateien: `POST /api/admin/migrate-media` (x-admin-key), `{"dryRun":true}` bzw. `{"dryRun":false,"limit":20}`.
 - Einzelnes Duell löschen: `POST /api/admin/delete-battle` (x-admin-key), `{"battleId":"…"}` zeigt an, mit `"confirm":true` wird gelöscht.
 
+### Neues Profil (24.10.2026, Migration 0043)
+
+- `src/lib/brand-details.ts`: „Button im Profil“ (feste Liste inkl. „Meine Musik“), Standort-Arten (Adresse / Einsatzgebiet / Online), Prüfung der Felder.
+- `PATCH /api/mobile/brand/details` (multipart, nur mitgeschickte Felder: Banner, Vorstellungsvideo, Button, Standort, Kontakt, Öffnungszeiten, Impressum, Beschreibung).
+- `POST /api/mobile/thumbnails`: Titelbild je Video-Adresse (Tabelle `video_thumbnails`), nur für eigene Uploads; Feed-Karten tragen `thumbnailUrl`.
+
 ### Vercel (hosting)
 
 1. Push this repo to GitHub (see below), then import it at vercel.com/new.
