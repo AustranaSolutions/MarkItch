@@ -94,6 +94,8 @@ export type FeedDuel = {
   sides: [FeedDuelSide, FeedDuelSide];
   /** Which side to open on — the viewer's followed brand if there is one, otherwise brand A. */
   initialSideIndex: 0 | 1;
+  /** Luca 24.10.: nur im Client gesetzt — aus einem Profil geöffnet: dessen Seite zuerst und links. */
+  leadBrandId?: string;
 };
 
 // Phase F (H3, Audit 04.10.): Der Feed wurde früher bei jedem Abruf komplett

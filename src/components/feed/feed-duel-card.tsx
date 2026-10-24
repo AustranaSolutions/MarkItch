@@ -199,7 +199,14 @@ export function FeedDuelCard({
   /** Phase 43: tells FeedClient this card is the one on screen now, so it can keep only nearby cards' videos mounted. */
   onActive?: () => void;
 }) {
-  const [sideIndex, setSideIndex] = useState<0 | 1>(duel.initialSideIndex);
+  // Luca 24.10.: aus einem Profil geöffnet → dessen Video zuerst und links,
+  // der Gegner rechts. Nur die Anzeige dreht sich; sideIndex bleibt 0 = A,
+  // 1 = B (Stimmen, Ergebnis, Melden). pos = Platz im Streifen (0 links).
+  const flipped = duel.leadBrandId === duel.sides[1].brandId;
+  const posOf = (i: 0 | 1): 0 | 1 => (flipped ? (i === 0 ? 1 : 0) : i);
+  const sideAt = (pos: 0 | 1): 0 | 1 => (flipped ? (pos === 0 ? 1 : 0) : pos);
+  const [sideIndex, setSideIndex] = useState<0 | 1>(duel.leadBrandId ? (flipped ? 1 : 0) : duel.initialSideIndex);
+  const pos = posOf(sideIndex);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<[HTMLVideoElement | null, HTMLVideoElement | null]>([null, null]);
   const slideRef = useRef<HTMLDivElement>(null);
@@ -281,8 +288,8 @@ export function FeedDuelCard({
     const el = slideRef.current;
     if (!el) return;
     el.style.transition = "transform 250ms ease-out";
-    el.style.transform = `translateX(${sideIndex === 0 ? "0%" : "-50%"})`;
-  }, [sideIndex]);
+    el.style.transform = `translateX(${pos === 0 ? "0%" : "-50%"})`;
+  }, [pos]);
 
   // Phase 16: a "view" is this side's video actually playing on screen —
   // once per side per card, not per re-render (flipping back and forth
@@ -342,10 +349,10 @@ export function FeedDuelCard({
       if (!d.horizontal) return; // vertical intent — hand off to native scroll, do nothing more
     }
     // Resistance at the ends — there's no third side to reveal.
-    const clampedDx = sideIndex === 0 ? Math.min(0, dx) : Math.max(0, dx);
+    const clampedDx = pos === 0 ? Math.min(0, dx) : Math.max(0, dx);
     const width = containerRef.current?.clientWidth || window.innerWidth;
     const dragPercentOfSlider = (clampedDx / width) * 50; // 50% of the 200%-wide slider == 100% of the card
-    const basePercent = sideIndex === 0 ? 0 : -50;
+    const basePercent = pos === 0 ? 0 : -50;
     const el = slideRef.current;
     if (el) {
       el.style.transition = "none";
@@ -366,12 +373,12 @@ export function FeedDuelCard({
       const dx = e.clientX - d.startX;
       const width = containerRef.current?.clientWidth || window.innerWidth;
       if (Math.abs(dx) > width * COMMIT_FRACTION) {
-        if (dx < 0 && sideIndex === 0) {
-          switchSide(1);
+        if (dx < 0 && pos === 0) {
+          switchSide(sideAt(1));
           return;
         }
-        if (dx > 0 && sideIndex === 1) {
-          switchSide(0);
+        if (dx > 0 && pos === 1) {
+          switchSide(sideAt(0));
           return;
         }
       }
@@ -381,7 +388,7 @@ export function FeedDuelCard({
       const el = slideRef.current;
       if (el) {
         el.style.transition = "transform 250ms ease-out";
-        el.style.transform = `translateX(${sideIndex === 0 ? "0%" : "-50%"})`;
+        el.style.transform = `translateX(${pos === 0 ? "0%" : "-50%"})`;
       }
       return;
     }
@@ -428,7 +435,9 @@ export function FeedDuelCard({
           the finger at full frame rate instead of re-rendering on every
           pointermove. */}
       <div ref={slideRef} className="absolute inset-y-0 left-0 flex h-full" style={{ width: "200%" }}>
-        {duel.sides.map((s, i) => (
+        {(flipped ? ([1, 0] as const) : ([0, 1] as const)).map((i) => {
+          const s = duel.sides[i];
+          return (
           <div key={s.brandId} className="relative h-full w-1/2">
             <video
               ref={(el) => {
@@ -443,7 +452,8 @@ export function FeedDuelCard({
               preload="metadata"
             />
           </div>
-        ))}
+          );
+        })}
       </div>
       {/* Phase 35: `touch-pan-y` (touch-action: pan-y) — without it, a real
           touchscreen's own gesture recognizer can swallow a horizontal drag
@@ -491,15 +501,15 @@ export function FeedDuelCard({
             style={{ top: "calc(env(safe-area-inset-top) + 44px)" }}
           >
             {([0, 1] as const).map((i) => (
-              <span key={i} className={`h-1.5 w-1.5 rounded-full ${i === sideIndex ? "bg-white" : "bg-white/30"}`} />
+              <span key={i} className={`h-1.5 w-1.5 rounded-full ${i === pos ? "bg-white" : "bg-white/30"}`} />
             ))}
           </div>
-          {sideIndex === 1 && (
+          {pos === 1 && (
             <div className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-white/50">
               <ChevronLeft size={28} />
             </div>
           )}
-          {sideIndex === 0 && (
+          {pos === 0 && (
             <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white/50">
               <ChevronRight size={28} />
             </div>

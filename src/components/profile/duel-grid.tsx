@@ -70,7 +70,8 @@ export function DuelGrid({ duels, isLoggedIn, ownBrandId }: { duels: FeedDuel[];
       </ul>
 
       {openIndex !== null && (
-        <StandaloneDuelFeed duels={duels} startIndex={openIndex} isLoggedIn={isLoggedIn} onClose={() => setOpenIndex(null)} />
+        // Im Vollbild ebenfalls die Seite dieses Profils zuerst (links), Gegner per Wischen.
+        <StandaloneDuelFeed duels={duels.map((d) => ({ ...d, leadBrandId: ownBrandId }))} startIndex={openIndex} isLoggedIn={isLoggedIn} onClose={() => setOpenIndex(null)} />
       )}
     </>
   );
