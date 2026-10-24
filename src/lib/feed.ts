@@ -571,9 +571,9 @@ function interleaveFeed(rankedDuels: BattleWithBrands[], streamEntries: StreamEn
 /** Stufe 2 für eine Feed-Seite: nur diese Einträge voll anreichern, Reihenfolge bleibt. */
 async function materializePage(viewerId: string | null, plan: PlanEntry[]): Promise<FeedItemWithReactions[]> {
   const [duels, solos, communityReactions] = await Promise.all([
-    enrichDuels(viewerId, plan.flatMap((e) => (e.kind === "duel" ? [e.battle] : []))),
-    enrichSoloPitches(viewerId, plan.flatMap((e) => (e.kind === "solo" ? [e.pitch] : []))),
-    enrichCommunityReactions(viewerId, plan.flatMap((e) => (e.kind === "reaction" ? [e.row] : []))),
+    timed("page.duels", enrichDuels(viewerId, plan.flatMap((e) => (e.kind === "duel" ? [e.battle] : [])))),
+    timed("page.solos", enrichSoloPitches(viewerId, plan.flatMap((e) => (e.kind === "solo" ? [e.pitch] : [])))),
+    timed("page.reactions", enrichCommunityReactions(viewerId, plan.flatMap((e) => (e.kind === "reaction" ? [e.row] : [])))),
   ]);
   const duelById = new Map(duels.map((d) => [d.battleId, d]));
   const soloById = new Map(solos.map((p) => [p.soloPitchId, p]));
@@ -589,18 +589,35 @@ async function materializePage(viewerId: string | null, plan: PlanEntry[]): Prom
   });
 }
 
+/**
+ * Luca 24.10. (Fehlersuche): angemeldeter Feed hing live bis zum 300-s-Abbruch.
+ * Loggt jeden Schritt, der länger als 3 s braucht, damit man in den Vercel-Logs
+ * sieht, wo es hängt — auch wenn er gar nicht mehr fertig wird.
+ */
+function timed<T>(label: string, work: Promise<T>): Promise<T> {
+  const started = Date.now();
+  const warn = setTimeout(() => console.warn(`[feed-slow] ${label} läuft seit 3 s`), 3000);
+  const stuck = setTimeout(() => console.error(`[feed-slow] ${label} hängt seit 20 s`), 20000);
+  return work.finally(() => {
+    clearTimeout(warn);
+    clearTimeout(stuck);
+    const ms = Date.now() - started;
+    if (ms > 3000) console.warn(`[feed-slow] ${label} fertig nach ${ms} ms`);
+  });
+}
+
 async function forYouPlan(viewerId: string | null, withReactions: boolean): Promise<PlanEntry[]> {
   const [battles, pitches, followedBrandIds, communityRows, viewerBrand] = await Promise.all([
-    getEligibleBattles(viewerId),
-    getEligibleSoloPitches(viewerId),
-    viewerId ? getFollowedBrandIds(viewerId) : Promise.resolve([]),
-    withReactions ? getEligibleCommunityReactions(viewerId) : Promise.resolve([]),
-    viewerId ? getBrandForUser(viewerId) : Promise.resolve(null),
+    timed("plan.battles", getEligibleBattles(viewerId)),
+    timed("plan.pitches", getEligibleSoloPitches(viewerId)),
+    viewerId ? timed("plan.followed", getFollowedBrandIds(viewerId)) : Promise.resolve([]),
+    withReactions ? timed("plan.reactions", getEligibleCommunityReactions(viewerId)) : Promise.resolve([]),
+    viewerId ? timed("plan.viewerBrand", getBrandForUser(viewerId)) : Promise.resolve(null),
   ]);
   const followedSet = new Set(followedBrandIds);
   const [rankedDuels, boostedIds] = await Promise.all([
-    rankBattles(battles, followedSet),
-    getActiveBoostedSoloPitchIds(pitches.map((p) => p.id)),
+    timed("plan.rank", rankBattles(battles, followedSet)),
+    timed("plan.boosts", getActiveBoostedSoloPitchIds(pitches.map((p) => p.id))),
   ]);
   const stream: StreamEntry[] = [
     ...pitches.map((pitch): StreamEntry => ({ kind: "solo", pitch, createdAt: pitch.createdAt, boosted: boostedIds.has(pitch.id) })),
