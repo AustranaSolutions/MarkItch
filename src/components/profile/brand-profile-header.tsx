@@ -241,6 +241,18 @@ export function BrandProfileHeader({
     }
   };
 
+  const profileLink = button && (
+    <a
+      href={button.target}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 px-3 text-sm font-bold text-white hover:bg-zinc-900"
+    >
+      {ButtonIcon && <ButtonIcon size={15} />}
+      {button.label}
+    </a>
+  );
+
   const avatar = brand.logoUrl ? (
     // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary source
     <img src={brand.logoUrl} alt={brand.name} className="h-full w-full rounded-full object-cover" />
@@ -360,11 +372,14 @@ export function BrandProfileHeader({
               >
                 Profil bearbeiten
               </Link>
+              {/* Luca 24.10.: den eigenen Button im Profil auch selbst sehen — Teilen dann nur als Symbol. */}
+              {button && profileLink}
               <button
                 onClick={share}
-                className="flex h-10 w-32 items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 text-sm font-bold text-white hover:bg-zinc-900"
+                aria-label="Profil teilen"
+                className={`flex h-10 items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 text-sm font-bold text-white hover:bg-zinc-900 ${button ? "w-10" : "w-32"}`}
               >
-                <Share2 size={15} /> {copied ? "Kopiert ✓" : "Teilen"}
+                <Share2 size={15} /> {button ? null : copied ? "Kopiert ✓" : "Teilen"}
               </button>
             </div>
           ) : (
@@ -372,17 +387,7 @@ export function BrandProfileHeader({
               {(action || button) && (
                 <div className="flex gap-2 [&>*]:flex-1">
                   {action}
-                  {button && (
-                    <a
-                      href={button.target}
-                      target={external ? "_blank" : undefined}
-                      rel={external ? "noopener noreferrer" : undefined}
-                      className="flex h-10 items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 px-3 text-sm font-bold text-white hover:bg-zinc-900"
-                    >
-                      {ButtonIcon && <ButtonIcon size={15} />}
-                      {button.label}
-                    </a>
-                  )}
+                  {button && profileLink}
                 </div>
               )}
               {duelAction}

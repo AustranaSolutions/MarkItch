@@ -90,6 +90,16 @@ function text(raw: unknown, max: number): string | null | undefined {
   return trimmed ? trimmed.slice(0, max) : null;
 }
 
+/** http(s) und eine echte Domain mit Punkt („https://f“ zählt nicht). */
+function isRealLink(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === "https:" || parsed.protocol === "http:") && /\.[a-z]{2,}$/i.test(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 const PHONE_RE = /^\+?[0-9][0-9 ()/-]{4,28}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -113,11 +123,9 @@ export function parseBrandDetails(get: (key: string) => unknown): { values: Bran
     if (url === null) values.profileButtonUrl = null;
     else {
       const withScheme = withHttps(url);
-      try {
-        const parsed = new URL(withScheme);
-        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error();
+      if (isRealLink(withScheme)) {
         values.profileButtonUrl = withScheme;
-      } catch {
+      } else {
         errors.profileButtonUrl = ["Bitte einen gültigen Link eingeben (z. B. meinsalon.at/termin)."];
       }
     }
@@ -129,12 +137,8 @@ export function parseBrandDetails(get: (key: string) => unknown): { values: Bran
     if (website === null) values.website = null;
     else {
       const withScheme = withHttps(website);
-      try {
-        new URL(withScheme);
-        values.website = withScheme;
-      } catch {
-        errors.website = ["Bitte eine gültige Website eingeben."];
-      }
+      if (isRealLink(withScheme)) values.website = withScheme;
+      else errors.website = ["Bitte eine gültige Website eingeben."];
     }
   }
 
