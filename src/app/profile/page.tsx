@@ -14,6 +14,7 @@ import { ProfileContentTabs } from "@/components/profile/profile-content-tabs";
 import { BrandProfileHeader } from "@/components/profile/brand-profile-header";
 import { profileHeaderOf } from "@/lib/brand-details";
 import { duelRecord } from "@/lib/duel-record";
+import { brandAccent } from "@/lib/brand-color";
 
 /**
  * Phase 23: rebuilt to actually look like a profile tab (Instagram/TikTok
@@ -47,15 +48,16 @@ export default async function ProfilePage() {
     // an actual way out rather than a dead end.
     redirect("/api/auth/signout?callbackUrl=%2Flogin");
   }
-  const [mySoloPitches, myDuels, followerCount, followingCount, extras] = brand
+  const [mySoloPitches, myDuels, followerCount, followingCount, extras, accentColor] = brand
     ? await Promise.all([
         getFeedSoloPitchesForBrand(sessionUser.id, brand.id),
         getFeedDuelsForBrand(sessionUser.id, brand.id),
         getFollowerCount(brand.id),
         getFollowingCountForBrand(brand.id),
         getBrandProfileExtras(brand, brand.id, true),
+        brandAccent(brand),
       ])
-    : [[], [], 0, 0, null];
+    : [[], [], 0, 0, null, ""];
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
@@ -71,7 +73,7 @@ export default async function ProfilePage() {
       {brand && extras ? (
         <>
           <BrandProfileHeader
-            {...profileHeaderOf(brand)}
+            {...profileHeaderOf(brand, accentColor)}
             followerCount={followerCount}
             followingCount={followingCount}
             record={duelRecord(myDuels, brand.id)}

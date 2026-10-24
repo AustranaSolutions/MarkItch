@@ -106,6 +106,8 @@ export const brands = pgTable(
     // Luca 24.10.: neues Profil — Banner, „Button im Profil“, Standort und
     // Info-Blatt (⋯ → Info). Alles optional; siehe src/lib/brand-details.ts.
     bannerUrl: text("banner_url"),
+    // Hauptfarbe des Logos („#rrggbb“) für den Banner-Verlauf ohne eigenes Banner.
+    accentColor: text("accent_color"),
     profileButtonType: text("profile_button_type"),
     profileButtonUrl: text("profile_button_url"),
     locationType: text("location_type"),

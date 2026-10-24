@@ -196,6 +196,8 @@ export async function updateBrandForUser(
       country: parsed.data.country,
       kind,
       logoUrl: logo.url ?? brand.logoUrl,
+      // Neues Logo → Banner-Farbe beim nächsten Aufruf neu aus dem Logo berechnen.
+      ...(logo.url ? { accentColor: null } : {}),
       updatedAt: new Date(),
     })
     .where(eq(brands.id, brand.id));

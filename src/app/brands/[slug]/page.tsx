@@ -14,6 +14,7 @@ import { getFollowerCount, getFollowingCountForBrand, isFollowing } from "@/lib/
 import { getFeedSoloPitchesForBrand, getFeedDuelsForBrand } from "@/lib/feed";
 import { profileHeaderOf } from "@/lib/brand-details";
 import { duelRecord } from "@/lib/duel-record";
+import { brandAccent } from "@/lib/brand-color";
 
 // Note: this page already reads the session (getOptionalUser -> auth(),
 // which touches cookies), so Next treats it as dynamic automatically —
@@ -29,13 +30,14 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
   const viewer = await getOptionalUser();
   const viewerBrand = viewer ? await getBrandForUser(viewer.id) : null;
   const isOwnBrand = viewerBrand?.id === brand.id;
-  const [soloPitches, duels, followerCount, followingCount, viewerFollows, extras] = await Promise.all([
+  const [soloPitches, duels, followerCount, followingCount, viewerFollows, extras, accentColor] = await Promise.all([
     getFeedSoloPitchesForBrand(viewer?.id ?? null, brand.id),
     getFeedDuelsForBrand(viewer?.id ?? null, brand.id),
     getFollowerCount(brand.id),
     getFollowingCountForBrand(brand.id),
     viewer && !isOwnBrand ? isFollowing(viewer.id, brand.id) : Promise.resolve(false),
     getBrandProfileExtras(brand, viewerBrand?.id ?? null, isOwnBrand),
+    brandAccent(brand),
   ]);
 
   return (
@@ -46,7 +48,7 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
           this same set of components instead of keeping two copies that
           can silently drift apart again. */}
       <BrandProfileHeader
-        {...profileHeaderOf(brand)}
+        {...profileHeaderOf(brand, accentColor)}
         followerCount={followerCount}
         followingCount={followingCount}
         record={duelRecord(duels, brand.id)}

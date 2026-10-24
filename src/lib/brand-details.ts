@@ -244,13 +244,14 @@ export type PublicBrandDetails = {
 };
 
 /** Luca 24.10.: alles, was der neue Profilkopf (Web) braucht — aus der Marken-Zeile. */
-export function profileHeaderOf(brand: typeof brands.$inferSelect) {
+export function profileHeaderOf(brand: typeof brands.$inferSelect, accentColor: string) {
   return {
     brand: {
       name: brand.name,
       slug: brand.slug,
       logoUrl: brand.logoUrl,
       bannerUrl: brand.bannerUrl,
+      accentColor,
       introVideoUrl: brand.videoUrl,
       verified: brand.verifiedAt !== null,
       kind: brand.kind,

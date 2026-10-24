@@ -50,6 +50,8 @@ export type HeaderBrand = {
   slug: string;
   logoUrl: string | null;
   bannerUrl: string | null;
+  /** Hauptfarbe des Logos — Verlauf, wenn kein Banner hochgeladen ist. */
+  accentColor: string;
   introVideoUrl: string | null;
   verified: boolean;
   kind: string;
@@ -271,7 +273,7 @@ export function BrandProfileHeader({
             // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary source
             <img src={brand.bannerUrl} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-zinc-900 via-[#0e2c33] to-orange-500/60" />
+            <div className="h-full w-full" style={{ background: `linear-gradient(135deg, #0e2328 0%, ${brand.accentColor}99 55%, ${brand.accentColor} 100%)` }} />
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#06171b]/80" />
         </div>

@@ -8,6 +8,7 @@ import { getBrandProfileExtras } from "@/lib/brand-profile";
 import { getFollowerCount, getFollowingCountForBrand, isFollowing } from "@/lib/follow";
 import { getFeedSoloPitchesForBrand, getFeedDuelsForBrand } from "@/lib/feed";
 import { getBlockedIds } from "@/lib/block";
+import { brandAccent } from "@/lib/brand-color";
 import { defaultProfileButton, profileButtonOf, publicLocationLabel } from "@/lib/brand-details";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -20,7 +21,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const viewer = await getOptionalUser();
   const viewerBrand = viewer ? await getBrandForUser(viewer.id) : null;
   const isOwnBrand = viewerBrand?.id === brand.id;
-  const [soloPitches, duels, followerCount, followingCount, viewerFollows, extras, blocked] = await Promise.all([
+  const [soloPitches, duels, followerCount, followingCount, viewerFollows, extras, blocked, accentColor] = await Promise.all([
     getFeedSoloPitchesForBrand(viewer?.id ?? null, brand.id),
     getFeedDuelsForBrand(viewer?.id ?? null, brand.id),
     getFollowerCount(brand.id),
@@ -28,6 +29,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     viewer && !isOwnBrand ? isFollowing(viewer.id, brand.id) : Promise.resolve(false),
     getBrandProfileExtras(brand, viewerBrand?.id ?? null, isOwnBrand),
     getBlockedIds(viewer?.id ?? null),
+    brandAccent(brand),
   ]);
 
   return NextResponse.json({
@@ -43,6 +45,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       // Luca 24.10.: neues Profil.
       category: brand.category,
       bannerUrl: brand.bannerUrl,
+      // Hauptfarbe des Logos für den Verlauf, wenn kein Banner hochgeladen ist.
+      accentColor,
       introVideoUrl: brand.videoUrl,
       locationType: brand.locationType,
       locationLabel: publicLocationLabel(brand.locationType, brand.locationLabel),
