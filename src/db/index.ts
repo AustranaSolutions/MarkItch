@@ -39,7 +39,8 @@ function createClient() {
     // Verbindung). Über Supabases Pooler (Transaktionsmodus) blieben so
     // geschickte Abfragen nach dessen Umstellung hängen — Datenbank wartete
     // im Zustand „active / ClientRead“, angemeldete Feeds bis zum Abbruch.
-    max_pipeline: 1,
+    // (`max_pipeline` kennt postgres.js zur Laufzeit, die Typen von 3.4 nicht.)
+    ...({ max_pipeline: 1 } as object),
     connection: {
       statement_timeout: 10000,
       lock_timeout: 10000,
