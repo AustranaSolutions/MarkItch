@@ -1,0 +1,1 @@
+ALTER TABLE "brands" ADD COLUMN "accent_color" text;
