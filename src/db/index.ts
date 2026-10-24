@@ -35,6 +35,11 @@ function createClient() {
     connect_timeout: 10,
     idle_timeout: 20,
     max: 10,
+    // Luca 25.10.: kein Pipelining (mehrere Abfragen ohne Warten über eine
+    // Verbindung). Über Supabases Pooler (Transaktionsmodus) blieben so
+    // geschickte Abfragen nach dessen Umstellung hängen — Datenbank wartete
+    // im Zustand „active / ClientRead“, angemeldete Feeds bis zum Abbruch.
+    max_pipeline: 1,
     connection: {
       statement_timeout: 10000,
       lock_timeout: 10000,
