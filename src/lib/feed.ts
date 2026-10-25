@@ -5,8 +5,8 @@ import { battles as battlesTable, soloPitches } from "@/db/schema";
 import { isUuid } from "@/lib/mobile-auth";
 import { getAllBattles, resolveBattleVideos, type BattleWithBrands } from "@/lib/battle";
 import { getBattleStage } from "@/lib/battle-stage";
-import { getVoteTally, getVoteTallyAsOf, getVoteTotals, getUserVote, publicTally, type VoteTally } from "@/lib/vote";
-import { getBattleLikeTotals, getLikeCounts, getUserLikedKeys, getSoloPitchLikeCounts, getUserLikedSoloPitchIds } from "@/lib/like";
+import { getVoteTally, getVoteTallyAsOf, getUserVote, publicTally, type VoteTally } from "@/lib/vote";
+import { getLikeCounts, getUserLikedKeys, getSoloPitchLikeCounts, getUserLikedSoloPitchIds } from "@/lib/like";
 import { getCommentCounts, getCommentCountsForSoloPitches } from "@/lib/comment";
 import { getFollowedBrandIds } from "@/lib/follow";
 import { getBrandForUser } from "@/lib/brand";
@@ -292,44 +292,6 @@ function scoreFromEngagement(engagement: number, ageHours: number): number {
   return (engagement + 1) / Math.pow(ageHours + 2, 1.3);
 }
 
-// Phase 25: Feed-Personalisierung. A nudge, not an override — a followed
-// brand's Duell scores higher than an identical unfollowed one, but a
-// genuinely trending unfollowed Duell can still outrank a quiet followed
-// one. Keeps "For You" one shared ranking algorithm rather than forking
-// into a separate personalized-vs-generic feed (that's what "Folge ich"
-// is already for, see getFollowingFeed below).
-const FOLLOW_BOOST = 1.5;
-
-/** Phase F (H3): Stufe-1-Daten eines Duells für die Reihenfolge — Zählungen ohne volle Karte. */
-type RankedBattle = { battle: BattleWithBrands; likes: number; comments: number; votes: number };
-
-function trendingScoreForDuel(duel: RankedBattle, followedBrandIds: Set<string>): number {
-  const ageHours = Math.max(0, (Date.now() - activatedAtOf(duel.battle).getTime()) / (60 * 60 * 1000));
-  const engagement = duel.likes * 1 + duel.comments * 1.5 + duel.votes * 2;
-  const score = scoreFromEngagement(engagement, ageHours);
-  const isFollowed = followedBrandIds.has(duel.battle.brandAId) || followedBrandIds.has(duel.battle.brandBId);
-  return isFollowed ? score * FOLLOW_BOOST : score;
-}
-
-/** Duelle nach Trend sortiert — Likes, Kommentare und Stimmen als je eine gruppierte Abfrage. */
-async function rankBattles(eligible: BattleWithBrands[], followedSet: Set<string>): Promise<BattleWithBrands[]> {
-  if (eligible.length === 0) return [];
-  const ids = eligible.map((b) => b.id);
-  const [likeTotals, commentCounts, voteTotals] = await Promise.all([
-    getBattleLikeTotals(ids),
-    getCommentCounts(ids),
-    getVoteTotals(ids),
-  ]);
-  const ranked: RankedBattle[] = eligible.map((battle) => ({
-    battle,
-    likes: likeTotals.get(battle.id) ?? 0,
-    comments: commentCounts.get(battle.id) ?? 0,
-    votes: voteTotals.get(battle.id) ?? 0,
-  }));
-  const scores = new Map(ranked.map((r) => [r.battle.id, trendingScoreForDuel(r, followedSet)]));
-  return [...eligible].sort((x, y) => scores.get(y.id)! - scores.get(x.id)!);
-}
-
 // Phase 13: a solo pitch — every video's starting point, watchable/likable/
 // commentable with no opponent required (see CLAUDE-CODE-UEBERGABE.md §6).
 // `reactionCount` links onward to the reactions sheet (best-liked first,
@@ -517,18 +479,11 @@ export async function getTrendingSoloPitches(limit = 12, viewerId: string | null
   }));
 }
 
-// Phase 21: a blended single trending score (see git history) quietly
-// buried solo pitches — a Duell's vote count (weighted ×2, and
-// accumulating over its whole week-long voting window) almost always
-// outscores even a brand-new solo pitch, so "the feed IS the newest
-// videos" stopped being true for solo content, contradicting the whole
-// point of Solo-Pitch (§6 of CLAUDE-CODE-UEBERGABE.md: TikTok/Reels-style,
-// newest posts first). Duels keep competing among themselves by trending
-// score (that mechanic is fine on its own), but solo pitches are sorted
-// purely by recency and then interleaved at a fixed cadence instead of
-// competing on the same score — guarantees a fresh solo pitch actually
-// surfaces instead of losing to an old, vote-heavy Duell.
-const SOLO_INTERLEAVE_EVERY = 3;
+// Luca 25.10.: Solange es keine Boosts/Vorteile gibt, ist der Feed rein nach
+// Aktualität sortiert — neuester Beitrag oben, dann immer ältere. Duelle zählen
+// ab dem Zeitpunkt, an dem sie live gingen, Pitches/Reaktionen ab dem Posten.
+// Das frühere Trend-Ranking (Engagement, Folgen-Bonus, Boost-Fach, jede 3. Karte
+// ein Pitch) steht in der Git-Historie und kommt mit den Boosts zurück.
 /** Luca 23.10.: wie Instagram — direkt nach dem Posten oben, danach normal einsortiert. */
 const OWN_POST_PIN_MS = 15 * 60 * 1000;
 
@@ -538,34 +493,8 @@ type StreamEntry =
   | { kind: "reaction"; row: CommunityReactionRow; createdAt: Date };
 type PlanEntry = { kind: "duel"; battle: BattleWithBrands } | StreamEntry;
 
-function interleaveFeed(rankedDuels: BattleWithBrands[], streamEntries: StreamEntry[], followedSet: Set<string>): PlanEntry[] {
-  // Same "nudge, not override" idea as Duelle: a paid Boost (Phase 26) ranks
-  // ahead of a followed brand's pitch, which ranks ahead of everything else
-  // — but recency inside each bucket is untouched, so the Phase 21 "newest
-  // first" guarantee for solo pitches still holds within any one bucket.
-  // Phase E: Community-Reaktionen laufen im selben Strom wie Solo-Pitches mit (nach Aktualität).
-  const soloBucket = (e: StreamEntry) =>
-    e.kind === "reaction" ? 2 : e.boosted ? 0 : followedSet.has(e.pitch.brandId) ? 1 : 2;
-  const freshSolos = [...streamEntries].sort((a, b) => {
-    const bucketDiff = soloBucket(a) - soloBucket(b);
-    if (bucketDiff !== 0) return bucketDiff;
-    return b.createdAt.getTime() - a.createdAt.getTime();
-  });
-
-  const merged: PlanEntry[] = [];
-  let duelIdx = 0;
-  let soloIdx = 0;
-  while (duelIdx < rankedDuels.length || soloIdx < freshSolos.length) {
-    const nextIsSoloSlot = (merged.length + 1) % SOLO_INTERLEAVE_EVERY === 0;
-    if (nextIsSoloSlot && soloIdx < freshSolos.length) {
-      merged.push(freshSolos[soloIdx++]);
-    } else if (duelIdx < rankedDuels.length) {
-      merged.push({ kind: "duel", battle: rankedDuels[duelIdx++] });
-    } else {
-      merged.push(freshSolos[soloIdx++]);
-    }
-  }
-  return merged;
+function recencyOf(e: PlanEntry): number {
+  return (e.kind === "duel" ? activatedAtOf(e.battle) : e.createdAt).getTime();
 }
 
 /** Stufe 2 für eine Feed-Seite: nur diese Einträge voll anreichern, Reihenfolge bleibt. */
@@ -605,20 +534,14 @@ function timed<T>(label: string, make: () => Promise<T>): Promise<T> {
 }
 
 async function forYouPlan(viewerId: string | null, withReactions: boolean): Promise<PlanEntry[]> {
-  const [battles, pitches, followedBrandIds, communityRows, viewerBrand] = await Promise.all([
+  const [battles, pitches, communityRows, viewerBrand] = await Promise.all([
     timed("plan.battles", () => getEligibleBattles(viewerId)),
     timed("plan.pitches", () => getEligibleSoloPitches(viewerId)),
-    viewerId ? timed("plan.followed", () => getFollowedBrandIds(viewerId)) : Promise.resolve([]),
     withReactions ? timed("plan.reactions", () => getEligibleCommunityReactions(viewerId)) : Promise.resolve([]),
     viewerId ? timed("plan.viewerBrand", () => getBrandForUser(viewerId)) : Promise.resolve(null),
   ]);
-  const followedSet = new Set(followedBrandIds);
-  const [rankedDuels, boostedIds] = await Promise.all([
-    timed("plan.rank", () => rankBattles(battles, followedSet)),
-    timed("plan.boosts", () => getActiveBoostedSoloPitchIds(pitches.map((p) => p.id))),
-  ]);
   const stream: StreamEntry[] = [
-    ...pitches.map((pitch): StreamEntry => ({ kind: "solo", pitch, createdAt: pitch.createdAt, boosted: boostedIds.has(pitch.id) })),
+    ...pitches.map((pitch): StreamEntry => ({ kind: "solo", pitch, createdAt: pitch.createdAt, boosted: false })),
     ...communityRows.map((row): StreamEntry => ({ kind: "reaction", row, createdAt: row.reaction.createdAt })),
   ];
   // Luca 23.10.: Wer gerade selbst gepostet hat, sieht den Beitrag ganz oben —
@@ -628,11 +551,12 @@ async function forYouPlan(viewerId: string | null, withReactions: boolean): Prom
     Date.now() - e.createdAt.getTime() < OWN_POST_PIN_MS &&
     (e.kind === "solo" ? e.pitch.brandId === viewerBrand?.id : viewerId !== null && e.row.reaction.userId === viewerId);
   const ownFresh = stream.filter(isOwnFresh).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  const rest = stream.filter((e) => !isOwnFresh(e));
-  return [...ownFresh, ...interleaveFeed(rankedDuels, rest, followedSet)];
+  const rest: PlanEntry[] = [...battles.map((battle): PlanEntry => ({ kind: "duel", battle })), ...stream.filter((e) => !isOwnFresh(e))];
+  rest.sort((a, b) => recencyOf(b) - recencyOf(a));
+  return [...ownFresh, ...rest];
 }
 
-/** "Feed" — every live/finished Duell plus every solo pitch; solo pitches are interleaved by recency, see interleaveFeed. */
+/** "Feed" — every live/finished Duell plus every solo pitch, newest first (see recencyOf). */
 export async function getForYouFeed(viewerId: string | null, offset = 0, limit = 6): Promise<FeedPage> {
   const plan = await forYouPlan(viewerId, false);
   const items = (await materializePage(viewerId, plan.slice(offset, offset + limit))) as FeedItem[];
@@ -706,7 +630,6 @@ export async function getFollowingFeed(viewerId: string, offset = 0, limit = 6):
     ...battles.map((battle): PlanEntry => ({ kind: "duel", battle })),
     ...pitches.map((pitch): PlanEntry => ({ kind: "solo", pitch, createdAt: pitch.createdAt, boosted: false })),
   ];
-  const recencyOf = (e: PlanEntry) => (e.kind === "duel" ? activatedAtOf(e.battle) : e.createdAt).getTime();
   plan.sort((a, b) => recencyOf(b) - recencyOf(a));
   // Phase 43: an empty list here used to always read as "you don't follow
   // anyone" (Luca: "im Feed oben auf Folge ich klicke, ist es leer obwohl

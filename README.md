@@ -18,6 +18,7 @@ gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreic
   - Kommentare mit Filter (Wortliste, keine Links, Spam-Bremse) und Löschen, Melden/Blockieren, Moderation,
   - Marken-Statistik inkl. Link-Klicks und Zahlen pro Video (`/dashboard`, App: `/api/mobile/stats`).
 - **Feed** in zwei Stufen (`src/lib/feed.ts`): Reihenfolge aus schlanken Daten, volle Karten nur für die angefragte Seite.
+  Seit 25.10. „Für dich“ rein nach Aktualität (neuester Beitrag oben; Duelle ab Live-Start), bis Boosts kommen.
 - **Rollen:** *Acro* = Marken-Konto (darf posten), *Assent* = Zuschauer (schaut, stimmt ab, folgt).
 - **Dieses Repo ist auch das Backend der nativen App:** alle `/api/mobile/*`-Routen (Bearer-Token-Auth).
 - **Native iOS-App** (Expo/React Native) läuft auf Testgeräten. Für den App Store fehlt noch der Apple-Developer-Account.
@@ -335,7 +336,8 @@ follow just posted.
 - **Two tabs**, mirroring TikTok's own For You/Following split — the product ask
   ("Trending oder For You oder was Neues" + "gefolgte Firmen posten neue Pitches")
   collapses cleanly into exactly this:
-  - **Für dich** — every live/finished Pitch, ranked by a *live-computed* trending
+  - **Für dich** — *(since 25.10.: pure recency, newest first — the trending score below
+    returns together with Boosts; see git history)* every live/finished Pitch, ranked by a *live-computed* trending
     score (`trendingScore()` in `src/lib/feed.ts`) — engagement (likes + 1.5×
     comments + 2× votes) divided by a recency decay. Not persisted or cached, same
     philosophy as `getBattleStage()`/`effectiveStatus()` elsewhere in this app:
