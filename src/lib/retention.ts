@@ -1,7 +1,7 @@
 import "server-only";
 import { and, isNotNull, lt, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { brandAnalyticsEvents, rateLimitHits, reports, visitorEvents } from "@/db/schema";
+import { brandAnalyticsEvents, errorEvents, rateLimitHits, reports, visitorEvents } from "@/db/schema";
 
 // Luca 18.10.: Löschfristen, wie sie in der Datenschutzerklärung stehen —
 // läuft im täglichen Nacht-Job (/api/cron/cleanup-uploads).
@@ -15,6 +15,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const RATE_LIMIT_RETENTION_DAYS = 7;
 export const ANALYTICS_RETENTION_DAYS = 396; // 13 Monate
 export const REPORT_RETENTION_DAYS = 3 * 365;
+export const ERROR_RETENTION_DAYS = 30;
 
 export type RetentionResult = {
   rateLimitHits: number;
@@ -22,6 +23,7 @@ export type RetentionResult = {
   visitorEvents: number;
   unlinkedVisitorEvents: number;
   reports: number;
+  errorEvents: number;
 };
 
 export async function applyRetention(): Promise<RetentionResult> {
@@ -45,7 +47,14 @@ export async function applyRetention(): Promise<RetentionResult> {
     .where(isNotNull(visitorEvents.userId))
     .returning({ id: visitorEvents.id });
 
+  // Luca 25.10.: Fehler-Alarm — Einträge, die 30 Tage nicht mehr auftraten.
+  const oldErrors = await db
+    .delete(errorEvents)
+    .where(lt(errorEvents.lastSeenAt, new Date(now - ERROR_RETENTION_DAYS * DAY_MS)))
+    .returning({ signature: errorEvents.signature });
+
   return {
+    errorEvents: oldErrors.length,
     rateLimitHits: rate.length,
     analyticsEvents: events.length,
     visitorEvents: visits.length,

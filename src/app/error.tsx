@@ -15,6 +15,10 @@ import { useEffect } from "react";
 export default function ErrorBoundary({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   useEffect(() => {
     console.error("[error boundary]", error);
+    // Luca 25.10.: Fehler-Alarm (/api/client-error → lib/error-alerts.ts).
+    try {
+      navigator.sendBeacon("/api/client-error", `${location.pathname} :: Seite abgestürzt: ${error.message}${error.digest ? ` (digest ${error.digest})` : ""}`);
+    } catch {}
   }, [error]);
 
   return (

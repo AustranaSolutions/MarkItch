@@ -63,3 +63,17 @@ function escapeHtml(text: string): string {
 export async function sendModerationEmail(to: string, subject: string, paragraphs: string[]) {
   await sendEmail(to, subject, paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("\n"), "(Moderation, kein Link)");
 }
+
+/** Luca 25.10.: Fehler-Alarm (lib/error-alerts.ts) — an die Adressen in ADMIN_EMAILS. */
+export async function sendAdminAlertEmail(to: string, subject: string, message: string, detail: string | null, count: number) {
+  const base = process.env.APP_URL ?? "https://www.markitch.com";
+  await sendEmail(
+    to,
+    subject,
+    `<p><strong>${escapeHtml(message)}</strong></p>
+     <p>Bisher ${count}× aufgetreten. Weitere Mails zu diesem Fehler höchstens einmal pro Stunde.</p>
+     ${detail ? `<pre style="white-space:pre-wrap;font-size:12px;background:#f4f4f5;padding:8px">${escapeHtml(detail)}</pre>` : ""}
+     <p><a href="${base}/admin/errors">Alle Fehler ansehen</a></p>`,
+    "(Fehler-Alarm, kein Link)",
+  );
+}
