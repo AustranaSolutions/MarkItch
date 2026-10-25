@@ -948,3 +948,18 @@ export const videoThumbnails = pgTable("video_thumbnails", {
     .references(() => users.id, { onDelete: "cascade" }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Luca 25.10.: Fehler-Alarm ohne externen Dienst. Gleiche Fehler (Quelle +
+// erste Zeile) werden zusammengezählt; Mail an ADMIN_EMAILS höchstens einmal
+// pro Stunde und Fehler (lib/error-alerts.ts), Übersicht unter /admin/errors.
+export const errorEvents = pgTable("error_events", {
+  signature: text("signature").primaryKey(),
+  // 'server' | 'web' | 'app'
+  source: text("source").notNull(),
+  message: text("message").notNull(),
+  detail: text("detail"),
+  count: integer("count").notNull().default(1),
+  firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  lastMailedAt: timestamp("last_mailed_at", { withTimezone: true }),
+});
