@@ -29,6 +29,9 @@ if (!process.env.DATABASE_URL) {
 // aber einen sichtbaren, wiederholbaren Fehler.
 const DATABASE_URL = process.env.DATABASE_URL;
 
+// Nur für die Fehlersuche (Admin-Messroute): Einstellungen zur Laufzeit überschreiben.
+let overrides: Record<string, unknown> = {};
+
 function createClient() {
   return postgres(DATABASE_URL!, {
     prepare: false,
@@ -48,7 +51,16 @@ function createClient() {
       statement_timeout: 10000,
       lock_timeout: 10000,
     },
+    ...(overrides as object),
   });
+}
+
+export function reconfigureDb(next: Record<string, unknown>): void {
+  overrides = next;
+  const old = client;
+  client = createClient();
+  current = drizzle(client, { schema });
+  old.end({ timeout: 5 }).catch(() => {});
 }
 
 let client = createClient();

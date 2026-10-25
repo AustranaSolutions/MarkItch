@@ -600,6 +600,7 @@ async function materializePage(viewerId: string | null, plan: PlanEntry[]): Prom
  * Loggt langsame Schritte für die Vercel-Logs („[feed-slow]“).
  */
 function timed<T>(label: string, make: () => Promise<T>): Promise<T> {
+  if ((globalThis as { __noHedge?: boolean }).__noHedge) return make();
   const started = Date.now();
   return new Promise<T>((resolve, reject) => {
     let launched = 0;
