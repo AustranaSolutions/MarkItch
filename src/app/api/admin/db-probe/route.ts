@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
 import { reconfigureDb } from "@/db";
+import { reapStuckBackends } from "@/lib/db-reaper";
 import { getForYouFeed } from "@/lib/feed";
 import { checkAdminKey } from "@/lib/admin-key";
 
@@ -24,6 +25,11 @@ export async function POST(request: NextRequest) {
   const variant = typeof body?.variant === "string" && body.variant in VARIANTS ? body.variant : "v0";
   const n = Math.min(Math.max(Number(body?.n) || 4, 1), 6);
   const rounds = Math.min(Math.max(Number(body?.rounds) || 2, 1), 3);
+
+  if (body?.reap === true) {
+    const killed = await reapStuckBackends();
+    return NextResponse.json({ killed });
+  }
 
   if (body?.diag === true) {
     // Feed-Aufbauten starten (nicht abwarten), nach 6 s Verbindungsliste der Datenbank lesen.
