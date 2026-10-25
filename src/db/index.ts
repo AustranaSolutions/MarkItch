@@ -34,7 +34,10 @@ function createClient() {
     prepare: false,
     connect_timeout: 10,
     idle_timeout: 20,
-    max: 10,
+    // Luca 25.10.: 4 statt 10 — Supabase empfiehlt für Serverless wenige
+    // Verbindungen pro Prozess. Bei 5 gleichzeitig neu aufgebauten Verbindungen
+    // blieb live regelmäßig die fünfte am Pooler hängen (angemeldeter Feed).
+    max: 4,
     // Luca 25.10.: kein Pipelining (mehrere Abfragen ohne Warten über eine
     // Verbindung). Über Supabases Pooler (Transaktionsmodus) blieben so
     // geschickte Abfragen nach dessen Umstellung hängen — Datenbank wartete
