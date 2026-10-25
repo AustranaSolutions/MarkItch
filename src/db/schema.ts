@@ -963,3 +963,40 @@ export const errorEvents = pgTable("error_events", {
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
   lastMailedAt: timestamp("last_mailed_at", { withTimezone: true }),
 });
+
+// Luca 25.10.: Entwürfe — ein angefangener Solo-Pitch (Video schon hochgeladen
+// oder noch nicht, Texte), auf dem Server, damit man in der App anfängt und im
+// Web weitermacht. Musikrechte werden bewusst nicht gespeichert (beim Posten neu bestätigen).
+export const postDrafts = pgTable(
+  "post_drafts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    videoUrl: text("video_url"),
+    description: text("description"),
+    ctaLabel: text("cta_label"),
+    ctaUrl: text("cta_url"),
+    containsAiContent: boolean("contains_ai_content").notNull().default(false),
+    paidPartnership: boolean("paid_partnership").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("post_drafts_user_idx").on(t.userId, t.updatedAt)],
+);
+
+export type PostDraft = typeof postDrafts.$inferSelect;
+
+// Luca 25.10.: Video kürzen ohne Neuberechnen — der Player spielt nur
+// [startMs, endMs). Pro Video-Adresse wie video_thumbnails, damit dieselbe
+// Kürzung als Pitch, Duell-Seite und Reaktion gilt.
+export const videoTrims = pgTable("video_trims", {
+  videoUrl: text("video_url").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  startMs: integer("start_ms").notNull().default(0),
+  endMs: integer("end_ms"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
