@@ -1,0 +1,28 @@
+# Luca 25.10.: Erreichbarkeits-Prüfung ohne externen Dienst. Alle 30 Minuten
+# Website, Datenbank (/api/health) und Feed abrufen. Schlägt es zweimal
+# hintereinander fehl (1 Min. Abstand), ist der Lauf rot → GitHub schickt eine
+# Mail an den, der diese Datei zuletzt geändert hat (Einstellung: GitHub →
+# Settings → Notifications → Actions → „Only notify for failed workflows“, E-Mail an).
+name: Erreichbarkeit
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Website, Datenbank und Feed prüfen
+        run: |
+          check() {
+            curl --fail --silent --show-error --max-time 20 -o /dev/null -w "%{http_code} in %{time_total}s  $1\n" "$1"
+          }
+          run_all() {
+            check "https://www.markitch.com/api/health" &&
+            check "https://www.markitch.com/api/feed?offset=0&limit=3" &&
+            check "https://www.markitch.com/"
+          }
+          run_all || { echo "Erster Versuch fehlgeschlagen, neuer Versuch in 60 s"; sleep 60; run_all; }
