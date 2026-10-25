@@ -1,5 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { Pool } from "pg";
+import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import * as schema from "./schema";
 
 if (!process.env.DATABASE_URL) {
@@ -58,8 +60,20 @@ function createClient() {
 export function reconfigureDb(next: Record<string, unknown>): void {
   overrides = next;
   const old = client;
-  client = createClient();
-  current = drizzle(client, { schema });
+  if (next.driver === "pg") {
+    const pool = new Pool({
+      connectionString: DATABASE_URL,
+      max: (next.max as number) ?? 4,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 20000,
+      statement_timeout: 10000,
+      lock_timeout: 10000,
+    });
+    current = drizzlePg(pool, { schema }) as unknown as typeof current;
+  } else {
+    client = createClient();
+    current = drizzle(client, { schema });
+  }
   old.end({ timeout: 5 }).catch(() => {});
 }
 

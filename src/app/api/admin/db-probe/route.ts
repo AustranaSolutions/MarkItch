@@ -26,6 +26,8 @@ const VARIANTS: Record<string, Record<string, unknown>> = {
   v3: { max: 10, max_pipeline: 100 },
   v4: { max_pipeline: 100 },
   v5: { max: 4, max_pipeline: 100, connection: undefined, idle_timeout: 0 },
+  pg: { driver: "pg" },
+  pg10: { driver: "pg", max: 10 },
 };
 
 export async function POST(request: NextRequest) {
