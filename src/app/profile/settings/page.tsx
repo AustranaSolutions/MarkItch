@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireUser } from "@/lib/session";
@@ -83,6 +83,19 @@ export default async function ProfileSettingsPage() {
             initialCountry={brand.country}
             initialWebsite={brand.website ?? ""}
           />
+          {/* Luca 25.10.: wie in der App — Profil-Teile auf eigenen Seiten. */}
+          <div className="mt-6 divide-y divide-zinc-800 overflow-hidden rounded-xl border border-zinc-800">
+            {[
+              ["/profile/settings/appearance", "Banner & Vorstellung"],
+              ["/profile/settings/contact", "Kontakt & Standort"],
+              ["/profile/settings/info", "Info & Impressum"],
+            ].map(([href, label]) => (
+              <Link key={href} href={href} className="flex items-center justify-between px-4 py-3 text-sm text-white hover:bg-zinc-900">
+                {label}
+                <ChevronRight size={16} className="text-zinc-500" />
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 

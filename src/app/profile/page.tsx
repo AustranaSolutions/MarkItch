@@ -12,6 +12,7 @@ import { getBrandProfileExtras } from "@/lib/brand-profile";
 import { CreateBrandForm } from "@/components/brand/create-brand-form";
 import { ProfileContentTabs } from "@/components/profile/profile-content-tabs";
 import { BrandProfileHeader } from "@/components/profile/brand-profile-header";
+import { ProfileCompleteCard } from "@/components/profile/profile-complete-card";
 import { profileHeaderOf } from "@/lib/brand-details";
 import { duelRecord } from "@/lib/duel-record";
 import { brandAccent } from "@/lib/brand-color";
@@ -80,6 +81,18 @@ export default async function ProfilePage() {
             followersHref={`/brands/${brand.slug}/followers`}
             followingHref={`/brands/${brand.slug}/following`}
             own
+          />
+          <ProfileCompleteCard
+            profile={{
+              creator: brand.kind === "creator",
+              logoUrl: brand.logoUrl,
+              profileButtonType: brand.profileButtonType,
+              locationType: brand.locationType,
+              description: brand.description,
+              imprint: brand.imprint,
+              introVideoUrl: brand.videoUrl,
+              bannerUrl: brand.bannerUrl,
+            }}
           />
 
           <ProfileContentTabs

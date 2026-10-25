@@ -33,7 +33,7 @@ import type { ProfileButtonType, PublicBrandDetails } from "@/lib/brand-details"
  * „Duell einladen“. Alles Weitere (Adresse, Kontakt, Impressum) über ⋯ → Info.
  */
 
-const BUTTON_ICONS: Record<ProfileButtonType, LucideIcon | null> = {
+export const BUTTON_ICONS: Record<ProfileButtonType, LucideIcon | null> = {
   booking: CalendarDays,
   call: Phone,
   reserve: UtensilsCrossed,
