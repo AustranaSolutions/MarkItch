@@ -26,6 +26,49 @@ export async function POST(request: NextRequest) {
   const n = Math.min(Math.max(Number(body?.n) || 4, 1), 6);
   const rounds = Math.min(Math.max(Number(body?.rounds) || 2, 1), 3);
 
+  if (body?.param === true) {
+    // Gleiche Last wie die App, einmal ohne und einmal mit Parametern (Parameter => Parse+Describe+Flush, dann Bind).
+    const withParam = body?.withParam !== false;
+    const rounds = 12;
+    const perClient = await Promise.all(
+      Array.from({ length: n }, async (_, c) => {
+        const client = postgres(process.env.DATABASE_URL!, {
+          prepare: false,
+          connect_timeout: 10,
+          idle_timeout: 20,
+          max: 4,
+          connection: { statement_timeout: 10000, lock_timeout: 10000 },
+        });
+        let timeouts = 0;
+        let done = 0;
+        let slowest = 0;
+        for (let r = 0; r < rounds; r++) {
+          const group = await Promise.all(
+            Array.from({ length: 4 }, (_, q) =>
+              timedTask(
+                q,
+                () =>
+                  withParam
+                    ? client`select count(*) from battles b join brands a on a.id = b.brand_a_id where b.created_at <= ${new Date()} and a.slug <> ${"x" + q}`
+                    : client`select count(*) from battles b join brands a on a.id = b.brand_a_id`,
+                6000,
+              ),
+            ),
+          );
+          for (const g of group) {
+            done += 1;
+            if (!g.ok) timeouts += 1;
+            slowest = Math.max(slowest, g.ms);
+          }
+          if (timeouts >= 4) break;
+        }
+        client.end({ timeout: 1 }).catch(() => {});
+        return { client: c, queries: done, timeouts, slowestMs: slowest };
+      }),
+    );
+    return NextResponse.json({ withParam, n, perClient });
+  }
+
   if (body?.reap === true) {
     const killed = await reapStuckBackends();
     return NextResponse.json({ killed });
