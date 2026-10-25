@@ -267,7 +267,7 @@ export function BrandProfileHeader({
   return (
     <div className="mb-6">
       {/* Menü liegt außerhalb des abgerundeten Banners, sonst schneidet overflow-hidden es ab. */}
-      <div className="relative h-36">
+      <div className="relative aspect-[2/1] max-h-56">
         <div className="absolute inset-0 overflow-hidden rounded-2xl bg-zinc-900">
           {brand.bannerUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary source
@@ -275,7 +275,7 @@ export function BrandProfileHeader({
           ) : (
             <div className="h-full w-full" style={{ background: `linear-gradient(135deg, #0e2328 0%, ${brand.accentColor}99 55%, ${brand.accentColor} 100%)` }} />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#06171b]/80" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#06171b]/50" />
         </div>
         <div className="absolute right-3 top-3 z-10" ref={menuRef}>
           {own ? (
