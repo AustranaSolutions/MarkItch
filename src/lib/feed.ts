@@ -572,9 +572,9 @@ function interleaveFeed(rankedDuels: BattleWithBrands[], streamEntries: StreamEn
 /** Stufe 2 für eine Feed-Seite: nur diese Einträge voll anreichern, Reihenfolge bleibt. */
 async function materializePage(viewerId: string | null, plan: PlanEntry[]): Promise<FeedItemWithReactions[]> {
   const [duels, solos, communityReactions] = await Promise.all([
-    timed("page.duels", enrichDuels(viewerId, plan.flatMap((e) => (e.kind === "duel" ? [e.battle] : [])))),
-    timed("page.solos", enrichSoloPitches(viewerId, plan.flatMap((e) => (e.kind === "solo" ? [e.pitch] : [])))),
-    timed("page.reactions", enrichCommunityReactions(viewerId, plan.flatMap((e) => (e.kind === "reaction" ? [e.row] : [])))),
+    timed("page.duels", () => enrichDuels(viewerId, plan.flatMap((e) => (e.kind === "duel" ? [e.battle] : [])))),
+    timed("page.solos", () => enrichSoloPitches(viewerId, plan.flatMap((e) => (e.kind === "solo" ? [e.pitch] : [])))),
+    timed("page.reactions", () => enrichCommunityReactions(viewerId, plan.flatMap((e) => (e.kind === "reaction" ? [e.row] : [])))),
   ]);
   const duelById = new Map(duels.map((d) => [d.battleId, d]));
   const soloById = new Map(solos.map((p) => [p.soloPitchId, p]));
@@ -591,43 +591,82 @@ async function materializePage(viewerId: string | null, plan: PlanEntry[]): Prom
 }
 
 /**
- * Luca 24.10. (Fehlersuche): angemeldeter Feed hing live bis zum 300-s-Abbruch.
- * Loggt jeden Schritt, der länger als 3 s braucht, damit man in den Vercel-Logs
- * sieht, wo es hängt — auch wenn er gar nicht mehr fertig wird.
+ * Luca 25.10.: Gegen hängende Datenbank-Verbindungen. Live (Vercel → Supabase-
+ * Pooler) bleibt gelegentlich eine Abfrage ohne Antwort hängen, obwohl die
+ * Datenbank selbst untätig ist; neue Verbindungen laufen sofort. Normale
+ * Schritte brauchen unter 0,5 s. Kommt nach 3 s keine Antwort, wird der Pool
+ * neu aufgebaut und der Schritt (nur lesend, deshalb gefahrlos) noch einmal
+ * gestartet — wer zuerst fertig ist, gewinnt. Nach 10 s wird aufgegeben.
+ * Loggt langsame Schritte für die Vercel-Logs („[feed-slow]“).
  */
-function timed<T>(label: string, work: Promise<T>): Promise<T> {
+function timed<T>(label: string, make: () => Promise<T>): Promise<T> {
   const started = Date.now();
   const trace = (globalThis as { __feedTrace?: { label: string; ms?: number }[] }).__feedTrace;
   const entry: { label: string; ms?: number } | null = trace ? { label } : null;
   if (trace && entry) trace.push(entry);
-  const warn = setTimeout(() => console.warn(`[feed-slow] ${label} läuft seit 3 s`), 3000);
-  // Nach 12 s ist das kein langsamer Schritt mehr (statement_timeout = 10 s), sondern eine
-  // tote Verbindung → Pool neu aufbauen, damit die nächsten Aufrufe wieder durchgehen.
-  const stuck = setTimeout(() => {
-    console.error(`[feed-slow] ${label} hängt seit 12 s`);
-    resetDbConnections(`feed ${label} hängt`);
-  }, 12000);
-  return work.finally(() => {
-    clearTimeout(warn);
-    clearTimeout(stuck);
-    const ms = Date.now() - started;
-    if (entry) entry.ms = ms;
-    if (ms > 3000) console.warn(`[feed-slow] ${label} fertig nach ${ms} ms`);
+  return new Promise<T>((resolve, reject) => {
+    let launched = 0;
+    let failed = 0;
+    let settled = false;
+    let hedgeTimer: ReturnType<typeof setTimeout> | undefined;
+    let giveUpTimer: ReturnType<typeof setTimeout> | undefined;
+    const settle = (finish: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hedgeTimer);
+      clearTimeout(giveUpTimer);
+      const ms = Date.now() - started;
+      if (entry) entry.ms = ms;
+      if (ms > 3000) console.warn(`[feed-slow] ${label} fertig nach ${ms} ms (Versuche: ${launched})`);
+      finish();
+    };
+    const launch = () => {
+      launched += 1;
+      let attempt: Promise<T>;
+      try {
+        attempt = make();
+      } catch (err) {
+        attempt = Promise.reject(err);
+      }
+      attempt.then(
+        (value) => settle(() => resolve(value)),
+        (err) => {
+          failed += 1;
+          if (settled) return;
+          if (launched < 2) {
+            clearTimeout(hedgeTimer);
+            launch();
+          } else if (failed >= launched) {
+            settle(() => reject(err));
+          }
+        },
+      );
+    };
+    hedgeTimer = setTimeout(() => {
+      if (settled || launched >= 2) return;
+      console.error(`[feed-slow] ${label} hängt seit 3 s — Pool neu, zweiter Versuch`);
+      resetDbConnections(`feed ${label} hängt`);
+      launch();
+    }, 3000);
+    giveUpTimer = setTimeout(() => {
+      settle(() => reject(new Error(`[feed] ${label} ohne Antwort nach 10 s`)));
+    }, 10000);
+    launch();
   });
 }
 
 async function forYouPlan(viewerId: string | null, withReactions: boolean): Promise<PlanEntry[]> {
   const [battles, pitches, followedBrandIds, communityRows, viewerBrand] = await Promise.all([
-    timed("plan.battles", getEligibleBattles(viewerId)),
-    timed("plan.pitches", getEligibleSoloPitches(viewerId)),
-    viewerId ? timed("plan.followed", getFollowedBrandIds(viewerId)) : Promise.resolve([]),
-    withReactions ? timed("plan.reactions", getEligibleCommunityReactions(viewerId)) : Promise.resolve([]),
-    viewerId ? timed("plan.viewerBrand", getBrandForUser(viewerId)) : Promise.resolve(null),
+    timed("plan.battles", () => getEligibleBattles(viewerId)),
+    timed("plan.pitches", () => getEligibleSoloPitches(viewerId)),
+    viewerId ? timed("plan.followed", () => getFollowedBrandIds(viewerId)) : Promise.resolve([]),
+    withReactions ? timed("plan.reactions", () => getEligibleCommunityReactions(viewerId)) : Promise.resolve([]),
+    viewerId ? timed("plan.viewerBrand", () => getBrandForUser(viewerId)) : Promise.resolve(null),
   ]);
   const followedSet = new Set(followedBrandIds);
   const [rankedDuels, boostedIds] = await Promise.all([
-    timed("plan.rank", rankBattles(battles, followedSet)),
-    timed("plan.boosts", getActiveBoostedSoloPitchIds(pitches.map((p) => p.id))),
+    timed("plan.rank", () => rankBattles(battles, followedSet)),
+    timed("plan.boosts", () => getActiveBoostedSoloPitchIds(pitches.map((p) => p.id))),
   ]);
   const stream: StreamEntry[] = [
     ...pitches.map((pitch): StreamEntry => ({ kind: "solo", pitch, createdAt: pitch.createdAt, boosted: boostedIds.has(pitch.id) })),
