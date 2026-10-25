@@ -597,6 +597,9 @@ async function materializePage(viewerId: string | null, plan: PlanEntry[]): Prom
  */
 function timed<T>(label: string, work: Promise<T>): Promise<T> {
   const started = Date.now();
+  const trace = (globalThis as { __feedTrace?: { label: string; ms?: number }[] }).__feedTrace;
+  const entry: { label: string; ms?: number } | null = trace ? { label } : null;
+  if (trace && entry) trace.push(entry);
   const warn = setTimeout(() => console.warn(`[feed-slow] ${label} läuft seit 3 s`), 3000);
   // Nach 12 s ist das kein langsamer Schritt mehr (statement_timeout = 10 s), sondern eine
   // tote Verbindung → Pool neu aufbauen, damit die nächsten Aufrufe wieder durchgehen.
@@ -608,6 +611,7 @@ function timed<T>(label: string, work: Promise<T>): Promise<T> {
     clearTimeout(warn);
     clearTimeout(stuck);
     const ms = Date.now() - started;
+    if (entry) entry.ms = ms;
     if (ms > 3000) console.warn(`[feed-slow] ${label} fertig nach ${ms} ms`);
   });
 }

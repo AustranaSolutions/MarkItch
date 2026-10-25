@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
+import { getForYouFeedWithReactions } from "@/lib/feed";
 import { checkAdminKey } from "@/lib/admin-key";
 
 // 25.10. (Fehlersuche, wieder entfernen): misst auf dem Vercel-Server, welche
@@ -11,12 +12,12 @@ export const maxDuration = 30;
 
 type Result = { i: number; ms: number; ok: boolean; error?: string };
 
-async function timedTask(i: number, run: () => Promise<unknown>): Promise<Result> {
+async function timedTask(i: number, run: () => Promise<unknown>, limitMs = 9000): Promise<Result> {
   const started = Date.now();
   try {
     await Promise.race([
       run(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT 9 s")), 9000)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error(`TIMEOUT ${limitMs / 1000} s`)), limitMs)),
     ]);
     return { i, ms: Date.now() - started, ok: true };
   } catch (err) {
@@ -32,6 +33,17 @@ export async function POST(request: NextRequest) {
   const exp = typeof body?.exp === "string" ? body.exp : "shared";
   const n = Math.min(Math.max(Number(body?.n) || 4, 1), 8);
   const url = process.env.DATABASE_URL!;
+
+  if (exp === "feed") {
+    const trace: { label: string; ms?: number }[] = [];
+    (globalThis as { __feedTrace?: typeof trace }).__feedTrace = trace;
+    const feedResults = await Promise.all(
+      Array.from({ length: n }, (_, i) => timedTask(i, () => getForYouFeedWithReactions(null, 0, 6), 15000)),
+    );
+    delete (globalThis as { __feedTrace?: typeof trace }).__feedTrace;
+    const slow = trace.filter((t) => t.ms === undefined || t.ms > 1000);
+    return NextResponse.json({ exp, n, results: feedResults, steps: trace.length, slow });
+  }
 
   const tasks = Array.from({ length: n }, (_, i) => {
     if (exp === "shared") return timedTask(i, () => db.execute(sql`select 1`));
