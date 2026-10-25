@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { ImageIcon } from "lucide-react";
 import { StandaloneDuelFeed } from "@/components/profile/standalone-duel-feed";
+import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
 import type { FeedDuel } from "@/lib/feed";
 
 // Phase 38: same seek-a-hair-in trick as SoloPitchGrid's thumbnails —
@@ -23,8 +25,21 @@ function showFirstFrame(video: HTMLVideoElement) {
  * this brand's own duels, staying on the profile like the "Videos" tab's
  * SoloPitchGrid already does.
  */
-export function DuelGrid({ duels, isLoggedIn, ownBrandId }: { duels: FeedDuel[]; isLoggedIn: boolean; ownBrandId: string }) {
+export function DuelGrid({
+  duels: initialDuels,
+  isLoggedIn,
+  ownBrandId,
+  own = false,
+}: {
+  duels: FeedDuel[];
+  isLoggedIn: boolean;
+  ownBrandId: string;
+  /** Eigenes Profil: Titelbild der eigenen Seite änderbar (App: lange drücken). */
+  own?: boolean;
+}) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [duels, setDuels] = useState(initialDuels);
+  const [thumbnailFor, setThumbnailFor] = useState<string | null>(null);
 
   return (
     <>
@@ -34,7 +49,7 @@ export function DuelGrid({ duels, isLoggedIn, ownBrandId }: { duels: FeedDuel[];
           // Eigene Seite links.
           const sides = duel.sides[1].brandId === ownBrandId ? [duel.sides[1], duel.sides[0]] : duel.sides;
           return (
-            <li key={duel.key}>
+            <li key={duel.key} className="relative">
               <button
                 onClick={() => setOpenIndex(index)}
                 className="relative flex aspect-[4/5] w-full gap-0.5 overflow-hidden rounded-xl"
@@ -64,10 +79,37 @@ export function DuelGrid({ duels, isLoggedIn, ownBrandId }: { duels: FeedDuel[];
                 </span>
                 {!duel.isFinished && <span className="absolute left-2 top-2 h-2 w-2 rounded-full bg-orange-500" />}
               </button>
+              {own && (
+                <button
+                  type="button"
+                  onClick={() => setThumbnailFor(sides[0].videoUrl)}
+                  aria-label="Titelbild ändern"
+                  className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                >
+                  <ImageIcon size={14} />
+                </button>
+              )}
             </li>
           );
         })}
       </ul>
+
+      {thumbnailFor && (
+        <ThumbnailEditor
+          src={thumbnailFor}
+          remote
+          onClose={() => setThumbnailFor(null)}
+          onPicked={async (image) => {
+            const thumbnailUrl = await uploadThumbnail(thumbnailFor, image);
+            setDuels((list) =>
+              list.map((d) => ({
+                ...d,
+                sides: d.sides.map((side) => (side.videoUrl === thumbnailFor ? { ...side, thumbnailUrl } : side)) as typeof d.sides,
+              })),
+            );
+          }}
+        />
+      )}
 
       {openIndex !== null && (
         // Im Vollbild ebenfalls die Seite dieses Profils zuerst (links), Gegner per Wischen.

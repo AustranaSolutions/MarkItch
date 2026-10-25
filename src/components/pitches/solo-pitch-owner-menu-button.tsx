@@ -13,8 +13,9 @@ import { FormError, SubmitButton } from "@/components/ui";
 import { CtaLinkFields } from "@/components/pitches/cta-link-fields";
 import { AiContentCheckbox } from "@/components/pitches/ai-content-checkbox";
 import type { FeedSoloPitch } from "@/lib/feed";
+import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
 
-type Screen = "closed" | "menu" | "edit" | "delete";
+type Screen = "closed" | "menu" | "edit" | "delete" | "thumbnail";
 
 /**
  * Phase 32: a classic "⋮" overflow menu — replaces two always-visible
@@ -80,7 +81,20 @@ export function SoloPitchOwnerMenuButton({
         <MoreVertical size={28} />
       </button>
 
-      {screen !== "closed" &&
+      {/* Luca 25.10.: wie in der App — ⋯ → „Titelbild ändern“ (nur für die Profil-Kacheln). */}
+      {screen === "thumbnail" && (
+        <ThumbnailEditor
+          src={pitch.videoUrl}
+          remote
+          onClose={() => setScreen("closed")}
+          onPicked={async (image) => {
+            const thumbnailUrl = await uploadThumbnail(pitch.videoUrl, image);
+            onUpdated({ thumbnailUrl });
+          }}
+        />
+      )}
+
+      {screen !== "closed" && screen !== "thumbnail" &&
         // Phase 43: a bumped z-index (z-50 -> z-[60]) wasn't actually
         // enough — this button lives inside a card that can itself be shown
         // inside StandaloneSoloPitchFeed's own fixed overlay, which also
@@ -107,6 +121,12 @@ export function SoloPitchOwnerMenuButton({
                   className="w-full rounded-lg border border-zinc-800 px-3 py-2.5 text-left text-sm text-white"
                 >
                   Bearbeiten
+                </button>
+                <button
+                  onClick={() => setScreen("thumbnail")}
+                  className="w-full rounded-lg border border-zinc-800 px-3 py-2.5 text-left text-sm text-white"
+                >
+                  Titelbild ändern
                 </button>
                 <button
                   onClick={() => setScreen("delete")}

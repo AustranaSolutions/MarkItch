@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, FolderOpen } from "lucide-react";
+import { Camera, Check, FolderOpen, ImageIcon } from "lucide-react";
+import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
 import { ALLOWED_VIDEO_TYPES, MAX_VIDEO_BYTES, type VideoUploadFolder } from "@/lib/video-constants";
 
 type UploadState = "idle" | "uploading" | "done" | "error";
@@ -30,16 +31,30 @@ export function VideoPickerInput({
   folder,
   urlFieldName = "videoUrl",
   onUploadStateChange,
+  withThumbnail = folder !== "videos",
 }: {
   folder: VideoUploadFolder;
   urlFieldName?: string;
   onUploadStateChange?: (state: { uploading: boolean; uploadedUrl: string | null }) => void;
+  /** Luca 25.10.: Titelbild fürs Profil wählen (wie in der App) — nicht beim Vorstellungsvideo. */
+  withThumbnail?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<UploadState>("idle");
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Titelbild: gewählt vor oder nach dem Upload-Ende — gespeichert wird, sobald beides da ist.
+  const [thumbnail, setThumbnail] = useState<{ url: string; blob: Blob } | null>(null);
+  const [thumbnailOpen, setThumbnailOpen] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
+  const thumbnailRef = useRef<Blob | null>(null);
+  const uploadedRef = useRef<string | null>(null);
+
+  const saveThumbnail = (videoUrl: string, image: Blob) => {
+    setThumbnailError(null);
+    uploadThumbnail(videoUrl, image).catch((err) => setThumbnailError(err instanceof Error ? err.message : "Titelbild fehlgeschlagen."));
+  };
 
   useEffect(() => {
     return () => {
@@ -63,6 +78,13 @@ export function VideoPickerInput({
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setUploadedUrl(null);
+    uploadedRef.current = null;
+    thumbnailRef.current = null;
+    setThumbnailError(null);
+    setThumbnail((prev) => {
+      if (prev) URL.revokeObjectURL(prev.url);
+      return null;
+    });
     setError(null);
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -102,6 +124,8 @@ export function VideoPickerInput({
       if (!putRes.ok) throw new Error("Upload fehlgeschlagen.");
 
       setUploadedUrl(prepared.publicUrl);
+      uploadedRef.current = prepared.publicUrl;
+      if (thumbnailRef.current) saveThumbnail(prepared.publicUrl, thumbnailRef.current);
       setStatus("done");
     } catch (err) {
       setStatus("error");
@@ -131,6 +155,41 @@ export function VideoPickerInput({
             </div>
           )}
         </div>
+      )}
+
+      {previewUrl && withThumbnail && status !== "error" && (
+        <div className="mb-2 flex items-center gap-3 rounded-lg border border-zinc-800 px-3 py-2">
+          {thumbnail ? (
+            // eslint-disable-next-line @next/next/no-img-element -- lokale Vorschau
+            <img src={thumbnail.url} alt="" className="h-12 w-9 rounded object-cover" />
+          ) : (
+            <span className="flex h-12 w-9 items-center justify-center rounded bg-zinc-900 text-zinc-500">
+              <ImageIcon size={16} />
+            </span>
+          )}
+          <span className="flex-1 text-sm text-zinc-300">
+            Titelbild fürs Profil
+            <span className="block text-xs text-zinc-500">{thumbnail ? "Gewählt" : "Sonst das erste Bild des Videos"}</span>
+          </span>
+          <button type="button" onClick={() => setThumbnailOpen(true)} className="text-sm font-bold text-orange-500 hover:underline">
+            {thumbnail ? "Ändern" : "Wählen"}
+          </button>
+        </div>
+      )}
+      {thumbnailError && <p className="mb-2 text-sm text-red-400">{thumbnailError}</p>}
+      {thumbnailOpen && previewUrl && (
+        <ThumbnailEditor
+          src={previewUrl}
+          onClose={() => setThumbnailOpen(false)}
+          onPicked={(blob) => {
+            setThumbnail((prev) => {
+              if (prev) URL.revokeObjectURL(prev.url);
+              return { url: URL.createObjectURL(blob), blob };
+            });
+            thumbnailRef.current = blob;
+            if (uploadedRef.current) saveThumbnail(uploadedRef.current, blob);
+          }}
+        />
       )}
 
       <div className="flex gap-2">

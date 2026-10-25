@@ -90,7 +90,7 @@ export function ProfileContentTabs({
         )
       ) : tab === "duels" ? (
         duels.length > 0 ? (
-          <DuelGrid duels={duels} isLoggedIn={isLoggedIn} ownBrandId={profileBrandId} />
+          <DuelGrid duels={duels} isLoggedIn={isLoggedIn} ownBrandId={profileBrandId} own={viewerBrandId === profileBrandId} />
         ) : (
           <p className="py-8 text-center text-sm text-zinc-500">Noch keine Duelle.</p>
         )
