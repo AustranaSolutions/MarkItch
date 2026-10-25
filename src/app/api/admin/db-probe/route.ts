@@ -9,6 +9,16 @@ import { checkAdminKey } from "@/lib/admin-key";
 // verschiedenen Pool-Einstellungen. POST x-admin-key, {"variant":"v0".., "n":4, "rounds":2}.
 export const maxDuration = 60;
 
+async function timedTask(i: number, run: () => Promise<unknown>, limitMs: number) {
+  const started = Date.now();
+  try {
+    await Promise.race([run(), new Promise((_, reject) => setTimeout(() => reject(new Error("T")), limitMs))]);
+    return { i, ms: Date.now() - started, ok: true };
+  } catch {
+    return { i, ms: Date.now() - started, ok: false };
+  }
+}
+
 const VARIANTS: Record<string, Record<string, unknown>> = {
   v0: {},
   v1: { connection: undefined },
