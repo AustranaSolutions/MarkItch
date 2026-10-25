@@ -601,9 +601,6 @@ async function materializePage(viewerId: string | null, plan: PlanEntry[]): Prom
  */
 function timed<T>(label: string, make: () => Promise<T>): Promise<T> {
   const started = Date.now();
-  const trace = (globalThis as { __feedTrace?: { label: string; ms?: number }[] }).__feedTrace;
-  const entry: { label: string; ms?: number } | null = trace ? { label } : null;
-  if (trace && entry) trace.push(entry);
   return new Promise<T>((resolve, reject) => {
     let launched = 0;
     let failed = 0;
@@ -616,7 +613,6 @@ function timed<T>(label: string, make: () => Promise<T>): Promise<T> {
       clearTimeout(hedgeTimer);
       clearTimeout(giveUpTimer);
       const ms = Date.now() - started;
-      if (entry) entry.ms = ms;
       if (ms > 3000) console.warn(`[feed-slow] ${label} fertig nach ${ms} ms (Versuche: ${launched})`);
       finish();
     };
