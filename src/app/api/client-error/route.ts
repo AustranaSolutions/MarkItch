@@ -28,7 +28,12 @@ export async function POST(request: NextRequest) {
   // Website-Text hat die Form „/pfad :: Meldung“ — für die Zusammenfassung zählt nur die Meldung.
   const [path, ...rest] = line.split(" :: ");
   const summary = source === "web" && rest.length ? rest.join(" :: ") : line;
-  if (process.env.NODE_ENV === "production") {
+  // Luca 25.10.: kein Alarm für Bots (z. B. Vercels Vorschau-Browser „HeadlessChrome“) und für
+  // „Ladefehler“ von Bildern/Videos — die entstehen meist durch schlechtes Netz beim Zuschauer
+  // oder abgebrochenes Laden, nicht durch einen Fehler bei uns. Im Log stehen sie weiter.
+  const isBot = /headless|bot|crawler|spider|lighthouse|vercel/i.test(ua);
+  const isMediaLoad = /^Ladefehler @/.test(summary);
+  if (process.env.NODE_ENV === "production" && !isBot && !isMediaLoad) {
     await reportError(source, summary, [source === "web" && rest.length ? `Seite: ${path}` : null, detail, ua].filter(Boolean).join("\n"));
   }
   return new NextResponse(null, { status: 204 });
