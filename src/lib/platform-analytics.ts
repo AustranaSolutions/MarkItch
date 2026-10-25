@@ -243,7 +243,7 @@ export async function getActiveBrandsStats(): Promise<ActiveBrandsStats> {
   // Luca 18.10.: zwei kleine Abfragen nacheinander statt vier parallel — live
   // wartete dieser Teil sonst auf freie Datenbank-Verbindungen und kam nie dran.
   const [total] = await db.select({ n: count() }).from(brands);
-  const rows = await db.execute<{ brand_id: string; n: string | number; last: string | Date | null }>(sql`
+  const { rows } = await db.execute<{ brand_id: string; n: string | number; last: string | Date | null }>(sql`
     select brand_id, count(*) as n, max(posted_at) as last from (
       select ${soloPitches.brandId} as brand_id, ${soloPitches.createdAt} as posted_at from ${soloPitches}
       union all

@@ -21,7 +21,7 @@ type StoredFile = { key: string; createdAt: Date };
 
 /** Alle Video-Adressen, die irgendwo verwendet werden, als Speicher-Schlüssel („folder/…/datei.mp4“). */
 async function referencedKeys(): Promise<Set<string>> {
-  const rows = await db.execute<{ url: string }>(sql`
+  const { rows } = await db.execute<{ url: string }>(sql`
     SELECT video_url AS url FROM brands WHERE video_url IS NOT NULL
     UNION SELECT challenger_video_url FROM challenges WHERE challenger_video_url IS NOT NULL
     UNION SELECT brand_a_video_url FROM battles WHERE brand_a_video_url IS NOT NULL

@@ -1,5 +1,4 @@
 import "server-only";
-import { resetDbConnections } from "@/db";
 import { after } from "next/server";
 import { eq, inArray, or, type SQL } from "drizzle-orm";
 import { battles as battlesTable, soloPitches } from "@/db/schema";
@@ -591,64 +590,17 @@ async function materializePage(viewerId: string | null, plan: PlanEntry[]): Prom
 }
 
 /**
- * Luca 25.10.: Gegen hängende Datenbank-Verbindungen. Live (Vercel → Supabase-
- * Pooler) bleibt gelegentlich eine Abfrage ohne Antwort hängen, obwohl die
- * Datenbank selbst untätig ist; neue Verbindungen laufen sofort. Normale
- * Schritte brauchen unter 0,5 s. Kommt nach 3 s keine Antwort, wird der Pool
- * neu aufgebaut und der Schritt (nur lesend, deshalb gefahrlos) noch einmal
- * gestartet — wer zuerst fertig ist, gewinnt. Nach 10 s wird aufgegeben.
- * Loggt langsame Schritte für die Vercel-Logs („[feed-slow]“).
+ * Loggt Feed-Schritte, die länger als 3 s brauchen („[feed-slow]“ in den Vercel-Logs).
+ * Normale Schritte brauchen unter 0,5 s; harte Obergrenze sind die Zeitlimits der
+ * Datenbank-Verbindung (src/db/index.ts).
  */
 function timed<T>(label: string, make: () => Promise<T>): Promise<T> {
-  if ((globalThis as { __noHedge?: boolean }).__noHedge) return make();
   const started = Date.now();
-  return new Promise<T>((resolve, reject) => {
-    let launched = 0;
-    let failed = 0;
-    let settled = false;
-    let hedgeTimer: ReturnType<typeof setTimeout> | undefined;
-    let giveUpTimer: ReturnType<typeof setTimeout> | undefined;
-    const settle = (finish: () => void) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(hedgeTimer);
-      clearTimeout(giveUpTimer);
-      const ms = Date.now() - started;
-      if (ms > 3000) console.warn(`[feed-slow] ${label} fertig nach ${ms} ms (Versuche: ${launched})`);
-      finish();
-    };
-    const launch = () => {
-      launched += 1;
-      let attempt: Promise<T>;
-      try {
-        attempt = make();
-      } catch (err) {
-        attempt = Promise.reject(err);
-      }
-      attempt.then(
-        (value) => settle(() => resolve(value)),
-        (err) => {
-          failed += 1;
-          if (settled) return;
-          if (launched < 2) {
-            clearTimeout(hedgeTimer);
-            launch();
-          } else if (failed >= launched) {
-            settle(() => reject(err));
-          }
-        },
-      );
-    };
-    hedgeTimer = setTimeout(() => {
-      if (settled || launched >= 2) return;
-      console.error(`[feed-slow] ${label} hängt seit 3 s — Pool neu, zweiter Versuch`);
-      resetDbConnections(`feed ${label} hängt`);
-      launch();
-    }, 3000);
-    giveUpTimer = setTimeout(() => {
-      settle(() => reject(new Error(`[feed] ${label} ohne Antwort nach 10 s`)));
-    }, 10000);
-    launch();
+  const warn = setTimeout(() => console.warn(`[feed-slow] ${label} läuft seit 3 s`), 3000);
+  return make().finally(() => {
+    clearTimeout(warn);
+    const ms = Date.now() - started;
+    if (ms > 3000) console.warn(`[feed-slow] ${label} fertig nach ${ms} ms`);
   });
 }
 

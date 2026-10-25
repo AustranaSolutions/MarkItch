@@ -40,7 +40,7 @@ async function pendingUrls(): Promise<string[]> {
   const parts = URL_COLUMNS.map(
     ([table, column]) => sql`SELECT ${sql.identifier(column)} AS url FROM ${sql.identifier(table)} WHERE ${sql.identifier(column)} LIKE ${prefix}`,
   );
-  const rows = await db.execute<{ url: string }>(sql.join(parts, sql` UNION `));
+  const { rows } = await db.execute<{ url: string }>(sql.join(parts, sql` UNION `));
   return [...new Set(rows.map((r) => r.url))].sort();
 }
 
@@ -50,7 +50,7 @@ async function repointUrl(oldUrl: string, newUrl: string): Promise<number> {
     const res = await db.execute(
       sql`UPDATE ${sql.identifier(table)} SET ${sql.identifier(column)} = ${newUrl} WHERE ${sql.identifier(column)} = ${oldUrl}`,
     );
-    updated += Number((res as unknown as { count?: number }).count ?? 0);
+    updated += res.rowCount ?? 0;
   }
   return updated;
 }

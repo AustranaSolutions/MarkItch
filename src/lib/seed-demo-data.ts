@@ -6,7 +6,7 @@
 // would be belt-and-suspenders at best.
 import { inArray, like, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import {
   users,
@@ -47,7 +47,7 @@ import {
 // Takes a `db` instance rather than opening its own connection, so each
 // caller manages its own connection lifecycle.
 
-type Db = PostgresJsDatabase<typeof schema>;
+type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 export const DEMO_EMAIL_DOMAIN = "markitch.demo";
 // The app was renamed from Market Matcher to MarkItch (2026-09-18) — this old
