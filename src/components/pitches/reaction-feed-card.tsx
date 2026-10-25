@@ -205,7 +205,18 @@ export function ReactionFeedCard({
           <span className="text-xs font-medium">Teilen</span>
         </button>
 
-        <ReportButton targetType="reaction" targetId={reaction.id} isLoggedIn={isLoggedIn} />
+        <ReportButton
+          targetType="reaction"
+          targetId={reaction.id}
+          isLoggedIn={isLoggedIn}
+          blockOptions={
+            reaction.brand
+              ? [{ name: reaction.brand.name, target: { brandId: reaction.brand.id } }]
+              : reaction.community
+                ? [{ name: reaction.community.name, target: { userId: reaction.community.userId } }]
+                : []
+          }
+        />
       </div>
     </div>
   );

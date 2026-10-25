@@ -16,6 +16,8 @@ export type CommentWithAuthor = {
   authorBrand: { id: string; slug: string; verified: boolean } | null;
   /** Phase F: eigener Kommentar oder Kommentar unter dem eigenen Video → Löschen anbieten. */
   viewerCanDelete: boolean;
+  /** Luca 25.10.: eigener Kommentar → kein „Blockieren“ (Web). */
+  viewerIsAuthor: boolean;
 };
 
 type CommentTarget = { battleId?: string | null; soloPitchId?: string | null; reactionId?: string | null };
@@ -117,6 +119,7 @@ async function loadComments(where: SQL, viewerId: string | null, target: Comment
       authorId: row.userId,
       authorBrand: row.brandId && row.brandSlug ? { id: row.brandId, slug: row.brandSlug, verified: row.brandVerifiedAt !== null } : null,
       viewerCanDelete: viewerOwnsTarget || row.userId === viewerId,
+      viewerIsAuthor: row.userId === viewerId,
     }));
 }
 

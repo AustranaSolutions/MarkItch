@@ -156,6 +156,14 @@ export default async function ProfileSettingsPage() {
         </div>
       )}
 
+      <Link
+        href="/profile/settings/blocked"
+        className="mb-8 flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-950 px-6 py-4 text-sm text-white hover:bg-zinc-900"
+      >
+        Blockierte Konten
+        <ChevronRight size={16} className="text-zinc-500" />
+      </Link>
+
       <div className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
         <h2 className="mb-4 text-lg font-semibold text-white">Passwort ändern</h2>
         <ChangePasswordForm />

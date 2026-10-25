@@ -120,7 +120,15 @@ export function CommentSheet({
                     <span className="text-sm font-semibold text-white">{c.authorName}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-zinc-600">{timeAgo(c.createdAt)}</span>
-                      <ReportButton targetType="comment" targetId={c.id} isLoggedIn={isLoggedIn} variant="text" />
+                      {!c.viewerIsAuthor && (
+                        <ReportButton
+                          targetType="comment"
+                          targetId={c.id}
+                          isLoggedIn={isLoggedIn}
+                          variant="text"
+                          blockOptions={[{ name: c.authorName, target: c.authorBrand ? { brandId: c.authorBrand.id } : { userId: c.authorId } }]}
+                        />
+                      )}
                     </div>
                   </div>
                   <p className="mt-0.5 text-sm text-zinc-300">{c.content}</p>

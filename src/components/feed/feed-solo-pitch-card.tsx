@@ -292,7 +292,12 @@ export function FeedSoloPitchCard({
             onDeleted={() => onDeleted?.()}
           />
         ) : (
-          <ReportButton targetType="solo_pitch" targetId={pitch.soloPitchId} isLoggedIn={isLoggedIn} />
+          <ReportButton
+            targetType="solo_pitch"
+            targetId={pitch.soloPitchId}
+            isLoggedIn={isLoggedIn}
+            blockOptions={[{ name: pitch.brandName, target: { brandId: pitch.brandId } }]}
+          />
         )}
       </div>
       )}

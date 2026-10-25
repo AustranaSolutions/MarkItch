@@ -22,6 +22,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { confirmAndBlock, setBlocked } from "@/lib/block-client";
 import type { ProfileButtonType, PublicBrandDetails } from "@/lib/brand-details";
 
 /**
@@ -198,6 +199,7 @@ export function BrandProfileHeader({
   own = false,
   action,
   duelAction,
+  blockControl,
 }: {
   brand: HeaderBrand;
   details: PublicBrandDetails;
@@ -212,6 +214,8 @@ export function BrandProfileHeader({
   action?: ReactNode;
   /** „Duell einladen“ bzw. Hinweis auf offene Einladung — eigene Zeile darunter. */
   duelAction?: ReactNode;
+  /** Luca 25.10.: fremdes Profil, angemeldet — ⋯ → Blockieren / Freigeben (wie in der App). */
+  blockControl?: { brandId: string; blocked: boolean };
 }) {
   const [introOpen, setIntroOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -305,6 +309,22 @@ export function BrandProfileHeader({
                   <button onClick={share} className="block w-full border-t border-zinc-800 px-4 py-3 text-left text-white hover:bg-zinc-900">
                     Profil teilen
                   </button>
+                  {blockControl && (
+                    <button
+                      onClick={async () => {
+                        setMenuOpen(false);
+                        if (blockControl.blocked) {
+                          await setBlocked({ brandId: blockControl.brandId }, false).catch(() => {});
+                          window.location.reload();
+                        } else {
+                          await confirmAndBlock({ brandId: blockControl.brandId }, brand.name);
+                        }
+                      }}
+                      className="block w-full border-t border-zinc-800 px-4 py-3 text-left text-red-400 hover:bg-zinc-900"
+                    >
+                      {blockControl.blocked ? "Freigeben" : "Blockieren"}
+                    </button>
+                  )}
                 </div>
               )}
             </>

@@ -626,6 +626,10 @@ export function FeedDuelCard({
           targetType={sideIndex === 0 ? "battle_a" : "battle_b"}
           targetId={duel.battleId}
           isLoggedIn={isLoggedIn}
+          // Wie in der App: die gerade gezeigte Seite zuerst, eigene Marke nie.
+          blockOptions={(sideIndex === 0 ? duel.sides : [duel.sides[1], duel.sides[0]])
+            .filter((side) => !side.viewerOwnsThisBrand)
+            .map((side) => ({ name: side.brandName, target: { brandId: side.brandId } }))}
         />
       </div>
       )}

@@ -15,6 +15,7 @@ import { getFeedSoloPitchesForBrand, getFeedDuelsForBrand } from "@/lib/feed";
 import { profileHeaderOf } from "@/lib/brand-details";
 import { duelRecord } from "@/lib/duel-record";
 import { brandAccent } from "@/lib/brand-color";
+import { getBlockedIds } from "@/lib/block";
 
 // Note: this page already reads the session (getOptionalUser -> auth(),
 // which touches cookies), so Next treats it as dynamic automatically —
@@ -30,7 +31,7 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
   const viewer = await getOptionalUser();
   const viewerBrand = viewer ? await getBrandForUser(viewer.id) : null;
   const isOwnBrand = viewerBrand?.id === brand.id;
-  const [soloPitches, duels, followerCount, followingCount, viewerFollows, extras, accentColor] = await Promise.all([
+  const [soloPitches, duels, followerCount, followingCount, viewerFollows, extras, accentColor, blocked] = await Promise.all([
     getFeedSoloPitchesForBrand(viewer?.id ?? null, brand.id),
     getFeedDuelsForBrand(viewer?.id ?? null, brand.id),
     getFollowerCount(brand.id),
@@ -38,6 +39,7 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
     viewer && !isOwnBrand ? isFollowing(viewer.id, brand.id) : Promise.resolve(false),
     getBrandProfileExtras(brand, viewerBrand?.id ?? null, isOwnBrand),
     brandAccent(brand),
+    viewer && !isOwnBrand ? getBlockedIds(viewer.id) : Promise.resolve(null),
   ]);
 
   return (
@@ -55,6 +57,7 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
         followersHref={`/brands/${brand.slug}/followers`}
         followingHref={`/brands/${brand.slug}/following`}
         own={isOwnBrand}
+        blockControl={blocked ? { brandId: brand.id, blocked: blocked.brandIds.has(brand.id) } : undefined}
         action={
           isOwnBrand ? undefined : viewer ? (
             <FollowButton brandId={brand.id} isFollowing={viewerFollows} large />
