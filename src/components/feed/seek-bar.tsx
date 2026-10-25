@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { trimRange, type Trim } from "@/lib/use-video-trim";
 
 // Luca 25.10.: Website = App (MarkItch-mobile components/feed/seek-bar.tsx) —
 // Spulleiste unten auf jeder Video-Karte: antippen springt, ziehen spult.
@@ -11,10 +12,11 @@ function formatTime(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-export function SeekBar({ getVideo, active }: { getVideo: () => HTMLVideoElement | null; active: boolean }) {
+export function SeekBar({ getVideo, active, trim }: { getVideo: () => HTMLVideoElement | null; active: boolean; /** Gekürzt: Leiste zeigt nur den Ausschnitt. */ trim?: Trim }) {
   const barRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [offset, setOffset] = useState(0);
   const [dragFraction, setDragFraction] = useState<number | null>(null);
 
   useEffect(() => {
@@ -23,14 +25,16 @@ export function SeekBar({ getVideo, active }: { getVideo: () => HTMLVideoElement
     const tick = () => {
       const video = getVideo();
       if (video && Number.isFinite(video.duration) && video.duration > 0) {
-        setDuration(video.duration);
-        setProgress(video.currentTime / video.duration);
+        const { start, end } = trimRange(trim, video.duration);
+        setOffset(start);
+        setDuration(end - start);
+        setProgress(Math.min(1, Math.max(0, (video.currentTime - start) / (end - start))));
       }
       frame = window.setTimeout(tick, 250);
     };
     tick();
     return () => window.clearTimeout(frame);
-  }, [active, getVideo]);
+  }, [active, getVideo, trim]);
 
   if (!active || duration <= 0) return null;
 
@@ -56,7 +60,11 @@ export function SeekBar({ getVideo, active }: { getVideo: () => HTMLVideoElement
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => {
         e.stopPropagation();
-        e.currentTarget.setPointerCapture(e.pointerId);
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          // Manche Browser kennen den Zeiger nicht (z. B. synthetische Ereignisse) — Tippen geht trotzdem.
+        }
         setDragFraction(fractionAt(e.clientX));
       }}
       onPointerMove={(e) => {
@@ -67,7 +75,7 @@ export function SeekBar({ getVideo, active }: { getVideo: () => HTMLVideoElement
         e.stopPropagation();
         const f = fractionAt(e.clientX);
         const video = getVideo();
-        if (video) video.currentTime = f * duration;
+        if (video) video.currentTime = offset + f * duration;
         setProgress(f);
         setDragFraction(null);
       }}

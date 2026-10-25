@@ -30,6 +30,7 @@ async function referencedKeys(): Promise<Set<string>> {
     UNION SELECT video_url FROM reactions
     UNION SELECT video_url FROM casting_submissions
     UNION SELECT video_url FROM creator_submissions
+    UNION SELECT video_url FROM post_drafts WHERE video_url IS NOT NULL
   `);
   const keys = new Set<string>();
   for (const { url } of rows) {

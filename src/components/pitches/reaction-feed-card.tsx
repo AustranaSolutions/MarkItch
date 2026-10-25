@@ -9,6 +9,7 @@ import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { ReactionRow } from "@/lib/reaction-threads";
 import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
+import { useVideoTrim } from "@/lib/use-video-trim";
 
 /**
  * Phase 34: one reaction, full-screen — same visual language as
@@ -92,6 +93,8 @@ export function ReactionFeedCard({
 
   // Luca 25.10.: Rand gedrückt halten = 2× (wie in der App); danach kein Pause-Tipp.
   const getVideo = useCallback(() => videoRef.current, []);
+  // Luca 25.10.: gekürzte Videos spielen nur den Ausschnitt.
+  useVideoTrim(getVideo, reaction.trim);
   const edge = useEdgeFastForward(() => videoRef.current);
   const skipTap = useRef(false);
 
@@ -241,7 +244,7 @@ export function ReactionFeedCard({
         />
       </div>
       {/* Luca 25.10.: Spulleiste wie in der App. */}
-      <SeekBar getVideo={getVideo} active={inView} />
+      <SeekBar getVideo={getVideo} active={inView} trim={reaction.trim} />
     </div>
   );
 }

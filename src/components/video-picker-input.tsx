@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, FolderOpen, ImageIcon } from "lucide-react";
+import { Camera, Check, FolderOpen, ImageIcon, Scissors } from "lucide-react";
+import { TrimEditor, saveTrim, type TrimValue } from "@/components/trim-editor";
 import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
 import { ALLOWED_VIDEO_TYPES, MAX_VIDEO_BYTES, type VideoUploadFolder } from "@/lib/video-constants";
 
@@ -49,6 +50,13 @@ export function VideoPickerInput({
   const [thumbnailOpen, setThumbnailOpen] = useState(false);
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
   const thumbnailRef = useRef<Blob | null>(null);
+  // Kürzen (Luca 25.10.): wie das Titelbild — gespeichert, sobald der Upload fertig ist.
+  const [trim, setTrim] = useState<TrimValue | null>(null);
+  const [trimOpen, setTrimOpen] = useState(false);
+  const trimRef = useRef<TrimValue | null>(null);
+  const persistTrim = (videoUrl: string, value: TrimValue | null) => {
+    saveTrim(videoUrl, value).catch((err) => setThumbnailError(err instanceof Error ? err.message : "Kürzen fehlgeschlagen."));
+  };
   const uploadedRef = useRef<string | null>(null);
 
   const saveThumbnail = (videoUrl: string, image: Blob) => {
@@ -80,6 +88,8 @@ export function VideoPickerInput({
     setUploadedUrl(null);
     uploadedRef.current = null;
     thumbnailRef.current = null;
+    trimRef.current = null;
+    setTrim(null);
     setThumbnailError(null);
     setThumbnail((prev) => {
       if (prev) URL.revokeObjectURL(prev.url);
@@ -126,6 +136,7 @@ export function VideoPickerInput({
       setUploadedUrl(prepared.publicUrl);
       uploadedRef.current = prepared.publicUrl;
       if (thumbnailRef.current) saveThumbnail(prepared.publicUrl, thumbnailRef.current);
+      if (trimRef.current) persistTrim(prepared.publicUrl, trimRef.current);
       setStatus("done");
     } catch (err) {
       setStatus("error");
@@ -175,6 +186,34 @@ export function VideoPickerInput({
             {thumbnail ? "Ändern" : "Wählen"}
           </button>
         </div>
+      )}
+      {previewUrl && withThumbnail && status !== "error" && (
+        <div className="mb-2 flex items-center gap-3 rounded-lg border border-zinc-800 px-3 py-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded bg-zinc-900 text-zinc-400">
+            <Scissors size={16} />
+          </span>
+          <span className="flex-1 text-sm text-zinc-300">
+            Video kürzen
+            <span className="block text-xs text-zinc-500">
+              {trim ? `${(trim.startMs / 1000).toFixed(1)} s bis ${trim.endMs ? `${(trim.endMs / 1000).toFixed(1)} s` : "Ende"}` : "Ganzes Video"}
+            </span>
+          </span>
+          <button type="button" onClick={() => setTrimOpen(true)} className="text-sm font-bold text-orange-500 hover:underline">
+            {trim ? "Ändern" : "Kürzen"}
+          </button>
+        </div>
+      )}
+      {trimOpen && previewUrl && (
+        <TrimEditor
+          src={previewUrl}
+          initial={trim}
+          onClose={() => setTrimOpen(false)}
+          onDone={(value) => {
+            setTrim(value);
+            trimRef.current = value;
+            if (uploadedRef.current) persistTrim(uploadedRef.current, value);
+          }}
+        />
       )}
       {thumbnailError && <p className="mb-2 text-sm text-red-400">{thumbnailError}</p>}
       {thumbnailOpen && previewUrl && (

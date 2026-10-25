@@ -24,6 +24,7 @@ import type { FeedDuel } from "@/lib/feed";
 import { trackAnalyticsEvent } from "@/lib/analytics-client";
 import { FastForwardBadge, isInEdgeZone, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
+import { useVideoTrim } from "@/lib/use-video-trim";
 
 // Phase 39: both sides of a duel are now always mounted side by side (the
 // Phase 38 sliding carousel) instead of only the active one — the inactive
@@ -338,6 +339,8 @@ export function FeedDuelCard({
 
   // Luca 25.10.: Rand gedrückt halten = 2× (wie in der App, schon seit 17.10. im Duell).
   const getVideo = useCallback(() => videoRefs.current[sideIndex], [sideIndex]);
+  // Luca 25.10.: gekürzte Videos spielen nur den Ausschnitt.
+  useVideoTrim(getVideo, side.trim);
   const edge = useEdgeFastForward(() => videoRefs.current[sideIndex]);
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -651,7 +654,7 @@ export function FeedDuelCard({
       </div>
       )}
       {/* Luca 25.10.: Spulleiste wie in der App. */}
-      <SeekBar getVideo={getVideo} active={inView} />
+      <SeekBar getVideo={getVideo} active={inView} trim={side.trim} />
     </div>
   );
 }

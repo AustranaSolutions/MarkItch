@@ -6,6 +6,7 @@ import { getExistingOpenBattle } from "@/lib/battle";
 import { activateBattleIfBothSidesReady } from "@/lib/battle-stage";
 import { DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
 import { getCommentCountsForReactions } from "@/lib/comment";
+import { getTrimMap, type VideoTrim } from "@/lib/video-trims";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
 import { getBlockedIds } from "@/lib/block";
 
@@ -21,6 +22,8 @@ export type ReactionWithBrand = Reaction & {
   likeCount: number;
   viewerLiked: boolean;
   commentCount: number;
+  /** Luca 25.10.: gekürzt → nur dieser Ausschnitt (lib/video-trims.ts). */
+  trim: VideoTrim | null;
 };
 
 
@@ -56,7 +59,7 @@ export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: st
   if (rows.length === 0) return [];
 
   const reactionIds = rows.map((r) => r.reaction.id);
-  const [likeCountRows, viewerLikedRows, commentCountById] = await Promise.all([
+  const [likeCountRows, viewerLikedRows, commentCountById, trims] = await Promise.all([
     db
       .select({ reactionId: likes.reactionId, n: count() })
       .from(likes)
@@ -69,6 +72,7 @@ export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: st
           .where(and(eq(likes.userId, viewerId), inArray(likes.reactionId, reactionIds)))
       : Promise.resolve([]),
     getCommentCountsForReactions(reactionIds),
+    getTrimMap(rows.map((r) => r.reaction.videoUrl)),
   ]);
   const likeCountById = new Map(likeCountRows.map((r) => [r.reactionId, r.n]));
   const viewerLikedSet = new Set(viewerLikedRows.map((r) => r.reactionId));
@@ -84,6 +88,7 @@ export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: st
       likeCount: likeCountById.get(r.reaction.id) ?? 0,
       viewerLiked: viewerLikedSet.has(r.reaction.id),
       commentCount: commentCountById.get(r.reaction.id) ?? 0,
+      trim: trims.get(r.reaction.videoUrl) ?? null,
     }))
     .sort((a, b) => b.likeCount - a.likeCount || a.createdAt.getTime() - b.createdAt.getTime());
 }

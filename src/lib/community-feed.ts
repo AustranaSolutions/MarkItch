@@ -3,6 +3,7 @@ import { and, count, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
 import { brands, likes, reactions, soloPitches, users } from "@/db/schema";
 import { getCommentCountsForReactions } from "@/lib/comment";
+import { getTrimMap, type VideoTrim } from "@/lib/video-trims";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
 import { getBlockedIds } from "@/lib/block";
 import { communityName } from "@/lib/reaction";
@@ -24,6 +25,8 @@ export type FeedReaction = {
   /** Die Marke, deren Video die Reaktion gilt. */
   original: { brandId: string; brandName: string; brandSlug: string };
   videoUrl: string;
+  /** Luca 25.10.: gekürzt → nur dieser Ausschnitt (lib/video-trims.ts). */
+  trim: VideoTrim | null;
   likeCount: number;
   viewerLiked: boolean;
   viewerIsAuthor: boolean;
@@ -75,7 +78,7 @@ export async function enrichCommunityReactions(viewerId: string | null, rows: Co
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.reaction.id);
-  const [likeRows, viewerLikedRows, commentCounts] = await Promise.all([
+  const [likeRows, viewerLikedRows, commentCounts, trims] = await Promise.all([
     db.select({ reactionId: likes.reactionId, n: count() }).from(likes).where(inArray(likes.reactionId, ids)).groupBy(likes.reactionId),
     viewerId
       ? db
@@ -84,6 +87,7 @@ export async function enrichCommunityReactions(viewerId: string | null, rows: Co
           .where(and(eq(likes.userId, viewerId), inArray(likes.reactionId, ids)))
       : Promise.resolve([]),
     getCommentCountsForReactions(ids),
+    getTrimMap(rows.map((r) => r.reaction.videoUrl)),
   ]);
   const likeCounts = new Map(likeRows.map((r) => [r.reactionId, r.n]));
   const viewerLiked = new Set(viewerLikedRows.map((r) => r.reactionId));
@@ -98,6 +102,7 @@ export async function enrichCommunityReactions(viewerId: string | null, rows: Co
     authorName: communityName(r.userName),
     original: { brandId: r.brandId, brandName: r.brandName, brandSlug: r.brandSlug },
     videoUrl: r.reaction.videoUrl,
+    trim: trims.get(r.reaction.videoUrl) ?? null,
     likeCount: likeCounts.get(r.reaction.id) ?? 0,
     viewerLiked: viewerLiked.has(r.reaction.id),
     viewerIsAuthor: viewerId === r.reaction.userId,

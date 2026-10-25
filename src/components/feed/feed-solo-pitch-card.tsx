@@ -14,6 +14,7 @@ import { trackAnalyticsEvent } from "@/lib/analytics-client";
 import { BOOST_ENABLED } from "@/lib/feature-flags";
 import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
+import { useVideoTrim } from "@/lib/use-video-trim";
 
 export function FeedSoloPitchCard({
   pitch,
@@ -116,6 +117,8 @@ export function FeedSoloPitchCard({
   // unlikes, matching Instagram).
   // Luca 25.10.: Rand gedrückt halten = 2× (wie in der App); danach kein Pause-Tipp.
   const getVideo = useCallback(() => videoRef.current, []);
+  // Luca 25.10.: gekürzte Videos spielen nur den Ausschnitt.
+  useVideoTrim(getVideo, pitch.trim);
   const edge = useEdgeFastForward(() => videoRef.current);
   const skipTap = useRef(false);
 
@@ -324,7 +327,7 @@ export function FeedSoloPitchCard({
       </div>
       )}
       {/* Luca 25.10.: Spulleiste wie in der App. */}
-      <SeekBar getVideo={getVideo} active={inView} />
+      <SeekBar getVideo={getVideo} active={inView} trim={pitch.trim} />
     </div>
   );
 }

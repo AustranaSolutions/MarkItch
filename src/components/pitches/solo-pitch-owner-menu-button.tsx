@@ -14,8 +14,9 @@ import { CtaLinkFields } from "@/components/pitches/cta-link-fields";
 import { AiContentCheckbox } from "@/components/pitches/ai-content-checkbox";
 import type { FeedSoloPitch } from "@/lib/feed";
 import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
+import { TrimEditor, saveTrim } from "@/components/trim-editor";
 
-type Screen = "closed" | "menu" | "edit" | "delete" | "thumbnail";
+type Screen = "closed" | "menu" | "edit" | "delete" | "thumbnail" | "trim";
 
 /**
  * Phase 32: a classic "⋮" overflow menu — replaces two always-visible
@@ -94,7 +95,19 @@ export function SoloPitchOwnerMenuButton({
         />
       )}
 
-      {screen !== "closed" && screen !== "thumbnail" &&
+      {screen === "trim" && (
+        <TrimEditor
+          src={pitch.videoUrl}
+          initial={pitch.trim}
+          onClose={() => setScreen("closed")}
+          onDone={async (value) => {
+            const trim = await saveTrim(pitch.videoUrl, value);
+            onUpdated({ trim });
+          }}
+        />
+      )}
+
+      {screen !== "closed" && screen !== "thumbnail" && screen !== "trim" &&
         // Phase 43: a bumped z-index (z-50 -> z-[60]) wasn't actually
         // enough — this button lives inside a card that can itself be shown
         // inside StandaloneSoloPitchFeed's own fixed overlay, which also
@@ -127,6 +140,12 @@ export function SoloPitchOwnerMenuButton({
                   className="w-full rounded-lg border border-zinc-800 px-3 py-2.5 text-left text-sm text-white"
                 >
                   Titelbild ändern
+                </button>
+                <button
+                  onClick={() => setScreen("trim")}
+                  className="w-full rounded-lg border border-zinc-800 px-3 py-2.5 text-left text-sm text-white"
+                >
+                  Video kürzen
                 </button>
                 <button
                   onClick={() => setScreen("delete")}

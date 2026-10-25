@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { createSoloPitchForUser } from "@/lib/solo-pitch";
+import { deleteDraft } from "@/lib/drafts";
 import { fieldErrorResponse, readJsonBody, unauthorized } from "@/lib/mobile-auth";
 
 // RN-4c: Solo-Pitch aus der App posten — gleiche Logik wie die Web-Action
@@ -24,5 +25,7 @@ export async function POST(request: NextRequest) {
 
   const result = await createSoloPitchForUser(viewer.id, form);
   if (!result.ok) return fieldErrorResponse(result.errors);
+  // Luca 25.10.: aus einem Entwurf gepostet → Entwurf weg (das Video gehört jetzt dem Pitch).
+  if (typeof body.draftId === "string") await deleteDraft(viewer.id, body.draftId).catch(() => {});
   return NextResponse.json({ id: result.id }, { status: 201 });
 }
