@@ -10,11 +10,11 @@
 export function AudioRightsCheckbox({ errors }: { errors?: Record<string, string[]> }) {
   return (
     <div className="mb-4">
+      {/* Luca 25.10.: Pilot-Marken posten fertige Werbevideos — Musik aus anderen Apps ist dort lizenziert, hier nicht. */}
+      <p className="mb-2 text-xs text-zinc-400">Bitte keine Musik aus Instagram, TikTok & Co. – sie ist nur dort lizenziert und darf auf MarkItch nicht verwendet werden. Am besten: Videos, in denen ihr sprecht, ohne Hintergrundmusik.</p>
       <label className="flex items-start gap-2 text-sm text-zinc-300">
         <input type="checkbox" name="audioRightsConfirmed" required className="mt-1" />
-        Ich bestätige, dass ich alle Rechte am Ton dieses Videos halte (z. B. weil ich selbst spreche
-        oder nur lizenzfreie Musik verwende) und stelle MarkItch bei Rechtsverletzungen schad- und
-        klaglos.
+        Mein Video enthält keine fremde Musik, oder ich halte alle Rechte am Ton (z. B. weil ich selbst spreche oder die Musik selbst lizenziert habe). Ich stelle MarkItch bei Rechtsverletzungen schad- und klaglos.
       </label>
       {errors?.audioRightsConfirmed?.map((err) => (
         <p key={err} className="mt-1 text-sm text-red-400">

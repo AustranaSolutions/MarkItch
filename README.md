@@ -18,6 +18,7 @@ gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreic
   - Kommentare mit Filter (Wortliste, keine Links, Spam-Bremse) und Löschen, Melden/Blockieren, Moderation,
   - Marken-Statistik inkl. Link-Klicks und Zahlen pro Video (`/dashboard`, App: `/api/mobile/stats`).
 - **Feed** in zwei Stufen (`src/lib/feed.ts`): Reihenfolge aus schlanken Daten, volle Karten nur für die angefragte Seite.
+  Musik: Hinweis „keine Musik aus Instagram/TikTok“ über dem Rechte-Häkchen, Meldegrund „Musik ohne Rechte“ (25.10.).
   Seit 25.10. „Für dich“ rein nach Aktualität (neuester Beitrag oben; Duelle ab Live-Start), bis Boosts kommen.
 - **Rollen:** *Acro* = Marken-Konto (darf posten), *Assent* = Zuschauer (schaut, stimmt ab, folgt).
 - **Dieses Repo ist auch das Backend der nativen App:** alle `/api/mobile/*`-Routen (Bearer-Token-Auth).

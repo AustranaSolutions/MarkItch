@@ -47,6 +47,7 @@ export const REPORT_REASONS = [
   "Unangemessener Inhalt",
   "Spam oder Betrug",
   "Beleidigung oder Belästigung",
+  "Musik ohne Rechte",
   "Urheberrechtsverletzung",
   "Sonstiges",
 ] as const;
