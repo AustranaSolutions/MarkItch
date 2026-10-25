@@ -45,6 +45,44 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ exp, n, results: feedResults, steps: trace.length, slow });
   }
 
+  if (exp.startsWith("load")) {
+    // Wie die App: Client mit max 4, Gruppen aus 4 gleichzeitigen Abfragen, n Clients gleichzeitig.
+    const variant = new URL(url);
+    if (exp === "load5432") variant.port = "5432";
+    const rounds = 12;
+    const perClient = await Promise.all(
+      Array.from({ length: n }, async (_, c) => {
+        const client = postgres(variant.toString(), {
+          prepare: false,
+          connect_timeout: 10,
+          idle_timeout: 20,
+          max: 4,
+          ...({ max_pipeline: body?.pipeline === false ? 1 : 100 } as object),
+          connection: { statement_timeout: 10000, lock_timeout: 10000 },
+        });
+        let timeouts = 0;
+        let slowest = 0;
+        let done = 0;
+        for (let r = 0; r < rounds; r++) {
+          const group = await Promise.all(
+            Array.from({ length: 4 }, (_, q) =>
+              timedTask(q, () => client`select count(*) from battles b join brands a on a.id = b.brand_a_id`, 6000),
+            ),
+          );
+          for (const g of group) {
+            done += 1;
+            if (!g.ok) timeouts += 1;
+            slowest = Math.max(slowest, g.ms);
+          }
+          if (timeouts >= 4) break;
+        }
+        client.end({ timeout: 1 }).catch(() => {});
+        return { client: c, queries: done, timeouts, slowestMs: slowest };
+      }),
+    );
+    return NextResponse.json({ exp, n, perClient });
+  }
+
   const tasks = Array.from({ length: n }, (_, i) => {
     if (exp === "shared") return timedTask(i, () => db.execute(sql`select 1`));
     return timedTask(i, async () => {
