@@ -22,7 +22,7 @@ import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { FeedDuel } from "@/lib/feed";
 import { trackAnalyticsEvent } from "@/lib/analytics-client";
-import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
+import { FastForwardBadge, isInEdgeZone, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
 
 // Phase 39: both sides of a duel are now always mounted side by side (the
@@ -404,6 +404,11 @@ export function FeedDuelCard({
     if (d.horizontal === false) return; // was a vertical gesture, not ours to handle
 
     // d.horizontal === null: never moved past the tap threshold — a tap.
+    // Luca 25.10.: wie in der App — Tipp in die Rand-Zone (je 22 %) wechselt zum anderen Video.
+    if (isInEdgeZone(e.clientX, e.currentTarget.getBoundingClientRect())) {
+      switchSide(sideAt(pos === 0 ? 1 : 0));
+      return;
+    }
     // Phase 43: a first tap only schedules the pause toggle instead of
     // firing it immediately — a second tap within the window cancels it
     // and likes instead, so an intended double-tap-to-like never flashes

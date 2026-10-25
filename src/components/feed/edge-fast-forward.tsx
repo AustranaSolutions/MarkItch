@@ -3,11 +3,19 @@
 import { useRef, useState } from "react";
 
 // Luca 25.10.: Website = App (MarkItch-mobile components/feed/edge-fast-forward.tsx).
-// Am linken oder rechten Rand (ca. 0,5 cm) gedrückt halten = 2× vorspulen, loslassen = normal.
+// Am linken oder rechten Rand gedrückt halten = 2× vorspulen, loslassen = normal.
+// Rand-Zone je 22 % der Breite (fast ein Viertel, wie in der App seit 25.10.).
 // Kurzes Tippen bleibt, was es war (Pause / Doppeltipp-Like) — die Karten fragen
 // nach dem Loslassen `consumed()` und ignorieren den Tipp dann.
 
-const EDGE_PX = 28;
+export const EDGE_FRACTION = 0.22;
+
+/** Liegt der Punkt in der linken/rechten Rand-Zone dieses Elements? */
+export function isInEdgeZone(clientX: number, rect: DOMRect): boolean {
+  const x = clientX - rect.left;
+  const edge = rect.width * EDGE_FRACTION;
+  return x <= edge || x >= rect.width - edge;
+}
 const HOLD_MS = 300;
 const MOVE_CANCEL_PX = 12;
 
@@ -32,9 +40,7 @@ export function useEdgeFastForward(getVideo: () => HTMLVideoElement | null) {
     fast,
     onPointerDown(e: React.PointerEvent<HTMLElement>) {
       wasFast.current = false;
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      if (x > EDGE_PX && x < rect.width - EDGE_PX) return;
+      if (!isInEdgeZone(e.clientX, e.currentTarget.getBoundingClientRect())) return;
       start.current = { x: e.clientX, y: e.clientY };
       timer.current = setTimeout(() => {
         const video = getVideo();
