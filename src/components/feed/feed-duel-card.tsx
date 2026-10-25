@@ -22,6 +22,7 @@ import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { FeedDuel } from "@/lib/feed";
 import { trackAnalyticsEvent } from "@/lib/analytics-client";
+import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 
 // Phase 39: both sides of a duel are now always mounted side by side (the
 // Phase 38 sliding carousel) instead of only the active one — the inactive
@@ -334,11 +335,16 @@ export function FeedDuelCard({
   const TAP_MAX_MOVEMENT_PX = 10;
   const DOUBLE_TAP_MS = 300;
 
+  // Luca 25.10.: Rand gedrückt halten = 2× (wie in der App, schon seit 17.10. im Duell).
+  const edge = useEdgeFastForward(() => videoRefs.current[sideIndex]);
+
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     drag.current = { startX: e.clientX, startY: e.clientY, horizontal: null };
+    edge.onPointerDown(e);
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    edge.onPointerMove(e);
     const d = drag.current;
     if (!d || d.horizontal === false) return;
     const dx = e.clientX - d.startX;
@@ -367,6 +373,7 @@ export function FeedDuelCard({
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
     const d = drag.current;
     drag.current = null;
+    if (edge.onPointerUp()) return; // war Vorspulen, kein Tipp
     if (!d) return;
 
     if (d.horizontal) {
@@ -467,7 +474,10 @@ export function FeedDuelCard({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={() => edge.onPointerUp()}
+        onContextMenu={(e) => e.preventDefault()}
       />
+      <FastForwardBadge visible={edge.fast} />
 
       {showLikePop && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

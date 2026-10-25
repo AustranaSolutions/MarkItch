@@ -12,6 +12,7 @@ import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { FeedSoloPitch } from "@/lib/feed";
 import { trackAnalyticsEvent } from "@/lib/analytics-client";
 import { BOOST_ENABLED } from "@/lib/feature-flags";
+import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 
 export function FeedSoloPitchCard({
   pitch,
@@ -112,8 +113,16 @@ export function FeedSoloPitchCard({
   // committing to a plain pause; a first tap now only schedules the pause,
   // and a second tap within the window cancels it and likes instead (never
   // unlikes, matching Instagram).
+  // Luca 25.10.: Rand gedrückt halten = 2× (wie in der App); danach kein Pause-Tipp.
+  const edge = useEdgeFastForward(() => videoRef.current);
+  const skipTap = useRef(false);
+
   const DOUBLE_TAP_MS = 300;
   function handleTap() {
+    if (skipTap.current) {
+      skipTap.current = false;
+      return;
+    }
     const now = Date.now();
     if (now - lastTapAt.current < DOUBLE_TAP_MS) {
       lastTapAt.current = 0;
@@ -152,7 +161,18 @@ export function FeedSoloPitchCard({
         playsInline
         preload="metadata"
       />
-      <div className="absolute inset-0" onClick={handleTap} />
+      <div
+        className="absolute inset-0"
+        onClick={handleTap}
+        onPointerDown={edge.onPointerDown}
+        onPointerMove={edge.onPointerMove}
+        onPointerUp={() => {
+          if (edge.onPointerUp()) skipTap.current = true;
+        }}
+        onPointerCancel={() => edge.onPointerUp()}
+        onContextMenu={(e) => e.preventDefault()}
+      />
+      <FastForwardBadge visible={edge.fast} />
 
       {showLikePop && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
