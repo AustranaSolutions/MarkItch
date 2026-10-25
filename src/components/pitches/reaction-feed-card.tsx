@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Heart, MessageCircle, MessageSquareShare, Play, Share2, Volume2, VolumeX } from "lucide-react";
 import { PromoteReactionButton } from "@/components/pitches/promote-reaction-button";
@@ -8,6 +8,7 @@ import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { ReactionRow } from "@/lib/reaction-threads";
 import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
+import { SeekBar } from "@/components/feed/seek-bar";
 
 /**
  * Phase 34: one reaction, full-screen — same visual language as
@@ -90,6 +91,7 @@ export function ReactionFeedCard({
   }, [inView, onActive]);
 
   // Luca 25.10.: Rand gedrückt halten = 2× (wie in der App); danach kein Pause-Tipp.
+  const getVideo = useCallback(() => videoRef.current, []);
   const edge = useEdgeFastForward(() => videoRef.current);
   const skipTap = useRef(false);
 
@@ -238,6 +240,8 @@ export function ReactionFeedCard({
           }
         />
       </div>
+      {/* Luca 25.10.: Spulleiste wie in der App. */}
+      <SeekBar getVideo={getVideo} active={inView} />
     </div>
   );
 }

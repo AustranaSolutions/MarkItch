@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Heart, MessageCircle, Repeat2, Rocket, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
 import { FollowButton } from "@/components/brand/follow-button";
@@ -13,6 +13,7 @@ import type { FeedSoloPitch } from "@/lib/feed";
 import { trackAnalyticsEvent } from "@/lib/analytics-client";
 import { BOOST_ENABLED } from "@/lib/feature-flags";
 import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
+import { SeekBar } from "@/components/feed/seek-bar";
 
 export function FeedSoloPitchCard({
   pitch,
@@ -114,6 +115,7 @@ export function FeedSoloPitchCard({
   // and a second tap within the window cancels it and likes instead (never
   // unlikes, matching Instagram).
   // Luca 25.10.: Rand gedrückt halten = 2× (wie in der App); danach kein Pause-Tipp.
+  const getVideo = useCallback(() => videoRef.current, []);
   const edge = useEdgeFastForward(() => videoRef.current);
   const skipTap = useRef(false);
 
@@ -321,6 +323,8 @@ export function FeedSoloPitchCard({
         )}
       </div>
       )}
+      {/* Luca 25.10.: Spulleiste wie in der App. */}
+      <SeekBar getVideo={getVideo} active={inView} />
     </div>
   );
 }

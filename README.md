@@ -18,6 +18,7 @@ gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreic
   - Kommentare mit Filter (Wortliste, keine Links, Spam-Bremse) und Löschen, Melden/Blockieren, Moderation,
   - Marken-Statistik inkl. Link-Klicks und Zahlen pro Video (`/dashboard`, App: `/api/mobile/stats`).
 - **Feed** in zwei Stufen (`src/lib/feed.ts`): Reihenfolge aus schlanken Daten, volle Karten nur für die angefragte Seite.
+  Website = App (25.10.): `/profile/settings/{appearance,contact,info,blocked}`, Titelbild-Editor, Blockieren, 2×-Vorspulen, Spulleiste.
   Fehler-Alarm (25.10.): `lib/error-alerts.ts`, `src/instrumentation.ts`, `/api/client-error`, `/admin/errors`, `/api/health` + `.github/workflows/uptime.yml`.
   Musik: Hinweis „keine Musik aus Instagram/TikTok“ über dem Rechte-Häkchen, Meldegrund „Musik ohne Rechte“ (25.10.).
   Seit 25.10. „Für dich“ rein nach Aktualität (neuester Beitrag oben; Duelle ab Live-Start), bis Boosts kommen.

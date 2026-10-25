@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeftRight,
@@ -23,6 +23,7 @@ import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { FeedDuel } from "@/lib/feed";
 import { trackAnalyticsEvent } from "@/lib/analytics-client";
 import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
+import { SeekBar } from "@/components/feed/seek-bar";
 
 // Phase 39: both sides of a duel are now always mounted side by side (the
 // Phase 38 sliding carousel) instead of only the active one — the inactive
@@ -336,6 +337,7 @@ export function FeedDuelCard({
   const DOUBLE_TAP_MS = 300;
 
   // Luca 25.10.: Rand gedrückt halten = 2× (wie in der App, schon seit 17.10. im Duell).
+  const getVideo = useCallback(() => videoRefs.current[sideIndex], [sideIndex]);
   const edge = useEdgeFastForward(() => videoRefs.current[sideIndex]);
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -643,6 +645,8 @@ export function FeedDuelCard({
         />
       </div>
       )}
+      {/* Luca 25.10.: Spulleiste wie in der App. */}
+      <SeekBar getVideo={getVideo} active={inView} />
     </div>
   );
 }
