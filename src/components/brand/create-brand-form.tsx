@@ -23,6 +23,9 @@ export function CreateBrandForm() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [locationType, setLocationType] = useState<"" | "address" | "area" | "online">("");
+  const [locationLabel, setLocationLabel] = useState("");
+  const [address, setAddress] = useState("");
   const [country, setCountry] = useState("");
   const [website, setWebsite] = useState("");
 
@@ -150,6 +153,44 @@ export function CreateBrandForm() {
         value={website}
         onChange={setWebsite}
       />
+
+      {/* Luca 25.10.: Standort beim Anlegen — wie in der App (brand-form.tsx). */}
+      <div className="mb-4">
+        <span className="mb-1 block text-sm font-medium text-zinc-300">{kind === "creator" ? "Standort (freiwillig)" : "Wo findet man dich?"}</span>
+        <input type="hidden" name="locationType" value={locationType} />
+        <div className="flex rounded-full border border-zinc-800 p-1">
+          {(
+            [
+              ["address", "Mit Adresse"],
+              ["area", "Einsatzgebiet"],
+              ["online", "Online"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setLocationType(locationType === key ? "" : key)}
+              className={`flex-1 rounded-full py-1.5 text-sm ${locationType === key ? "bg-zinc-800 font-bold text-white" : "text-zinc-400"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {state?.errors?.locationType?.map((err) => (
+          <p key={err} className="mt-1 text-sm text-red-400">
+            {err}
+          </p>
+        ))}
+      </div>
+      {locationType === "address" && (
+        <>
+          <Field label="Ort im Profil (z. B. Graz-Eggenberg)" name="locationLabel" errors={state?.errors?.locationLabel} value={locationLabel} onChange={setLocationLabel} />
+          <Field label="Adresse (optional)" name="address" required={false} errors={state?.errors?.address} value={address} onChange={setAddress} />
+        </>
+      )}
+      {locationType === "area" && (
+        <Field label="Einsatzgebiet (z. B. Graz und Umgebung)" name="locationLabel" errors={state?.errors?.locationLabel} value={locationLabel} onChange={setLocationLabel} />
+      )}
 
       <div className="mb-6">
         <label htmlFor="logo" className="mb-1 block text-sm font-medium text-zinc-300">

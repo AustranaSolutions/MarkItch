@@ -25,9 +25,18 @@ function readBrandForm(formData: FormData): BrandInput {
 
 export async function createBrand(_prevState: BrandFormState, formData: FormData): Promise<BrandFormState> {
   const user = await requireUser();
+  // Wie in der App: Unternehmen geben an, wo man sie findet (Creator freiwillig).
+  // Nur hier statt in brand-manage.ts, damit ältere App-Versionen ohne diesen Schritt weiter Marken anlegen können.
+  if ((formData.get("kind") ?? "brand") === "brand" && !formData.get("locationType")) {
+    return { errors: { locationType: ["Bitte wählen, wo man dich findet."] } };
+  }
   const result = await createBrandForUser(user.id, {
     ...readBrandForm(formData),
     industryCompliance: formData.get("industryCompliance"),
+    // Luca 25.10.: Standort schon beim Anlegen — wie in der App.
+    locationType: formData.get("locationType") ?? undefined,
+    locationLabel: formData.get("locationLabel") ?? undefined,
+    address: formData.get("address") ?? undefined,
   });
   if (!result.ok) return { errors: result.errors };
   redirect(`/brands/${result.slug}`);
