@@ -3,6 +3,9 @@ import { getUpcomingBattles } from "@/lib/upcoming-battles";
 import { getOptionalUser } from "@/lib/session";
 import { getRemindedBattleIds } from "@/lib/reminder";
 import { ReminderButton } from "@/components/pitches/reminder-button";
+import { LiveDuelList } from "@/components/pitches/live-duel-list";
+import { getLiveFeedDuels } from "@/lib/feed";
+import { getBrandForUser } from "@/lib/brand";
 
 // Always live data — without this, Next prerenders it once at build time
 // (no dynamic API is used otherwise) and it would never show a battle
@@ -35,20 +38,59 @@ function deadlineLabel(deadline: Date | null): string | null {
 // places to do the same thing, one of them a dead end with no way back.
 // So the split is now clean: Pitches = anticipation + reminders,
 // Feed = the only place to actually watch/vote/comment.
-export default async function PitchesPage() {
+// Luca 26.10.: Reiter „Demnächst“ / „Live“ wie in der App (?tab=live).
+export default async function PitchesPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab: rawTab } = await searchParams;
+  const tab = rawTab === "live" ? "live" : "soon";
   const viewer = await getOptionalUser();
-  const upcoming = await getUpcomingBattles();
+  const [upcoming, live, viewerBrand] = await Promise.all([
+    getUpcomingBattles(),
+    getLiveFeedDuels(viewer?.id ?? null),
+    viewer ? getBrandForUser(viewer.id) : Promise.resolve(null),
+  ]);
   const remindedIds = viewer ? new Set(await getRemindedBattleIds(viewer.id)) : new Set<string>();
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       <h1 className="mb-1 text-2xl font-bold text-white">Pitches</h1>
       <p className="mb-6 text-sm text-zinc-500">
-        Kommende Duelle — merk dir eins vor, dann sagen wir dir Bescheid, sobald es live geht. Laufende und beendete
-        Pitches siehst du im <Link href="/" className="text-orange-400 hover:underline">Feed</Link>.
+        {tab === "soon"
+          ? "Kommende Duelle — merk dir eins vor, dann sagen wir dir Bescheid, sobald es live geht."
+          : "Duelle, bei denen gerade abgestimmt wird — antippen und wie im Feed durchwischen."}
       </p>
 
-      {upcoming.length === 0 ? (
+      {viewerBrand && (
+        <Link
+          href="/profile/settings"
+          className="mb-6 flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-900"
+        >
+          ✉️ Duell-Einladungen
+          <span className="text-zinc-500">›</span>
+        </Link>
+      )}
+
+      {/* Wie die Reiter im Profil (Videos · Duelle · Aktionen). */}
+      <div className="mb-6 flex border-b border-zinc-800">
+        {(
+          [
+            ["soon", "Demnächst", upcoming.length],
+            ["live", "Live", live.length],
+          ] as const
+        ).map(([key, label, n]) => (
+          <Link
+            key={key}
+            href={key === "live" ? "/pitches?tab=live" : "/pitches"}
+            className={`-mb-px flex-1 border-b-2 py-2.5 text-center text-sm ${tab === key ? "border-orange-500 font-semibold text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
+          >
+            {label}
+            {n > 0 ? ` (${n})` : ""}
+          </Link>
+        ))}
+      </div>
+
+      {tab === "live" ? (
+        <LiveDuelList duels={live} isLoggedIn={Boolean(viewer)} />
+      ) : upcoming.length === 0 ? (
         <p className="text-sm text-zinc-500">Gerade kommt nichts Neues — schau später wieder vorbei.</p>
       ) : (
         <ul className="space-y-3">
