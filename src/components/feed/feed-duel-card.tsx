@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import {
-  ArrowLeftRight,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -246,7 +245,6 @@ export function FeedDuelCard({
   const drag = useRef<{ startX: number; startY: number; horizontal: boolean | null } | null>(null);
 
   const side = duel.sides[sideIndex];
-  const opponent = duel.sides[sideIndex === 0 ? 1 : 0];
 
   // Card visibility (scroll-snap) drives whether either video is allowed to play.
   useEffect(() => {
@@ -408,8 +406,11 @@ export function FeedDuelCard({
 
     // d.horizontal === null: never moved past the tap threshold — a tap.
     // Luca 25.10.: wie in der App — Tipp in die Rand-Zone (je 22 %) wechselt zum anderen Video.
-    if (isInEdgeZone(e.clientX, e.currentTarget.getBoundingClientRect())) {
-      switchSide(sideAt(pos === 0 ? 1 : 0));
+    // Luca 26.10.: links = linkes Video, rechts = rechtes Video (bleibt, wenn es schon läuft).
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (isInEdgeZone(e.clientX, rect)) {
+      const edgePos: 0 | 1 = e.clientX - rect.left < rect.width / 2 ? 0 : 1;
+      if (edgePos !== pos) switchSide(sideAt(edgePos));
       return;
     }
     // Phase 43: a first tap only schedules the pause toggle instead of
@@ -601,14 +602,6 @@ export function FeedDuelCard({
             {side.ctaLabel} →
           </a>
         )}
-        <div className="pointer-events-auto mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-300">
-          <button
-            onClick={() => switchSide(sideIndex === 0 ? 1 : 0)}
-            className="inline-flex items-center gap-1 rounded-full border border-white/20 px-2 py-1 text-orange-300 hover:border-orange-400"
-          >
-            <ArrowLeftRight size={12} /> Antwort von {opponent.brandName} ansehen
-          </button>
-        </div>
         <div className="pointer-events-auto">
           <VoteState duel={duel} sideIndex={sideIndex} isLoggedIn={isLoggedIn} onVote={handleVote} voting={voting} />
         </div>
