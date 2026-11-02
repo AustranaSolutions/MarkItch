@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { brands, likes, reactions, soloPitches, users } from "@/db/schema";
 import { getCommentCountsForReactions } from "@/lib/comment";
 import { getTrimMap, type VideoTrim } from "@/lib/video-trims";
+import { getThumbnailMap } from "@/lib/video-thumbnails";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
 import { getBlockedIds } from "@/lib/block";
 import { communityName } from "@/lib/reaction";
@@ -27,6 +28,8 @@ export type FeedReaction = {
   videoUrl: string;
   /** Luca 25.10.: gekürzt → nur dieser Ausschnitt (lib/video-trims.ts). */
   trim: VideoTrim | null;
+  /** Luca 02.11.: eigenes Titelbild (Kacheln, Story-Bild beim Teilen). */
+  thumbnailUrl: string | null;
   likeCount: number;
   viewerLiked: boolean;
   viewerIsAuthor: boolean;
@@ -97,7 +100,7 @@ export async function enrichCommunityReactions(viewerId: string | null, rows: Co
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.reaction.id);
-  const [likeRows, viewerLikedRows, commentCounts, trims] = await Promise.all([
+  const [likeRows, viewerLikedRows, commentCounts, trims, thumbnails] = await Promise.all([
     db.select({ reactionId: likes.reactionId, n: count() }).from(likes).where(inArray(likes.reactionId, ids)).groupBy(likes.reactionId),
     viewerId
       ? db
@@ -107,6 +110,7 @@ export async function enrichCommunityReactions(viewerId: string | null, rows: Co
       : Promise.resolve([]),
     getCommentCountsForReactions(ids),
     getTrimMap(rows.map((r) => r.reaction.videoUrl)),
+    getThumbnailMap(rows.map((r) => r.reaction.videoUrl)),
   ]);
   const likeCounts = new Map(likeRows.map((r) => [r.reactionId, r.n]));
   const viewerLiked = new Set(viewerLikedRows.map((r) => r.reactionId));
@@ -122,6 +126,7 @@ export async function enrichCommunityReactions(viewerId: string | null, rows: Co
     original: { brandId: r.brandId, brandName: r.brandName, brandSlug: r.brandSlug },
     videoUrl: r.reaction.videoUrl,
     trim: trims.get(r.reaction.videoUrl) ?? null,
+    thumbnailUrl: thumbnails.get(r.reaction.videoUrl) ?? null,
     likeCount: likeCounts.get(r.reaction.id) ?? 0,
     viewerLiked: viewerLiked.has(r.reaction.id),
     viewerIsAuthor: viewerId === r.reaction.userId,
