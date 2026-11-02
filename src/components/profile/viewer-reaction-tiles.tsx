@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
+import { useVideoTrim, type Trim } from "@/lib/use-video-trim";
 
 export type ViewerReactionTile = {
   id: string;
@@ -11,6 +12,8 @@ export type ViewerReactionTile = {
   thumbnailUrl: string | null;
   likeCount: number;
   originalBrandName: string;
+  /** Gekürzt → nur dieser Ausschnitt (wie im Feed). */
+  trim?: Trim;
 };
 
 const number = (n: number) => n.toLocaleString("de-DE");
@@ -51,7 +54,7 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
               <X size={18} />
             </button>
           </div>
-          <video key={open.id} src={open.videoUrl} autoPlay loop playsInline controls className="min-h-0 flex-1 bg-black object-contain" />
+          <TrimmedVideo key={open.id} src={open.videoUrl} trim={open.trim} />
           <div className="p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
             <Link href={`/?pitch=${open.soloPitchId}`} className="block rounded-full bg-orange-600 py-3 text-center text-sm font-bold text-white hover:bg-orange-500">
               Original ansehen
@@ -61,4 +64,10 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
       )}
     </>
   );
+}
+
+function TrimmedVideo({ src, trim }: { src: string; trim: Trim }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useVideoTrim(() => ref.current, trim);
+  return <video ref={ref} src={src} autoPlay loop playsInline controls className="min-h-0 flex-1 bg-black object-contain" />;
 }

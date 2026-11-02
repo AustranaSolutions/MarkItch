@@ -18,6 +18,7 @@ import { duelRecord } from "@/lib/duel-record";
 import { brandAccent } from "@/lib/brand-color";
 import { getViewerActivity } from "@/lib/viewer-activity";
 import { getThumbnailMap } from "@/lib/video-thumbnails";
+import { getTrimMap } from "@/lib/video-trims";
 import { ViewerProfile } from "@/components/profile/viewer-profile";
 
 /**
@@ -147,11 +148,12 @@ export default async function ProfilePage() {
 
 async function OwnViewerProfile({ userId }: { userId: string }) {
   const activity = await getViewerActivity(userId);
-  const thumbnails = await getThumbnailMap(activity.reactions.map((r) => r.videoUrl));
+  const urls = activity.reactions.map((r) => r.videoUrl);
+  const [thumbnails, trims] = await Promise.all([getThumbnailMap(urls), getTrimMap(urls)]);
   return (
     <ViewerProfile
       activity={activity}
-      reactions={activity.reactions.map((r) => ({ ...r, thumbnailUrl: thumbnails.get(r.videoUrl) ?? null }))}
+      reactions={activity.reactions.map((r) => ({ ...r, thumbnailUrl: thumbnails.get(r.videoUrl) ?? null, trim: trims.get(r.videoUrl) ?? null }))}
       own
     />
   );

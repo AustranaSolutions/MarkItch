@@ -6,6 +6,7 @@ import { getBrandForUser } from "@/lib/brand";
 import { getBlockedIds } from "@/lib/block";
 import { enrichCommunityReactions, getCommunityReactionRowsForUser, type FeedReaction } from "@/lib/community-feed";
 import { getThumbnailMap } from "@/lib/video-thumbnails";
+import { getTrimMap, type VideoTrim } from "@/lib/video-trims";
 import { getViewerActivity, type ViewerActivity } from "@/lib/viewer-activity";
 
 // Luca 02.11.: Öffentliches Zuschauer-Profil — erreichbar über den Namen bei
@@ -18,7 +19,7 @@ export type PublicViewerProfile =
       kind: "viewer";
       user: { id: string; name: string; avatarUrl: string | null };
       activity: Omit<ViewerActivity, "taste" | "reactions"> & {
-        reactions: (ViewerActivity["reactions"][number] & { thumbnailUrl: string | null })[];
+        reactions: (ViewerActivity["reactions"][number] & { thumbnailUrl: string | null; trim: VideoTrim | null })[];
       };
       reactionItems: FeedReaction[];
     };
@@ -33,16 +34,18 @@ export async function getPublicViewerProfile(userId: string, viewerId: string | 
   if (brand) return { kind: "brand", brandSlug: brand.slug };
 
   const [activity, rows] = await Promise.all([getViewerActivity(row.id), getCommunityReactionRowsForUser(row.id)]);
-  const [reactionItems, thumbnails] = await Promise.all([
+  const urls = activity.reactions.map((r) => r.videoUrl);
+  const [reactionItems, thumbnails, trims] = await Promise.all([
     enrichCommunityReactions(viewerId, rows),
-    getThumbnailMap(activity.reactions.map((r) => r.videoUrl)),
+    getThumbnailMap(urls),
+    getTrimMap(urls),
   ]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { taste, ...rest } = activity;
   return {
     kind: "viewer",
     user: { id: row.id, name: row.name?.trim() || "MarkItch-Nutzer", avatarUrl: row.avatarUrl },
-    activity: { ...rest, reactions: activity.reactions.map((r) => ({ ...r, thumbnailUrl: thumbnails.get(r.videoUrl) ?? null })) },
+    activity: { ...rest, reactions: activity.reactions.map((r) => ({ ...r, thumbnailUrl: thumbnails.get(r.videoUrl) ?? null, trim: trims.get(r.videoUrl) ?? null })) },
     reactionItems,
   };
 }
