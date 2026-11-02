@@ -128,3 +128,20 @@ export async function deleteOwnReactionFor(user: { id: string }, reactionId: str
   await db.delete(reactions).where(eq(reactions.id, reactionId));
   return { ok: true };
 }
+
+/** Luca 02.11.: eigene Reaktion bearbeiten — bisher nur die KI-Kennzeichnung (Titelbild/Kürzen laufen über eigene Wege). */
+export async function updateOwnReactionFor(
+  user: { id: string },
+  reactionId: string,
+  input: { containsAiContent?: unknown },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const [reaction] = await db.select().from(reactions).where(eq(reactions.id, reactionId)).limit(1);
+  if (!reaction) return { ok: false, error: "Diese Reaktion existiert nicht mehr." };
+  const myBrand = reaction.brandId ? await getBrandForUser(user.id) : null;
+  const own = reaction.userId === user.id || (reaction.brandId !== null && myBrand?.id === reaction.brandId);
+  if (!own) return { ok: false, error: "Das ist nicht deine Reaktion." };
+  if (typeof input.containsAiContent === "boolean") {
+    await db.update(reactions).set({ containsAiContent: input.containsAiContent }).where(eq(reactions.id, reactionId));
+  }
+  return { ok: true };
+}
