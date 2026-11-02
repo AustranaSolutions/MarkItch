@@ -599,18 +599,13 @@ export const reactions = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("reactions_solo_pitch_brand_top_level_unique_idx")
-      .on(table.soloPitchId, table.brandId)
-      .where(sql`${table.parentReactionId} is null`),
-    uniqueIndex("reactions_parent_reaction_brand_unique_idx")
-      .on(table.parentReactionId, table.brandId)
-      .where(sql`${table.parentReactionId} is not null`),
-    uniqueIndex("reactions_solo_pitch_user_top_level_unique_idx")
-      .on(table.soloPitchId, table.userId)
-      .where(sql`${table.parentReactionId} is null and ${table.userId} is not null`),
-    uniqueIndex("reactions_parent_reaction_user_unique_idx")
-      .on(table.parentReactionId, table.userId)
-      .where(sql`${table.parentReactionId} is not null and ${table.userId} is not null`),
+    // Luca 02.11.: kein Limit mehr — mehrere Reaktionen bzw. Antworten pro Marke/Konto
+    // erlaubt (wer mehrere Ideen hat, soll sie posten können). Die alten
+    // Eindeutigkeits-Indizes (eine Reaktion je Pitch) sind durch normale ersetzt.
+    index("reactions_solo_pitch_idx").on(table.soloPitchId),
+    index("reactions_parent_reaction_idx").on(table.parentReactionId),
+    index("reactions_user_idx").on(table.userId),
+    index("reactions_brand_idx").on(table.brandId),
   ],
 );
 
