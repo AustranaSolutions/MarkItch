@@ -60,16 +60,22 @@ export function ReactionsGrid({
               return (
                 <li key={reaction.id}>
                   <button onClick={() => onOpenReaction(reaction.id)} className="relative block w-full">
-                    <video
-                      ref={(el) => {
-                        if (el) showFirstFrame(el);
-                      }}
-                      src={reaction.videoUrl}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="aspect-[9/16] w-full rounded-lg bg-black object-cover"
-                    />
+                    {/* Luca 02.11.: eigenes Titelbild, sonst das erste Bild des Videos. */}
+                    {reaction.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary source
+                      <img src={reaction.thumbnailUrl} alt="" className="aspect-[9/16] w-full rounded-lg bg-black object-cover" />
+                    ) : (
+                      <video
+                        ref={(el) => {
+                          if (el) showFirstFrame(el);
+                        }}
+                        src={reaction.videoUrl}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="aspect-[9/16] w-full rounded-lg bg-black object-cover"
+                      />
+                    )}
                     <span className="absolute bottom-1 left-1 right-1 truncate rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
                       {reaction.brand?.name ?? reaction.community?.name}
                     </span>

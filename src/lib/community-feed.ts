@@ -73,6 +73,25 @@ export async function getEligibleCommunityReactions(viewerId: string | null): Pr
   );
 }
 
+/** Luca 02.11.: eigene Reaktionen fürs Profil — gleiche Form wie im Feed (Antippen öffnet sie wie im Feed). */
+export async function getCommunityReactionRowsForUser(userId: string): Promise<CommunityReactionRow[]> {
+  return db
+    .select({
+      reaction: reactions,
+      userName: users.name,
+      userEmail: users.email,
+      brandId: brands.id,
+      brandName: brands.name,
+      brandSlug: brands.slug,
+    })
+    .from(reactions)
+    .innerJoin(users, eq(reactions.userId, users.id))
+    .innerJoin(soloPitches, eq(reactions.soloPitchId, soloPitches.id))
+    .innerJoin(brands, eq(soloPitches.brandId, brands.id))
+    .where(eq(reactions.userId, userId))
+    .orderBy(desc(reactions.createdAt));
+}
+
 /** Phase F (H3): Stufe 2 — Likes/Kommentare nur für die Reaktionen, die auf der Feed-Seite landen. */
 export async function enrichCommunityReactions(viewerId: string | null, rows: CommunityReactionRow[]): Promise<FeedReaction[]> {
   if (rows.length === 0) return [];

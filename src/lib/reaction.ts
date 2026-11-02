@@ -7,6 +7,8 @@ import { activateBattleIfBothSidesReady } from "@/lib/battle-stage";
 import { DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
 import { getCommentCountsForReactions } from "@/lib/comment";
 import { getTrimMap, type VideoTrim } from "@/lib/video-trims";
+import { getThumbnailMap } from "@/lib/video-thumbnails";
+import { getBrandForUser } from "@/lib/brand";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
 import { getBlockedIds } from "@/lib/block";
 
@@ -24,6 +26,10 @@ export type ReactionWithBrand = Reaction & {
   commentCount: number;
   /** Luca 25.10.: gekürzt → nur dieser Ausschnitt (lib/video-trims.ts). */
   trim: VideoTrim | null;
+  /** Luca 02.11.: eigenes Titelbild für die Kacheln (sonst null → erstes Bild). */
+  thumbnailUrl: string | null;
+  /** Luca 02.11.: eigene Reaktion (Konto oder eigene Marke) → Titelbild, Kürzen, Löschen statt Melden. */
+  viewerIsOwner: boolean;
 };
 
 
@@ -59,7 +65,7 @@ export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: st
   if (rows.length === 0) return [];
 
   const reactionIds = rows.map((r) => r.reaction.id);
-  const [likeCountRows, viewerLikedRows, commentCountById, trims] = await Promise.all([
+  const [likeCountRows, viewerLikedRows, commentCountById, trims, thumbnails, viewerBrand] = await Promise.all([
     db
       .select({ reactionId: likes.reactionId, n: count() })
       .from(likes)
@@ -73,6 +79,8 @@ export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: st
       : Promise.resolve([]),
     getCommentCountsForReactions(reactionIds),
     getTrimMap(rows.map((r) => r.reaction.videoUrl)),
+    getThumbnailMap(rows.map((r) => r.reaction.videoUrl)),
+    viewerId ? getBrandForUser(viewerId) : Promise.resolve(null),
   ]);
   const likeCountById = new Map(likeCountRows.map((r) => [r.reactionId, r.n]));
   const viewerLikedSet = new Set(viewerLikedRows.map((r) => r.reactionId));
@@ -89,6 +97,8 @@ export async function getReactionsForSoloPitch(soloPitchId: string, viewerId: st
       viewerLiked: viewerLikedSet.has(r.reaction.id),
       commentCount: commentCountById.get(r.reaction.id) ?? 0,
       trim: trims.get(r.reaction.videoUrl) ?? null,
+      thumbnailUrl: thumbnails.get(r.reaction.videoUrl) ?? null,
+      viewerIsOwner: (viewerId !== null && r.reaction.userId === viewerId) || (viewerBrand !== null && r.reaction.brandId === viewerBrand.id),
     }))
     .sort((a, b) => b.likeCount - a.likeCount || a.createdAt.getTime() - b.createdAt.getTime());
 }

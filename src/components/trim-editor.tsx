@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { Pause, Play, X } from "lucide-react";
 
 // Luca 25.10.: Website = App (MarkItch-mobile components/post/trim-editor.tsx).
 // Video kürzen ohne Neuberechnen: Anfang und Ende wählen, gespeichert wird nur
@@ -35,8 +35,9 @@ export function TrimEditor({
   const [start, setStart] = useState((initial?.startMs ?? 0) / 1000);
   const [end, setEnd] = useState<number | null>(initial?.endMs != null ? initial.endMs / 1000 : null);
   const [saving, setSaving] = useState(false);
-  // Luca 02.11.: Position läuft mit; ziehen spult selbst (innerhalb des Ausschnitts).
+  // Luca 02.11.: Linie zeigt, wo das Video gerade läuft; Pause/Play.
   const [position, setPosition] = useState(0);
+  const [paused, setPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const effectiveEnd = end ?? duration;
 
@@ -101,25 +102,33 @@ export function TrimEditor({
 
         {duration > 0 && (
           <div className="mt-5 space-y-4">
-            <label className="block">
-              <span className="mb-1 flex justify-between text-xs text-zinc-400">
-                <span>Position — ziehen zum Spulen</span>
-                <span className="tabular-nums text-white">{formatTime(position)}</span>
-              </span>
-              <input
-                type="range"
-                min={start}
-                max={Math.max(start, effectiveEnd - 0.05)}
-                step={0.05}
-                value={Math.min(Math.max(position, start), effectiveEnd)}
-                onChange={(e) => {
-                  const t = Number(e.target.value);
-                  setPosition(t);
-                  seek(t);
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const video = videoRef.current;
+                  if (!video) return;
+                  if (video.paused) {
+                    video.play().catch(() => {});
+                    setPaused(false);
+                  } else {
+                    video.pause();
+                    setPaused(true);
+                  }
                 }}
-                className="w-full accent-white"
-              />
-            </label>
+                aria-label={paused ? "Abspielen" : "Pause"}
+                className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              >
+                {paused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
+              </button>
+              <div className="relative h-2 flex-1 rounded-full bg-zinc-800">
+                <div
+                  className="absolute inset-y-0 rounded-full bg-orange-500/70"
+                  style={{ left: `${(start / duration) * 100}%`, width: `${((effectiveEnd - start) / duration) * 100}%` }}
+                />
+                <div className="absolute -top-1 h-4 w-0.5 rounded bg-white" style={{ left: `${(position / duration) * 100}%` }} />
+              </div>
+            </div>
             <label className="block">
               <span className="mb-1 flex justify-between text-xs text-zinc-400">
                 <span>Anfang</span>

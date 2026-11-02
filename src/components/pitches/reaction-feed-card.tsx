@@ -10,6 +10,7 @@ import type { ReactionRow } from "@/lib/reaction-threads";
 import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
 import { useVideoTrim } from "@/lib/use-video-trim";
+import { ReactionOwnerMenu } from "@/components/pitches/reaction-owner-menu";
 
 /**
  * Phase 34: one reaction, full-screen — same visual language as
@@ -230,18 +231,22 @@ export function ReactionFeedCard({
           <span className="text-xs font-medium">Teilen</span>
         </button>
 
+{reaction.viewerIsOwner ? (
+          <ReactionOwnerMenu reaction={reaction} />
+        ) : (
         <ReportButton
-          targetType="reaction"
-          targetId={reaction.id}
-          isLoggedIn={isLoggedIn}
-          blockOptions={
-            reaction.brand
-              ? [{ name: reaction.brand.name, target: { brandId: reaction.brand.id } }]
-              : reaction.community
-                ? [{ name: reaction.community.name, target: { userId: reaction.community.userId } }]
-                : []
-          }
-        />
+            targetType="reaction"
+            targetId={reaction.id}
+            isLoggedIn={isLoggedIn}
+            blockOptions={
+              reaction.brand
+                ? [{ name: reaction.brand.name, target: { brandId: reaction.brand.id } }]
+                : reaction.community
+                  ? [{ name: reaction.community.name, target: { userId: reaction.community.userId } }]
+                  : []
+            }
+          />
+        )}
       </div>
       {/* Luca 25.10.: Spulleiste wie in der App. */}
       <SeekBar getVideo={getVideo} active={inView} trim={reaction.trim} />

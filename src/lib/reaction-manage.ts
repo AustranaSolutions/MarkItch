@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { reactions, soloPitches, users } from "@/db/schema";
 import { getBrandForUser } from "@/lib/brand";
@@ -47,8 +47,6 @@ export async function postReactionFor(user: { id: string }, formData: FormData):
       return { ok: false, error: "Du musst zuerst eine Marke erstellen, um zu reagieren." };
     }
   }
-  // Wer hier postet: die Marke oder das Zuschauer-Konto selbst.
-  const author = myBrand ? eq(reactions.brandId, myBrand.id) : eq(reactions.userId, user.id);
 
   const [pitch] = await db.select().from(soloPitches).where(eq(soloPitches.id, soloPitchIdInput)).limit(1);
   if (!pitch) {
@@ -69,18 +67,7 @@ export async function postReactionFor(user: { id: string }, formData: FormData):
     return { ok: false, error: "Du kannst nicht auf deinen eigenen Pitch reagieren." };
   }
 
-  const [existing] = await db
-    .select({ id: reactions.id })
-    .from(reactions)
-    .where(
-      parentReactionId
-        ? and(eq(reactions.parentReactionId, parentReactionId), author)
-        : and(eq(reactions.soloPitchId, soloPitchId), isNull(reactions.parentReactionId), author),
-    );
-  if (existing) {
-    return { ok: false, error: parentReactionId ? "Du hast auf diese Reaktion bereits geantwortet." : "Du hast auf diesen Pitch bereits reagiert." };
-  }
-
+  // Luca 02.11.: kein Limit mehr — mehrere Reaktionen/Antworten erlaubt (Rate-Limit bleibt).
   const { allowed } = await checkRateLimit("reaction", myBrand ? myBrand.id : `user:${user.id}`);
   if (!allowed) {
     return { ok: false, error: RATE_LIMIT_MESSAGE };
@@ -124,4 +111,20 @@ export async function promoteReactionFor(
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Hochstufen fehlgeschlagen." };
   }
+}
+
+/**
+ * Luca 02.11.: eigene Reaktion löschen (wie Marken ihre Pitches) — Zuschauer
+ * ihre Community-Reaktion, Marken die Reaktion ihrer Marke. Antworten darauf
+ * verschwinden mit (cascade). Schon zum Duell hochgestuft → nicht löschbar.
+ */
+export async function deleteOwnReactionFor(user: { id: string }, reactionId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const [reaction] = await db.select().from(reactions).where(eq(reactions.id, reactionId)).limit(1);
+  if (!reaction) return { ok: false, error: "Diese Reaktion existiert nicht mehr." };
+  const myBrand = reaction.brandId ? await getBrandForUser(user.id) : null;
+  const own = reaction.userId === user.id || (reaction.brandId !== null && myBrand?.id === reaction.brandId);
+  if (!own) return { ok: false, error: "Das ist nicht deine Reaktion." };
+  if (reaction.promotedToBattleId) return { ok: false, error: "Aus dieser Reaktion ist schon ein Duell geworden — sie lässt sich nicht mehr löschen." };
+  await db.delete(reactions).where(eq(reactions.id, reactionId));
+  return { ok: true };
 }
