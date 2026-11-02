@@ -9,6 +9,7 @@ import { SplashScreen } from "@/components/splash-screen";
 import { SessionBoot } from "@/components/analytics/session-boot";
 import { ConsentBanner } from "@/components/analytics/consent-banner";
 import { TermsNotice } from "@/components/legal/terms-notice";
+import { NameNotice } from "@/components/legal/name-notice";
 import { APP_STORE_ID } from "@/lib/feature-flags";
 
 // Luca 17.10.: Manrope wie in der App (variable Schrift, alle Schnitte).
@@ -54,6 +55,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SessionBoot />
         <ConsentBanner />
         {user ? <TermsNotice userId={user.id} /> : null}
+        {user ? <NameNotice userId={user.id} /> : null}
         {children}
         <NotificationBellButton isLoggedIn={Boolean(user)} unreadCount={unreadCount} />
         <BottomNav isLoggedIn={Boolean(user)} />

@@ -92,7 +92,7 @@ export function RegisterForm() {
         ))}
       </div>
 
-      <Field label="Name (optional)" name="name" required={false} errors={state?.errors?.name} value={name} onChange={setName} />
+      <Field label="Name" name="name" autoComplete="name" errors={state?.errors?.name} value={name} onChange={setName} />
       <Field
         label="E-Mail"
         name="email"

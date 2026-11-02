@@ -58,7 +58,7 @@ export function EditProfileForm({
           </p>
         ))}
       </div>
-      <Field label="Name" name="name" required={false} errors={state?.errors?.name} value={name} onChange={setName} />
+      <Field label="Name" name="name" errors={state?.errors?.name} value={name} onChange={setName} />
       <Field
         label="E-Mail"
         name="email"

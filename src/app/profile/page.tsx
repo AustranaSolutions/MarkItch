@@ -16,6 +16,9 @@ import { ProfileCompleteCard } from "@/components/profile/profile-complete-card"
 import { profileHeaderOf } from "@/lib/brand-details";
 import { duelRecord } from "@/lib/duel-record";
 import { brandAccent } from "@/lib/brand-color";
+import { getViewerActivity } from "@/lib/viewer-activity";
+import { getThumbnailMap } from "@/lib/video-thumbnails";
+import { ViewerProfile } from "@/components/profile/viewer-profile";
 
 /**
  * Phase 23: rebuilt to actually look like a profile tab (Instagram/TikTok
@@ -131,17 +134,25 @@ export default async function ProfilePage() {
             </div>
           )}
           <h2 className="mt-3 text-lg font-semibold text-white">{user.name || user.email}</h2>
-          <p className="mt-2 text-sm text-zinc-400">Als Assent schaust du zu, folgst und stimmst ab.</p>
-          <div className="mt-4 flex justify-center gap-4 text-sm">
-            <Link href="/pitches" className="text-orange-500 hover:underline">
-              Pitches ansehen →
-            </Link>
-            <Link href="/brands" className="text-orange-500 hover:underline">
-              Marken entdecken →
-            </Link>
+          <p className="mt-2 text-sm text-zinc-400">Du schaust zu, stimmst ab und reagierst mit eigenen Videos.</p>
+          {/* Luca 02.11.: Zuschauer-Profil wie in der App — Serie, Zahlen, Geschmack, eigene Reaktionen. */}
+          <div className="mt-6">
+            <OwnViewerProfile userId={user.id} />
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+async function OwnViewerProfile({ userId }: { userId: string }) {
+  const activity = await getViewerActivity(userId);
+  const thumbnails = await getThumbnailMap(activity.reactions.map((r) => r.videoUrl));
+  return (
+    <ViewerProfile
+      activity={activity}
+      reactions={activity.reactions.map((r) => ({ ...r, thumbnailUrl: thumbnails.get(r.videoUrl) ?? null }))}
+      own
+    />
   );
 }

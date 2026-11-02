@@ -14,14 +14,21 @@ const passwordSchema = z
 export const AccountTypes = ["acro", "assent"] as const;
 
 export const RegisterSchema = z.object({
-  name: z.string().trim().min(1, "Name fehlt.").max(100).optional().or(z.literal("")),
+  // Luca 02.11.: Name ist Pflicht — er steht bei Meinungen, Reaktionen und im Profil.
+  name: z.string().trim().min(2, "Bitte gib deinen Namen an (mind. 2 Zeichen).").max(100),
   email: z.email("Ungültige E-Mail-Adresse.").trim().toLowerCase(),
   password: passwordSchema,
   accountType: z.enum(AccountTypes, "Bitte wähle Acro oder Assent."),
 });
 
+/** Luca 02.11.: einmalige Namens-Abfrage für ältere Konten ohne Namen. */
+export const NameSchema = z.object({
+  name: z.string().trim().min(2, "Bitte gib deinen Namen an (mind. 2 Zeichen).").max(100),
+});
+
 export const UpdateProfileSchema = z.object({
-  name: z.string().trim().min(1, "Name fehlt.").max(100).optional().or(z.literal("")),
+  // Luca 02.11.: Name ist Pflicht — er steht bei Meinungen, Reaktionen und im Profil.
+  name: z.string().trim().min(2, "Bitte gib deinen Namen an (mind. 2 Zeichen).").max(100),
   email: z.email("Ungültige E-Mail-Adresse.").trim().toLowerCase(),
 });
 

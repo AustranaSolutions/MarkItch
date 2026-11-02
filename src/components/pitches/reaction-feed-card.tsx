@@ -180,7 +180,11 @@ export function ReactionFeedCard({
               {reaction.brand.name}
             </Link>
           ) : (
-            <span className="text-sm font-bold text-white">{reaction.community?.name}</span>
+            reaction.community && (
+              <Link href={`/users/${reaction.community.userId}`} className="text-sm font-bold text-white hover:underline">
+                {reaction.community.name}
+              </Link>
+            )
           )}
           <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
             {reaction.parentReactionId ? "Antwort im Thread" : "Reaktion"}

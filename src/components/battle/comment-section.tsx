@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { postComment, type CommentFormState } from "@/app/actions/comment";
 import { FormError, SubmitButton } from "@/components/ui";
@@ -68,7 +69,12 @@ export function CommentSection({
           {comments.map((c) => (
             <li key={c.id} className="rounded-lg border border-zinc-800 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-white">{c.authorName}</span>
+                <Link
+                      href={c.authorBrand ? `/brands/${c.authorBrand.slug}` : `/users/${c.authorId}`}
+                      className="text-sm font-semibold text-white hover:underline"
+                    >
+                      {c.authorName}
+                    </Link>
                 <span className="text-xs text-zinc-600">{timeAgo(c.createdAt)}</span>
               </div>
               <p className="mt-1 text-sm text-zinc-300">{c.content}</p>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import type { CommentWithAuthor } from "@/lib/comment";
@@ -117,7 +118,12 @@ export function CommentSheet({
               {comments.map((c) => (
                 <li key={c.id}>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-white">{c.authorName}</span>
+                    <Link
+                      href={c.authorBrand ? `/brands/${c.authorBrand.slug}` : `/users/${c.authorId}`}
+                      className="text-sm font-semibold text-white hover:underline"
+                    >
+                      {c.authorName}
+                    </Link>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-zinc-600">{timeAgo(c.createdAt)}</span>
                       {!c.viewerIsAuthor && (

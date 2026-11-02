@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { brandMembers, brands, users, emailVerificationTokens, passwordResetTokens } from "@/db/schema";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { uploadImage, ALLOWED_IMAGE_TYPES } from "@/lib/storage";
-import { ChangePasswordSchema, DeleteAccountSchema, UpdateProfileSchema } from "@/lib/validation";
+import { ChangePasswordSchema, DeleteAccountSchema, NameSchema, UpdateProfileSchema } from "@/lib/validation";
 import { generateRawToken, hashToken, expiresInHours } from "@/lib/tokens";
 import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
 import { TERMS_VERSION } from "@/lib/legal";
@@ -188,4 +188,12 @@ export async function resendVerificationFor(userId: string): Promise<{ ok: boole
 /** Luca 18.10.: Zustimmung zur aktuellen Fassung von Nutzungsbedingungen und Datenschutzerklärung. */
 export async function acceptCurrentTerms(userId: string): Promise<void> {
   await db.update(users).set({ termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() }).where(eq(users.id, userId));
+}
+
+/** Luca 02.11.: Name nachtragen (Pflicht seit 02.11.; ältere Konten werden einmal gefragt). */
+export async function setNameForUser(userId: string, input: { name: unknown }): Promise<{ ok: true } | { ok: false; errors: FieldErrors }> {
+  const parsed = NameSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, errors: parsed.error.flatten().fieldErrors as FieldErrors };
+  await db.update(users).set({ name: parsed.data.name, updatedAt: new Date() }).where(eq(users.id, userId));
+  return { ok: true };
 }
