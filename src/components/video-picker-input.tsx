@@ -5,7 +5,7 @@ import { useVideoTrim } from "@/lib/use-video-trim";
 import { Camera, Check, FolderOpen, ImageIcon, Scissors } from "lucide-react";
 import { TrimEditor, saveTrim, type TrimValue } from "@/components/trim-editor";
 import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
-import { ALLOWED_VIDEO_TYPES, MAX_VIDEO_BYTES, type VideoUploadFolder } from "@/lib/video-constants";
+import { ALLOWED_VIDEO_TYPES, MAX_VIDEO_BYTES, MAX_VIDEO_SECONDS, type VideoUploadFolder } from "@/lib/video-constants";
 
 type UploadState = "idle" | "uploading" | "done" | "error";
 
@@ -29,6 +29,22 @@ type UploadState = "idle" | "uploading" | "done" | "error";
  * component's upload finishes. `onUploadStateChange` tells the parent
  * form when it's safe to submit (and blocks it otherwise).
  */
+/** Länge eines Videos in Sekunden (null, wenn der Browser sie nicht lesen kann). */
+function videoDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    const done = (value: number | null) => {
+      URL.revokeObjectURL(url);
+      resolve(value);
+    };
+    video.preload = "metadata";
+    video.onloadedmetadata = () => done(Number.isFinite(video.duration) ? video.duration : null);
+    video.onerror = () => done(null);
+    video.src = url;
+  });
+}
+
 export function VideoPickerInput({
   folder,
   urlFieldName = "videoUrl",
@@ -117,7 +133,14 @@ export function VideoPickerInput({
     }
     if (file.size > MAX_VIDEO_BYTES) {
       setStatus("error");
-      setError("Video darf maximal 200 MB groß sein.");
+      setError("Das Video ist zu groß — es geht bis zu 1 Minute.");
+      return;
+    }
+    // Luca 02.11.: max. 1 Minute — Länge aus den Metadaten lesen, bevor hochgeladen wird.
+    const seconds = await videoDuration(file);
+    if (seconds !== null && seconds > MAX_VIDEO_SECONDS + 2) {
+      setStatus("error");
+      setError("Das Video ist zu lang — es geht bis zu 1 Minute. Bitte vorher kürzen (z. B. in der Fotos-App).");
       return;
     }
 

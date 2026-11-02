@@ -9,9 +9,11 @@ export const VIDEO_EXTENSION_BY_MIME_TYPE: Record<string, string> = {
 
 export const ALLOWED_VIDEO_TYPES = Object.keys(VIDEO_EXTENSION_BY_MIME_TYPE);
 
-// Luca 23.10.: seit Cloudflare R2 200 MB (vorher 50 MB, Grenze des kostenlosen
-// Supabase-Speichers). Reicht für ca. 3 Minuten — so lang wie Instagram Reels.
-export const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+// Luca 02.11.: Videos max. 1 Minute (vorher 3) — schneller hochgeladen und geladen,
+// weniger Speicher. App: iOS schneidet beim Auswählen zu, Kamera stoppt nach 60 s;
+// Web: prüft die Länge vor dem Hochladen. 100 MB reichen für 1 Minute auch unverkleinert.
+export const MAX_VIDEO_SECONDS = 60;
+export const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 // Phase 29: every place a video gets uploaded to, one flat whitelist so the
 // upload-target API route can validate a requested folder instead of
