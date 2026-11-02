@@ -23,7 +23,7 @@ gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreic
   Fehler-Alarm (25.10.): `lib/error-alerts.ts`, `src/instrumentation.ts`, `/api/client-error`, `/admin/errors`, `/api/health` + `.github/workflows/uptime.yml`.
   Musik: Hinweis „keine Musik aus Instagram/TikTok“ über dem Rechte-Häkchen, Meldegrund „Musik ohne Rechte“ (25.10.).
   Seit 25.10. „Für dich“ rein nach Aktualität (neuester Beitrag oben; Duelle ab Live-Start), bis Boosts kommen.
-- **Rollen:** *Acro* = Marken-Konto (darf posten), *Assent* = Zuschauer (schaut, stimmt ab, folgt).
+- **Rollen:** *Acro* = Marken-Konto (darf posten), *Assent* = Zuschauer (schaut, stimmt ab, folgt). Name ist Pflicht (ältere Konten: `components/legal/name-notice.tsx`); öffentliches Zuschauer-Profil unter `/users/[id]` (`lib/public-profile.ts`, App: `GET /api/mobile/users/[id]`).
 - **Dieses Repo ist auch das Backend der nativen App:** alle `/api/mobile/*`-Routen (Bearer-Token-Auth).
 - **Native iOS-App** (Expo/React Native) läuft auf Testgeräten. Für den App Store fehlt noch der Apple-Developer-Account.
 - **Boost** (19 € für 48 h Ranking-Bonus) ist gebaut, aber pausiert (`src/lib/feature-flags.ts`).
