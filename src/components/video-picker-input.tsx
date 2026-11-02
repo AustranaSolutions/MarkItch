@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useVideoTrim } from "@/lib/use-video-trim";
 import { Camera, Check, FolderOpen, ImageIcon, Scissors } from "lucide-react";
 import { TrimEditor, saveTrim, type TrimValue } from "@/components/trim-editor";
 import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
@@ -54,6 +55,10 @@ export function VideoPickerInput({
   const [trim, setTrim] = useState<TrimValue | null>(null);
   const [trimOpen, setTrimOpen] = useState(false);
   const trimRef = useRef<TrimValue | null>(null);
+  // Luca 02.11.: gekürzt → die Vorschau zeigt nur den Ausschnitt.
+  const previewRef = useRef<HTMLVideoElement | null>(null);
+  const getPreview = useCallback(() => previewRef.current, []);
+  useVideoTrim(getPreview, trim);
   const persistTrim = (videoUrl: string, value: TrimValue | null) => {
     saveTrim(videoUrl, value).catch((err) => setThumbnailError(err instanceof Error ? err.message : "Kürzen fehlgeschlagen."));
   };
@@ -152,6 +157,7 @@ export function VideoPickerInput({
       {previewUrl && (
         <div className="relative mb-2">
           <video
+            ref={previewRef}
             src={previewUrl}
             className="max-h-80 w-full rounded-lg bg-black object-contain"
             controls
