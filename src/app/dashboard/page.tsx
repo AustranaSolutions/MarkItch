@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { getBrandAnalyticsSummary, getBrandContentBreakdown } from "@/lib/analytics";
+import { getMarkItchScoreSafe } from "@/lib/markitch-score";
+import { MarkItchScoreCard } from "@/components/dashboard/markitch-score-card";
 
 // Phase 16: always live — a brand checking their own numbers right after
 // posting shouldn't see a stale prerendered page.
@@ -36,12 +38,18 @@ export default async function DashboardPage() {
   const brand = await getBrandForUser(user.id);
   if (!brand) redirect("/profile");
 
-  const [summary, items] = await Promise.all([getBrandAnalyticsSummary(brand.id), getBrandContentBreakdown(brand.id)]);
+  const [summary, items, score] = await Promise.all([
+    getBrandAnalyticsSummary(brand.id),
+    getBrandContentBreakdown(brand.id),
+    getMarkItchScoreSafe(brand.id),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       <h1 className="mb-1 text-2xl font-bold text-white">Dashboard</h1>
       <p className="mb-6 text-sm text-zinc-500">Wie {brand.name} bei MarkItch performt.</p>
+
+      {score ? <MarkItchScoreCard score={score} /> : null}
 
       <div className="mb-8 grid grid-cols-3 gap-3">
         <StatCard label="Views" value={summary.views} />
