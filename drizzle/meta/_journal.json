@@ -344,6 +344,13 @@
       "when": 1793911764083,
       "tag": "0048_video_music",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1793915471719,
+      "tag": "0049_challenge_entries",
+      "breakpoints": true
     }
   ]
 }
