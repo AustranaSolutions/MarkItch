@@ -110,5 +110,5 @@ export const IndustryComplianceSchema = z.object({
 // PDF: "Rechtliche Freistellung (AGB)"), bei jedem Video-Upload mit Ton
 // (Solo-Pitch, Duell-Video, Reaktion, Creator-Video, Casting-Einreichung).
 export const AudioRightsSchema = z.object({
-  audioRightsConfirmed: z.literal("on", "Bitte bestätige, dass du alle Rechte am Ton hältst."),
+  audioRightsConfirmed: z.literal("on", "Bitte bestätige, dass du den Ton verwenden darfst."),
 });
