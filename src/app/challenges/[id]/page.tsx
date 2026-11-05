@@ -26,7 +26,10 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
   const viewer = await getOptionalUser();
   const details = await getChallengeDetails(id, viewer?.id ?? null).catch(() => null);
   if (!details) notFound();
-  const { brand, entries, stage } = details;
+  const { brand, stage } = details;
+  // Luca 05.11.: Marken/Creator und Zuschauer in einer Rangliste nach Likes.
+  const entries = details.allEntries;
+  const entryName = (e: (typeof entries)[number]) => (e.kind === "solo" ? e.brandName : e.authorName);
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
@@ -43,7 +46,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
 
       {stage === "finished" && entries.length > 0 && (
         <p className="mb-6 rounded-lg border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-sm text-orange-300">
-          🥇 Creator Winner {details.periodLabel}: {entries[0].brandName}
+          🥇 Creator Winner {details.periodLabel}: {entryName(entries[0])}
         </p>
       )}
 
@@ -52,14 +55,15 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
       ) : (
         <ol className="mb-6 space-y-2">
           {entries.map((e, i) => (
-            <li key={e.soloPitchId}>
+            <li key={e.key}>
               <Link
-                href={`/?pitch=${e.soloPitchId}`}
+                href={e.kind === "solo" ? `/?pitch=${e.soloPitchId}` : `/users/${e.authorUserId}`}
                 className="flex items-center justify-between rounded-lg border border-zinc-800 p-3 hover:border-zinc-600"
               >
                 <span className="text-sm text-white">
-                  {i < 3 ? MEDALS[i] : `${i + 1}.`} {e.brandName}
-                  {e.description ? <span className="ml-2 text-zinc-500">{e.description}</span> : null}
+                  {i < 3 ? MEDALS[i] : `${i + 1}.`} {entryName(e)}
+                  {e.kind === "solo" && e.description ? <span className="ml-2 text-zinc-500">{e.description}</span> : null}
+                  {e.kind === "reaction" ? <span className="ml-2 text-xs text-cyan-400">Community</span> : null}
                 </span>
                 <span className="text-xs text-zinc-400">🤍 {e.likeCount}</span>
               </Link>
@@ -68,7 +72,12 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
         </ol>
       )}
 
-      {details.canSubmit && (
+      {details.canSubmit && !details.viewerHasBrand && (
+        <p className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">
+          Mitmachen geht in der MarkItch-App: Challenge öffnen und auf „Mitmachen“ tippen.
+        </p>
+      )}
+      {details.canSubmit && details.viewerHasBrand && (
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
           <h2 className="mb-3 text-sm font-semibold text-white">Mitmachen</h2>
           <SoloPitchUploadForm challengeId={details.challenge.id} />

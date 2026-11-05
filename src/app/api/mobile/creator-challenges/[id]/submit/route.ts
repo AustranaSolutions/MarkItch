@@ -3,8 +3,9 @@ import { getOptionalUser } from "@/lib/session";
 import { submitToChallengeFor } from "@/lib/creator-challenge";
 import { fieldErrorResponse, isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
 
-// RN-7: bei einer Creator-Challenge mitmachen — ein normaler Solo-Pitch mit
-// Verweis auf die Challenge (Video liegt schon in solo-pitch-videos).
+// RN-7: bei einer Creator-Challenge mitmachen — Marken/Creator: ein normaler
+// Solo-Pitch mit Verweis auf die Challenge (solo-pitch-videos); Zuschauer
+// (Luca 05.11.): Community-Beitrag (reaction-videos).
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await getOptionalUser();
   if (!viewer) return unauthorized();
@@ -22,5 +23,5 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (body.paidPartnership === true) form.set("paidPartnership", "on");
   const result = await submitToChallengeFor(viewer, id, form);
   if (!result.ok) return fieldErrorResponse(result.errors);
-  return NextResponse.json({ soloPitchId: result.soloPitchId }, { status: 201 });
+  return NextResponse.json({ soloPitchId: result.soloPitchId, reactionId: result.reactionId ?? null }, { status: 201 });
 }

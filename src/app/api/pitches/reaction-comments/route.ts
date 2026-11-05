@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
 
   const [reaction] = await db
-    .select({ id: reactions.id, brandId: reactions.brandId, userId: reactions.userId, soloPitchId: reactions.soloPitchId })
+    .select({ id: reactions.id, brandId: reactions.brandId, userId: reactions.userId, soloPitchId: reactions.soloPitchId, creatorChallengeId: reactions.creatorChallengeId })
     .from(reactions)
     .where(eq(reactions.id, reactionId))
     .limit(1);
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   ]);
   // No dedicated reaction deep-link exists yet — points at the pitch the
   // reaction belongs to instead of a dead link.
-  await notifyUsers(memberIds, `${actor.label} hat eine Meinung zu deiner Reaktion geschrieben.`, `/?pitch=${reaction.soloPitchId}`, viewer.id);
+  await notifyUsers(memberIds, `${actor.label} hat eine Meinung zu deiner Reaktion geschrieben.`, reaction.soloPitchId ? `/?pitch=${reaction.soloPitchId}` : `/challenges/${reaction.creatorChallengeId}`, viewer.id);
   const list = await getCommentsForReaction(reactionId, viewer.id);
   return NextResponse.json({ comments: list });
 }

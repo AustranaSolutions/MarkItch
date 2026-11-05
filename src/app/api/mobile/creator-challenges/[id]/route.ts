@@ -17,6 +17,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     stage: details.stage,
     brand: details.brand,
     entries: details.entries,
+    allEntries: details.allEntries,
     isOwner: details.isOwner,
     canSubmit: details.canSubmit,
     viewerSubmitted: details.viewerSubmitted,

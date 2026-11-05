@@ -583,9 +583,11 @@ export const reactions = pgTable(
   "reactions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    soloPitchId: uuid("solo_pitch_id")
-      .notNull()
-      .references(() => soloPitches.id, { onDelete: "cascade" }),
+    // Luca 05.11.: entweder Reaktion auf einen Pitch (soloPitchId) oder
+    // Zuschauer-Beitrag zu einer Creator-Challenge (creatorChallengeId) —
+    // genau eines von beiden (CHECK in Migration 0049).
+    soloPitchId: uuid("solo_pitch_id").references(() => soloPitches.id, { onDelete: "cascade" }),
+    creatorChallengeId: uuid("creator_challenge_id").references((): AnyPgColumn => creatorChallenges.id, { onDelete: "cascade" }),
     // Phase E (Luca 04.10.): eine Reaktion kommt entweder von einer Marke
     // (brandId, „Anzeige“) oder von einem Zuschauer-Konto (userId,
     // „Community“) — genau eines von beiden ist gesetzt (CHECK in Migration 0039).
@@ -606,6 +608,10 @@ export const reactions = pgTable(
     index("reactions_parent_reaction_idx").on(table.parentReactionId),
     index("reactions_user_idx").on(table.userId),
     index("reactions_brand_idx").on(table.brandId),
+    // Luca 05.11.: ein Beitrag pro Zuschauer und Challenge.
+    uniqueIndex("reactions_challenge_user_idx")
+      .on(table.creatorChallengeId, table.userId)
+      .where(sql`${table.creatorChallengeId} is not null`),
   ],
 );
 

@@ -1,13 +1,18 @@
 import "server-only";
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, creatorChallenges, type CreatorChallenge } from "@/db/schema";
+import { brands, creatorChallenges, reactions, users, type CreatorChallenge } from "@/db/schema";
 import { getBrandForUser } from "@/lib/brand";
 import { currentPeriod, periodLabel } from "@/lib/creator-charts";
 import { getFeedSoloPitchesForChallenge, type FeedSoloPitch } from "@/lib/feed";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { createSoloPitchForUser } from "@/lib/solo-pitch";
 import { notifyFollowersOfNewCall } from "@/lib/follower-calls";
+import { enrichCommunityReactions, type FeedReaction } from "@/lib/community-feed";
+import { getAutoHiddenTargetIds } from "@/lib/moderation";
+import { getBlockedIds } from "@/lib/block";
+import { readVideoUrlField } from "@/lib/storage";
+import { AudioRightsSchema } from "@/lib/validation";
 
 // RN-7 (Luca 30.09.): Creator-Challenge. Eine Marke eröffnet sie für einen
 // Kalendermonat; ihre Creator (andere Marken-Accounts) reichen je einen
@@ -68,7 +73,15 @@ export type ChallengeDetails = {
   periodLabel: string;
   /** Rangliste: meiste Likes zuerst. Nach Monatsende sind die ersten drei die Gewinner. */
   entries: FeedSoloPitch[];
+  /**
+   * Luca 05.11.: Challenges sind für alle — Marken/Creator reichen einen
+   * Pitch ein (`entries`), Zuschauer einen Community-Beitrag. `allEntries`
+   * mischt beide zu einer Rangliste nach Likes (ältere Apps lesen `entries`).
+   */
+  allEntries: (FeedSoloPitch | FeedReaction)[];
   isOwner: boolean;
+  /** Marke/Creator (reicht einen Pitch ein) statt Zuschauer (Community-Beitrag). */
+  viewerHasBrand: boolean;
   canSubmit: boolean;
   viewerSubmitted: boolean;
 };
@@ -82,23 +95,57 @@ export async function getChallengeDetails(id: string, viewerId: string | null): 
     .limit(1);
   if (!row) return null;
 
-  const [entries, viewerBrand] = await Promise.all([
+  const [entries, viewerBrand, communityEntries, account] = await Promise.all([
     getFeedSoloPitchesForChallenge(viewerId, id),
     viewerId ? getBrandForUser(viewerId) : Promise.resolve(null),
+    getCommunityChallengeEntries(viewerId, id, row.brand),
+    viewerId
+      ? db.select({ accountType: users.accountType }).from(users).where(eq(users.id, viewerId)).limit(1).then((r) => r[0] ?? null)
+      : Promise.resolve(null),
   ]);
   const stage = challengeStage(row.challenge.period);
   const isOwner = viewerBrand?.id === row.brand.id;
-  const viewerSubmitted = viewerBrand ? entries.some((e) => e.brandId === viewerBrand.id) : false;
+  const viewerSubmitted = viewerBrand
+    ? entries.some((e) => e.brandId === viewerBrand.id)
+    : communityEntries.some((e) => e.authorUserId === viewerId);
+  // Mitmachen: Marken/Creator mit Profil, Zuschauer mit eigenem Konto (Acro ohne Marke muss sie erst anlegen).
+  const canParticipate = Boolean(viewerBrand) || account?.accountType === "assent";
+  const allEntries = [...entries, ...communityEntries].sort((a, b) => b.likeCount - a.likeCount);
   return {
     challenge: row.challenge,
     brand: row.brand,
     stage,
     periodLabel: periodLabel(row.challenge.period),
     entries,
+    allEntries,
     isOwner,
+    viewerHasBrand: Boolean(viewerBrand),
     viewerSubmitted,
-    canSubmit: Boolean(viewerBrand) && !isOwner && !viewerSubmitted && stage === "running",
+    canSubmit: canParticipate && !isOwner && !viewerSubmitted && stage === "running",
   };
+}
+
+/** Luca 05.11.: Zuschauer-Beiträge einer Challenge als Community-Karten (ohne gemeldete/blockierte). */
+async function getCommunityChallengeEntries(
+  viewerId: string | null,
+  challengeId: string,
+  host: { id: string; name: string; slug: string },
+): Promise<FeedReaction[]> {
+  const [rows, autoHiddenIds, blocked] = await Promise.all([
+    db
+      .select({ reaction: reactions, userName: users.name, userEmail: users.email })
+      .from(reactions)
+      .innerJoin(users, eq(reactions.userId, users.id))
+      .where(eq(reactions.creatorChallengeId, challengeId))
+      .orderBy(desc(reactions.createdAt)),
+    getAutoHiddenTargetIds(["reaction"]),
+    getBlockedIds(viewerId),
+  ]);
+  const visible = rows.filter((r) => !autoHiddenIds.has(r.reaction.id) && !blocked.userIds.has(r.reaction.userId!));
+  return enrichCommunityReactions(
+    viewerId,
+    visible.map((r) => ({ ...r, brandId: host.id, brandName: host.name, brandSlug: host.slug })),
+  );
 }
 
 /** Laufende und kommende Challenges einer Marke (fürs Profil), neueste Periode zuerst. */
@@ -135,13 +182,43 @@ export async function submitToChallengeFor(
   user: { id: string },
   challengeId: string,
   formData: FormData,
-): Promise<{ ok: true; soloPitchId: string } | { ok: false; errors: Record<string, string[]> }> {
+): Promise<
+  { ok: true; soloPitchId: string | null; reactionId?: string } | { ok: false; errors: Record<string, string[]> }
+> {
   const details = await getChallengeDetails(challengeId, user.id);
   if (!details) return { ok: false, errors: { _form: ["Diese Challenge gibt es nicht."] } };
   if (details.isOwner) return { ok: false, errors: { _form: ["Bei deiner eigenen Challenge kannst du nicht mitmachen."] } };
+  if (!details.canSubmit && !details.viewerSubmitted && details.stage === "running") {
+    return { ok: false, errors: { _form: ["Leg zuerst dein Marken- bzw. Creator-Profil an, um mitzumachen."] } };
+  }
   if (details.viewerSubmitted) return { ok: false, errors: { _form: ["Du hast bei dieser Challenge schon ein Video eingereicht."] } };
   if (details.stage === "upcoming") return { ok: false, errors: { _form: [`Die Challenge startet erst im ${details.periodLabel}.`] } };
   if (details.stage === "finished") return { ok: false, errors: { _form: ["Diese Challenge ist beendet."] } };
+
+  // Luca 05.11.: Zuschauer machen mit ihrem eigenen Konto mit — als Community-Beitrag (wie eine Reaktion).
+  const myBrand = await getBrandForUser(user.id);
+  if (!myBrand) {
+    const video = await readVideoUrlField(formData, "reaction-videos", user.id);
+    if ("error" in video) return { ok: false, errors: { videoUrl: [video.error] } };
+    const audioRights = AudioRightsSchema.safeParse({ audioRightsConfirmed: formData.get("audioRightsConfirmed") });
+    if (!audioRights.success) return { ok: false, errors: audioRights.error.flatten().fieldErrors as Record<string, string[]> };
+    const { allowed } = await checkRateLimit("reaction", `user:${user.id}`);
+    if (!allowed) return { ok: false, errors: { _form: [RATE_LIMIT_MESSAGE] } };
+    try {
+      const [created] = await db
+        .insert(reactions)
+        .values({
+          creatorChallengeId: challengeId,
+          userId: user.id,
+          videoUrl: video.videoUrl,
+          containsAiContent: formData.get("containsAiContent") === "on",
+        })
+        .returning({ id: reactions.id });
+      return { ok: true, soloPitchId: null, reactionId: created.id };
+    } catch {
+      return { ok: false, errors: { _form: ["Du hast bei dieser Challenge schon ein Video eingereicht."] } };
+    }
+  }
 
   try {
     const result = await createSoloPitchForUser(user.id, formData, { creatorChallengeId: challengeId });

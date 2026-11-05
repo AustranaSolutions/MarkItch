@@ -20,7 +20,10 @@ export type FeedReaction = {
   kind: "reaction";
   key: string; // `reaction:${reactionId}`
   reactionId: string;
-  soloPitchId: string;
+  /** null bei einem Zuschauer-Beitrag zu einer Creator-Challenge (dann creatorChallengeId). */
+  soloPitchId: string | null;
+  /** Luca 05.11.: Beitrag zu dieser Creator-Challenge (statt Reaktion auf einen Pitch). */
+  creatorChallengeId: string | null;
   parentReactionId: string | null;
   authorUserId: string;
   authorName: string;
@@ -124,6 +127,7 @@ export async function enrichCommunityReactions(viewerId: string | null, rows: Co
     key: `reaction:${r.reaction.id}`,
     reactionId: r.reaction.id,
     soloPitchId: r.reaction.soloPitchId,
+    creatorChallengeId: r.reaction.creatorChallengeId,
     parentReactionId: r.reaction.parentReactionId,
     authorUserId: r.reaction.userId!,
     authorName: communityName(r.userName),

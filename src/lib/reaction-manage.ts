@@ -62,7 +62,7 @@ export async function postReactionFor(user: { id: string }, formData: FormData):
     if (myBrand ? parent.brandId === myBrand.id : parent.userId === user.id) {
       return { ok: false, error: "Du kannst nicht auf deine eigene Reaktion antworten." };
     }
-    soloPitchId = parent.soloPitchId;
+    soloPitchId = parent.soloPitchId ?? pitch.id;
   } else if (myBrand && pitch.brandId === myBrand.id) {
     return { ok: false, error: "Du kannst nicht auf deinen eigenen Pitch reagieren." };
   }

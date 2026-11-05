@@ -130,7 +130,8 @@ export async function getViewerActivity(userId: string): Promise<ViewerActivity>
     taste,
     reactions: myReactions.map((r) => ({
       id: r.id,
-      soloPitchId: r.soloPitchId,
+      // innerJoin auf soloPitches → hier immer gesetzt (Challenge-Beiträge kommen nicht mit).
+      soloPitchId: r.soloPitchId ?? "",
       videoUrl: r.videoUrl,
       likeCount: likesByReaction.get(r.id) ?? 0,
       originalBrandName: r.originalBrandName,

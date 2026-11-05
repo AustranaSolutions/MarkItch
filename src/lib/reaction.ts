@@ -120,7 +120,7 @@ export async function getReactionCounts(soloPitchIds: string[]): Promise<Map<str
     .from(reactions)
     .where(inArray(reactions.soloPitchId, soloPitchIds))
     .groupBy(reactions.soloPitchId);
-  return new Map(rows.map((r) => [r.soloPitchId, r.n]));
+  return new Map(rows.flatMap((r) => (r.soloPitchId ? [[r.soloPitchId, r.n] as const] : [])));
 }
 
 export async function getReactionById(id: string): Promise<Reaction | null> {
@@ -147,6 +147,7 @@ export async function promoteReactionToBattle(reactionId: string, actingBrandId:
   if (!reaction.brandId) throw new Error("Nur die Reaktion einer Marke kann ein Duell werden.");
   const reactionBrandId = reaction.brandId;
 
+  if (!reaction.soloPitchId) throw new Error("Nur eine Reaktion auf einen Pitch kann ein Duell werden.");
   const [soloPitch] = await db.select().from(soloPitches).where(eq(soloPitches.id, reaction.soloPitchId)).limit(1);
   if (!soloPitch) throw new Error("Der zugehörige Pitch existiert nicht mehr.");
   if (soloPitch.brandId !== actingBrandId) throw new Error("Nur die Original-Marke kann eine Reaktion hochstufen.");

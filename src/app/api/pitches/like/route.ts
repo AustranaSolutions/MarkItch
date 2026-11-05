@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   if (typeof reactionId === "string" && reactionId) {
     const [reaction] = await db
-      .select({ brandId: reactions.brandId, userId: reactions.userId, soloPitchId: reactions.soloPitchId })
+      .select({ brandId: reactions.brandId, userId: reactions.userId, soloPitchId: reactions.soloPitchId, creatorChallengeId: reactions.creatorChallengeId })
       .from(reactions)
       .where(eq(reactions.id, reactionId))
       .limit(1);
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
         reaction.brandId ? getBrandMemberUserIds(reaction.brandId) : Promise.resolve(reaction.userId ? [reaction.userId] : []),
         getActorLabel(viewer.id),
       ]);
-      await notifyUsers(memberIds, `${actor.label} gefällt deine Reaktion.`, `/?pitch=${reaction.soloPitchId}`, viewer.id);
+      await notifyUsers(memberIds, `${actor.label} gefällt deine Reaktion.`, reaction.soloPitchId ? `/?pitch=${reaction.soloPitchId}` : `/challenges/${reaction.creatorChallengeId}`, viewer.id);
     }
     return NextResponse.json(result);
   }
