@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { castingSubmissions, partnerCastings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
+import { notifyFollowersOfNewCall } from "@/lib/follower-calls";
 
 // RN-5d: Partner-Casting starten / einreichen — gemeinsam genutzt von den
 // Web-Actions (actions/casting.ts) und den App-Routen (/api/mobile/castings*).
@@ -53,6 +54,7 @@ export async function startCastingFor(user: { id: string }, rawPrompt: unknown, 
   }
 
   const casting = await createCasting(myBrand.id, prompt, days);
+  notifyFollowersOfNewCall(myBrand, `📣 ${myBrand.name} sucht Partner: Partner-Casting eröffnet — jetzt ansehen und mitmachen!`, `/castings/${casting.id}`);
   return { ok: true, castingId: casting.id };
 }
 

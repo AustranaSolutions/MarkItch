@@ -7,6 +7,7 @@ import { currentPeriod, periodLabel } from "@/lib/creator-charts";
 import { getFeedSoloPitchesForChallenge, type FeedSoloPitch } from "@/lib/feed";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { createSoloPitchForUser } from "@/lib/solo-pitch";
+import { notifyFollowersOfNewCall } from "@/lib/follower-calls";
 
 // RN-7 (Luca 30.09.): Creator-Challenge. Eine Marke eröffnet sie für einen
 // Kalendermonat; ihre Creator (andere Marken-Accounts) reichen je einen
@@ -56,6 +57,7 @@ export async function openChallengeFor(user: { id: string }, input: { period: un
     .onConflictDoNothing()
     .returning({ id: creatorChallenges.id });
   if (!created) return { ok: false, error: `Für ${periodLabel(period)} hast du schon eine Challenge.` };
+  notifyFollowersOfNewCall(myBrand, `🏆 ${myBrand.name} hat eine Challenge für ${periodLabel(period)} eröffnet — jetzt ansehen und mitmachen!`, `/challenges/${created.id}`);
   return { ok: true, challengeId: created.id };
 }
 
