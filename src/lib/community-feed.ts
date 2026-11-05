@@ -1,7 +1,7 @@
 import "server-only";
-import { and, count, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, likes, reactions, soloPitches, users } from "@/db/schema";
+import { brands, creatorChallenges, likes, reactions, soloPitches, users } from "@/db/schema";
 import { getCommentCountsForReactions } from "@/lib/comment";
 import { getTrimMap, type VideoTrim } from "@/lib/video-trims";
 import { getMusicMap, type VideoMusic } from "@/lib/music-library";
@@ -44,6 +44,13 @@ export type FeedReaction = {
   createdAt: string; // ISO
 };
 
+/**
+ * Luca 05.11.: „Original“ einer Community-Reaktion — die Marke des Pitches
+ * bzw. bei einem Challenge-Beitrag die Marke, die die Challenge eröffnet hat.
+ * Alle geposteten Videos laufen so im Feed und im Profil mit.
+ */
+const ORIGINAL_BRAND_JOIN = sql`${brands.id} = coalesce(${soloPitches.brandId}, ${creatorChallenges.brandId})`;
+
 export type CommunityReactionRow = {
   reaction: typeof reactions.$inferSelect;
   userName: string | null;
@@ -67,8 +74,9 @@ export async function getEligibleCommunityReactions(viewerId: string | null): Pr
       })
       .from(reactions)
       .innerJoin(users, eq(reactions.userId, users.id))
-      .innerJoin(soloPitches, eq(reactions.soloPitchId, soloPitches.id))
-      .innerJoin(brands, eq(soloPitches.brandId, brands.id))
+      .leftJoin(soloPitches, eq(reactions.soloPitchId, soloPitches.id))
+      .leftJoin(creatorChallenges, eq(reactions.creatorChallengeId, creatorChallenges.id))
+      .innerJoin(brands, ORIGINAL_BRAND_JOIN)
       .where(isNotNull(reactions.userId))
       .orderBy(desc(reactions.createdAt)),
     getAutoHiddenTargetIds(["reaction"]),
@@ -95,8 +103,9 @@ export async function getCommunityReactionRowsForUser(userId: string): Promise<C
     })
     .from(reactions)
     .innerJoin(users, eq(reactions.userId, users.id))
-    .innerJoin(soloPitches, eq(reactions.soloPitchId, soloPitches.id))
-    .innerJoin(brands, eq(soloPitches.brandId, brands.id))
+    .leftJoin(soloPitches, eq(reactions.soloPitchId, soloPitches.id))
+    .leftJoin(creatorChallenges, eq(reactions.creatorChallengeId, creatorChallenges.id))
+    .innerJoin(brands, ORIGINAL_BRAND_JOIN)
     .where(eq(reactions.userId, userId))
     .orderBy(desc(reactions.createdAt));
 }

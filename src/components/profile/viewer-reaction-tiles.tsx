@@ -7,7 +7,9 @@ import { useVideoTrim, type Trim } from "@/lib/use-video-trim";
 
 export type ViewerReactionTile = {
   id: string;
-  soloPitchId: string;
+  soloPitchId: string | null;
+  /** Luca 05.11.: Challenge-Beitrag statt Reaktion auf einen Pitch. */
+  creatorChallengeId?: string | null;
   videoUrl: string;
   thumbnailUrl: string | null;
   likeCount: number;
@@ -39,7 +41,9 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
                 <video src={`${r.videoUrl}#t=0.1`} muted playsInline preload="metadata" className="h-full w-full object-cover" />
               )}
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-6 text-left">
-                <span className="block truncate text-xs font-semibold text-white">Auf {r.originalBrandName}</span>
+                <span className="block truncate text-xs font-semibold text-white">
+                  {r.soloPitchId ? "Auf" : "Challenge"} {r.originalBrandName}
+                </span>
                 <span className="block text-[11px] text-zinc-300">♥ {number(r.likeCount)}</span>
               </span>
             </button>
@@ -49,15 +53,20 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
       {open && (
         <div className="fixed inset-0 z-[120] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Reaktion">
           <div className="flex items-center justify-between px-4 pb-3" style={{ paddingTop: "calc(env(safe-area-inset-top) + 14px)" }}>
-            <span className="text-sm font-semibold text-white">Reaktion auf {open.originalBrandName}</span>
+            <span className="text-sm font-semibold text-white">
+              {open.soloPitchId ? "Reaktion auf" : "Challenge von"} {open.originalBrandName}
+            </span>
             <button onClick={() => setOpen(null)} aria-label="Schließen" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white">
               <X size={18} />
             </button>
           </div>
           <TrimmedVideo key={open.id} src={open.videoUrl} trim={open.trim} />
           <div className="p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
-            <Link href={`/?pitch=${open.soloPitchId}`} className="block rounded-full bg-orange-600 py-3 text-center text-sm font-bold text-white hover:bg-orange-500">
-              Original ansehen
+            <Link
+              href={open.soloPitchId ? `/?pitch=${open.soloPitchId}` : `/challenges/${open.creatorChallengeId}`}
+              className="block rounded-full bg-orange-600 py-3 text-center text-sm font-bold text-white hover:bg-orange-500"
+            >
+              {open.soloPitchId ? "Original ansehen" : "Zur Challenge"}
             </Link>
           </div>
         </div>

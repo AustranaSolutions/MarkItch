@@ -1,7 +1,7 @@
 import "server-only";
 import { and, count, desc, eq, gt, inArray, isNotNull, lt, sql, type AnyColumn } from "drizzle-orm";
 import { db } from "@/db";
-import { battles, brands, comments, follows, likes, reactions, soloPitches, votes } from "@/db/schema";
+import { battles, brands, comments, creatorChallenges, follows, likes, reactions, soloPitches, votes } from "@/db/schema";
 
 // Luca 11.10.: Zuschauer-Profil. Belohnt wird das Mitmachen, nie die
 // Richtung der Stimme — kein Tippspiel, sonst stimmen Leute für das, was
@@ -22,7 +22,9 @@ export type ViewerActivity = {
   taste: { withMajority: number; decided: number } | null;
   reactions: {
     id: string;
-    soloPitchId: string;
+    /** null bei einem Challenge-Beitrag (dann creatorChallengeId). */
+    soloPitchId: string | null;
+    creatorChallengeId: string | null;
     videoUrl: string;
     likeCount: number;
     originalBrandName: string;
@@ -72,13 +74,16 @@ export async function getViewerActivity(userId: string): Promise<ViewerActivity>
       .select({
         id: reactions.id,
         soloPitchId: reactions.soloPitchId,
+        creatorChallengeId: reactions.creatorChallengeId,
         videoUrl: reactions.videoUrl,
         createdAt: reactions.createdAt,
         originalBrandName: brands.name,
       })
       .from(reactions)
-      .innerJoin(soloPitches, eq(reactions.soloPitchId, soloPitches.id))
-      .innerJoin(brands, eq(soloPitches.brandId, brands.id))
+      // Luca 05.11.: auch Challenge-Beiträge (Marke = wer die Challenge eröffnet hat).
+      .leftJoin(soloPitches, eq(reactions.soloPitchId, soloPitches.id))
+      .leftJoin(creatorChallenges, eq(reactions.creatorChallengeId, creatorChallenges.id))
+      .innerJoin(brands, sql`${brands.id} = coalesce(${soloPitches.brandId}, ${creatorChallenges.brandId})`)
       .where(eq(reactions.userId, userId))
       .orderBy(desc(reactions.createdAt)),
   ]);
@@ -130,8 +135,8 @@ export async function getViewerActivity(userId: string): Promise<ViewerActivity>
     taste,
     reactions: myReactions.map((r) => ({
       id: r.id,
-      // innerJoin auf soloPitches → hier immer gesetzt (Challenge-Beiträge kommen nicht mit).
-      soloPitchId: r.soloPitchId ?? "",
+      soloPitchId: r.soloPitchId,
+      creatorChallengeId: r.creatorChallengeId,
       videoUrl: r.videoUrl,
       likeCount: likesByReaction.get(r.id) ?? 0,
       originalBrandName: r.originalBrandName,
