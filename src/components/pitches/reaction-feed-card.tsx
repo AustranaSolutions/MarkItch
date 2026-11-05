@@ -10,6 +10,7 @@ import type { ReactionRow } from "@/lib/reaction-threads";
 import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
 import { useVideoTrim } from "@/lib/use-video-trim";
+import { useVideoMusic } from "@/lib/use-video-music";
 import { ReactionOwnerMenu } from "@/components/pitches/reaction-owner-menu";
 
 /**
@@ -96,6 +97,7 @@ export function ReactionFeedCard({
   const getVideo = useCallback(() => videoRef.current, []);
   // Luca 25.10.: gekürzte Videos spielen nur den Ausschnitt.
   useVideoTrim(getVideo, reaction.trim);
+  useVideoMusic(getVideo, reaction.music);
   const edge = useEdgeFastForward(() => videoRef.current);
   const skipTap = useRef(false);
 

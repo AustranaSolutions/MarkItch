@@ -28,6 +28,7 @@ import {
 import { parseBrandKind, showsAdLabel, type BrandKind } from "@/lib/brand-kind";
 import { getThumbnailMap } from "@/lib/video-thumbnails";
 import { getTrimMap, type VideoTrim } from "@/lib/video-trims";
+import { getMusicMap, type VideoMusic } from "@/lib/music-library";
 
 // Phase 9.1 — one feed entry per Duell (battle), not per side.
 //
@@ -54,6 +55,8 @@ export type FeedDuelSide = {
   thumbnailUrl: string | null;
   /** Luca 25.10.: gekürzt → nur dieser Ausschnitt wird gespielt (lib/video-trims.ts). */
   trim: VideoTrim | null;
+  /** Luca 05.11.: Musik aus der Bibliothek (lib/music-library.ts), sonst null. */
+  music: VideoMusic | null;
   likeCount: number;
   viewerLiked: boolean;
   /** Hide the follow button on your own brand's side. */
@@ -164,7 +167,7 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
     { battleId: b.id, brandId: b.brandBId },
   ]);
 
-  const [tallies, officialTallies, commentCounts, likeCounts, viewerLikedKeys, viewerVotes, viewerBrand, followedBrandIds, viewCounts, thumbnails, trims] =
+  const [tallies, officialTallies, commentCounts, likeCounts, viewerLikedKeys, viewerVotes, viewerBrand, followedBrandIds, viewCounts, thumbnails, trims, musics] =
     await Promise.all([
       Promise.all(eligible.map((b) => getVoteTally(b.id, b.brandAId, b.brandBId))),
       // Phase 12: the frozen result at votingEndsAt — null for a battle
@@ -190,6 +193,11 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
         }),
       ),
       getTrimMap(
+        eligible.flatMap((b) => {
+          const { videoUrlA, videoUrlB } = resolveBattleVideos(b);
+          return [videoUrlA ?? "", videoUrlB ?? ""];
+        }),
+      ),      getMusicMap(
         eligible.flatMap((b) => {
           const { videoUrlA, videoUrlB } = resolveBattleVideos(b);
           return [videoUrlA ?? "", videoUrlB ?? ""];
@@ -250,6 +258,7 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
         videoUrl: videoUrls[i]!,
         thumbnailUrl: thumbnails.get(videoUrls[i]!) ?? null,
         trim: trims.get(videoUrls[i]!) ?? null,
+        music: musics.get(videoUrls[i]!) ?? null,
         likeCount: likeCounts.get(key) ?? 0,
         viewerLiked: viewerLikedKeys.has(key),
         viewerOwnsThisBrand: viewerBrand?.id === brand.id,
@@ -324,6 +333,8 @@ export type FeedSoloPitch = {
   thumbnailUrl: string | null;
   /** Luca 25.10.: siehe FeedDuelSide.trim. */
   trim: VideoTrim | null;
+  /** Luca 05.11.: siehe FeedDuelSide.music. */
+  music: VideoMusic | null;
   /** Phase 30: null only for content posted before this existed. */
   description: string | null;
   likeCount: number;
@@ -371,7 +382,7 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
   if (pitches.length === 0) return [];
 
   const ids = pitches.map((p) => p.id);
-  const [likeCounts, commentCounts, reactionCounts, viewerLikedIds, viewerBrand, followedBrandIds, boostedIds, viewCounts, contexts, thumbnails, trims] =
+  const [likeCounts, commentCounts, reactionCounts, viewerLikedIds, viewerBrand, followedBrandIds, boostedIds, viewCounts, contexts, thumbnails, trims, musics] =
     await Promise.all([
       getSoloPitchLikeCounts(ids),
       getCommentCountsForSoloPitches(ids),
@@ -384,6 +395,7 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
       getSoloPitchContexts(pitches),
       getThumbnailMap(pitches.map((p) => p.videoUrl)),
       getTrimMap(pitches.map((p) => p.videoUrl)),
+      getMusicMap(pitches.map((p) => p.videoUrl)),
     ]);
   const followedSet = new Set(followedBrandIds);
 
@@ -400,6 +412,7 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
     videoUrl: pitch.videoUrl,
     thumbnailUrl: thumbnails.get(pitch.videoUrl) ?? null,
     trim: trims.get(pitch.videoUrl) ?? null,
+    music: musics.get(pitch.videoUrl) ?? null,
     description: pitch.description,
     likeCount: likeCounts.get(pitch.id) ?? 0,
     viewerLiked: viewerLikedIds.has(pitch.id),

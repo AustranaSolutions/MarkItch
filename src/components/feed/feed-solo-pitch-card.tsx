@@ -15,6 +15,7 @@ import { BOOST_ENABLED } from "@/lib/feature-flags";
 import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
 import { useVideoTrim } from "@/lib/use-video-trim";
+import { useVideoMusic } from "@/lib/use-video-music";
 
 export function FeedSoloPitchCard({
   pitch,
@@ -119,6 +120,7 @@ export function FeedSoloPitchCard({
   const getVideo = useCallback(() => videoRef.current, []);
   // Luca 25.10.: gekürzte Videos spielen nur den Ausschnitt.
   useVideoTrim(getVideo, pitch.trim);
+  useVideoMusic(getVideo, pitch.music);
   const edge = useEdgeFastForward(() => videoRef.current);
   const skipTap = useRef(false);
 

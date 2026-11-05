@@ -24,6 +24,7 @@ import { trackAnalyticsEvent } from "@/lib/analytics-client";
 import { FastForwardBadge, isInEdgeZone, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
 import { useVideoTrim } from "@/lib/use-video-trim";
+import { useVideoMusic } from "@/lib/use-video-music";
 
 // Phase 39: both sides of a duel are now always mounted side by side (the
 // Phase 38 sliding carousel) instead of only the active one — the inactive
@@ -339,6 +340,7 @@ export function FeedDuelCard({
   const getVideo = useCallback(() => videoRefs.current[sideIndex], [sideIndex]);
   // Luca 25.10.: gekürzte Videos spielen nur den Ausschnitt.
   useVideoTrim(getVideo, side.trim);
+  useVideoMusic(getVideo, side.music);
   const edge = useEdgeFastForward(() => videoRefs.current[sideIndex]);
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
