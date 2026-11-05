@@ -1,5 +1,5 @@
 import { getOptionalUser } from "@/lib/session";
-import { getForYouFeed, getFeedDuelById, getFeedSoloPitchById } from "@/lib/feed";
+import { getForYouFeedWithReactions, getFeedDuelById, getFeedSoloPitchById, type FeedItemWithReactions } from "@/lib/feed";
 import { getBrandForUser } from "@/lib/brand";
 import { FeedClient } from "@/components/feed/feed-client";
 
@@ -17,7 +17,8 @@ export default async function Home({
   const { battle: focusBattleId, pitch: focusSoloPitchId, posted } = await searchParams;
   const user = await getOptionalUser();
   const [firstPage, viewerBrand] = await Promise.all([
-    getForYouFeed(user?.id ?? null, 0, 6),
+    // Luca 05.11.: Community-Reaktionen laufen auch auf der Website mit (wie in der App).
+    getForYouFeedWithReactions(user?.id ?? null, 0, 6),
     user ? getBrandForUser(user.id) : Promise.resolve(null),
   ]);
 
@@ -26,7 +27,7 @@ export default async function Home({
   // didn't happen to land on page 1 of the trending order, fetch it
   // directly and splice it in so FeedClient always has it to scroll to.
   // Phase 13: same idea for a solo pitch's share link.
-  let items = firstPage.items;
+  let items: FeedItemWithReactions[] = firstPage.items;
   if (focusBattleId && !items.some((i) => i.kind === "duel" && i.battleId === focusBattleId)) {
     const focusDuel = await getFeedDuelById(user?.id ?? null, focusBattleId);
     if (focusDuel) items = [focusDuel, ...items];

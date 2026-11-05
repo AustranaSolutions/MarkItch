@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { FeedDuel, FeedItem, FeedPage, FeedSoloPitch } from "@/lib/feed";
+import type { FeedDuel, FeedItemWithReactions, FeedSoloPitch } from "@/lib/feed";
+import type { FeedReaction } from "@/lib/community-feed";
+import { FeedCommunityCard } from "@/components/feed/feed-community-card";
 import { FeedDuelCard } from "@/components/feed/feed-duel-card";
 import { FeedSoloPitchCard } from "@/components/feed/feed-solo-pitch-card";
 import { CommentSheet, type CommentTarget } from "@/components/feed/comment-sheet";
@@ -38,7 +40,7 @@ export function FeedClient({
   focusBattleId,
   resetScroll,
 }: {
-  initialItems: FeedItem[];
+  initialItems: FeedItemWithReactions[];
   initialTotal: number;
   isLoggedIn: boolean;
   /** Viewer's own brand id, if they have one — gates "Pitch schicken"/"Hochstufen" without a per-card query. */
@@ -49,7 +51,7 @@ export function FeedClient({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("foryou");
-  const [items, setItems] = useState<FeedItem[]>(initialItems);
+  const [items, setItems] = useState<FeedItemWithReactions[]>(initialItems);
   const [total, setTotal] = useState(initialTotal);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -108,8 +110,8 @@ export function FeedClient({
     setLoading(true);
     setRequiresLogin(false);
     try {
-      const res = await fetch(`/api/feed?tab=${nextTab}&offset=0`);
-      const data: FeedPage & { requiresLogin?: boolean } = await res.json();
+      const res = await fetch(`/api/feed?tab=${nextTab}&offset=0&reactions=1`);
+      const data: { items: FeedItemWithReactions[]; total: number; followsAnyone?: boolean; requiresLogin?: boolean } = await res.json();
       setItems(data.items);
       setTotal(data.total);
       setRequiresLogin(Boolean(data.requiresLogin));
@@ -148,8 +150,8 @@ export function FeedClient({
     loadingRef.current = true;
     setLoading(true);
     try {
-      const res = await fetch(`/api/feed?tab=${tab}&offset=${items.length}`);
-      const data: FeedPage = await res.json();
+      const res = await fetch(`/api/feed?tab=${tab}&offset=${items.length}&reactions=1`);
+      const data: { items: FeedItemWithReactions[]; total: number } = await res.json();
       setItems((prev) => {
         const seen = new Set(prev.map((p) => p.key));
         return [...prev, ...data.items.filter((i) => !seen.has(i.key))];
@@ -327,9 +329,39 @@ export function FeedClient({
     }
   }
 
+  // Luca 05.11.: Community-Reaktionen im Feed (wie in der App).
+  function patchReaction(reactionId: string, patch: Partial<FeedReaction>) {
+    setItems((prev) =>
+      prev.map((item) => (item.kind === "reaction" && item.reactionId === reactionId ? { ...item, ...patch } : item)),
+    );
+  }
+
+  async function handleToggleLikeReaction(item: FeedReaction) {
+    patchReaction(item.reactionId, { viewerLiked: !item.viewerLiked, likeCount: item.likeCount + (item.viewerLiked ? -1 : 1) });
+    try {
+      const res = await fetch("/api/pitches/like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reactionId: item.reactionId }),
+      });
+      const data = await res.json();
+      if (res.ok) patchReaction(item.reactionId, { viewerLiked: data.liked, likeCount: data.count });
+      else patchReaction(item.reactionId, { viewerLiked: item.viewerLiked, likeCount: item.likeCount });
+    } catch {
+      patchReaction(item.reactionId, { viewerLiked: item.viewerLiked, likeCount: item.likeCount });
+    }
+  }
+
+  function handleShareReaction(item: FeedReaction) {
+    const path = item.soloPitchId ? `/?pitch=${item.soloPitchId}` : `/challenges/${item.creatorChallengeId}`;
+    const sep = path.includes("?") ? "&" : "?";
+    shareUrl(`${window.location.origin}${path}${sep}ref=reaction:${item.reactionId}`, `${item.authorName} auf MarkItch`);
+  }
+
   function handleCommentPosted(id: string) {
     setItems((prev) =>
       prev.map((item) => {
+        if (item.kind === "reaction" && item.reactionId === id) return { ...item, commentCount: item.commentCount + 1 };
         if (item.kind === "duel" && item.battleId === id) return { ...item, commentCount: item.commentCount + 1 };
         if (item.kind === "solo" && item.soloPitchId === id) return { ...item, commentCount: item.commentCount + 1 };
         return item;
@@ -382,6 +414,21 @@ export function FeedClient({
               <div
                 key={item.key}
                 className="relative h-[calc(100dvh-var(--bottom-nav-h))] w-full snap-start snap-always bg-black"
+              />
+            );
+          }
+          if (item.kind === "reaction") {
+            return (
+              <FeedCommunityCard
+                key={item.key}
+                item={item}
+                isLoggedIn={isLoggedIn}
+                muted={muted}
+                onToggleMute={() => setMuted((m) => !m)}
+                onToggleLike={handleToggleLikeReaction}
+                onOpenComments={(reactionId) => setCommentTarget({ kind: "reaction", id: reactionId })}
+                onShare={handleShareReaction}
+                onActive={() => handleActive(item.key)}
               />
             );
           }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, MessageSquareShare, Play, Share2, Volume2, VolumeX } from "lucide-react";
+import { CornerUpLeft, Heart, MessageCircle, MessageSquareShare, Play, Share2, Volume2, VolumeX } from "lucide-react";
 import { PromoteReactionButton } from "@/components/pitches/promote-reaction-button";
 import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
@@ -40,6 +40,7 @@ export function ReactionFeedCard({
   onOpenComments,
   onShare,
   onActive,
+  feedContext,
 }: {
   reaction: ReactionRow;
   isLoggedIn: boolean;
@@ -53,6 +54,11 @@ export function ReactionFeedCard({
   onShare: (reaction: ReactionRow) => void;
   /** Tells ReactionsFeed this card is the one on screen now, so it can keep only nearby cards' videos mounted. */
   onActive?: () => void;
+  /**
+   * Luca 05.11.: im „Für dich“-Feed (Website = App) — zeigt, worauf sich die
+   * Community-Reaktion bezieht, plus Weg zum Original bzw. zur Challenge.
+   */
+  feedContext?: { label: string; href: string; linkLabel: string };
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -189,7 +195,7 @@ export function ReactionFeedCard({
             )
           )}
           <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
-            {reaction.parentReactionId ? "Antwort im Thread" : "Reaktion"}
+            {feedContext ? feedContext.label : reaction.parentReactionId ? "Antwort im Thread" : "Reaktion"}
           </span>
           {reaction.brand ? (
             <AdLabel />
@@ -198,6 +204,14 @@ export function ReactionFeedCard({
           )}
           {reaction.containsAiContent && <AiContentLabel />}
         </div>
+        {feedContext && (
+          <Link
+            href={feedContext.href}
+            className="pointer-events-auto mb-2 inline-flex items-center gap-1 rounded-full border border-orange-400/60 px-3 py-1 text-sm text-orange-300 hover:bg-orange-500/10"
+          >
+            <CornerUpLeft size={13} /> {feedContext.linkLabel}
+          </Link>
+        )}
         {reaction.promotedToBattleId && (
           <Link href={`/pitches/${reaction.promotedToBattleId}`} className="pointer-events-auto text-sm text-orange-400 hover:underline">
             Duell ansehen →
