@@ -986,6 +986,20 @@ export type PostDraft = typeof postDrafts.$inferSelect;
 // Luca 25.10.: Video kürzen ohne Neuberechnen — der Player spielt nur
 // [startMs, endMs). Pro Video-Adresse wie video_thumbnails, damit dieselbe
 // Kürzung als Pitch, Duell-Seite und Reaktion gilt.
+// Luca 05.11.: Musik aus der MarkItch-Bibliothek unter einem Video — wie die
+// Kürzung nur gespeichert (kein Neuberechnen): App und Web spielen den Titel
+// in Schleife mit, Lautstärken in Prozent (Original 0 = stumm).
+export const videoMusic = pgTable("video_music", {
+  videoUrl: text("video_url").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  trackId: text("track_id").notNull(),
+  musicVolume: integer("music_volume").notNull().default(80),
+  originalVolume: integer("original_volume").notNull().default(100),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const videoTrims = pgTable("video_trims", {
   videoUrl: text("video_url").primaryKey(),
   userId: uuid("user_id")
