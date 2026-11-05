@@ -6,7 +6,7 @@
 export type MusicTrack = { id: string; title: string; artist: string; url: string };
 
 export const MUSIC_TRACKS: MusicTrack[] = [
-  { id: "happy-werbung", title: "Happy Werbung", artist: "MarkItch", url: "/music/happy-werbung.mp3" },
-  { id: "folk-house-drop", title: "Folk House Drop", artist: "MarkItch", url: "/music/folk-house-drop.mp3" },
-  { id: "synthpop-euphoric-drop", title: "SynthPop Euphoric Drop", artist: "MarkItch", url: "/music/synthpop-euphoric-drop.mp3" },
+  { id: "happy-werbung", title: "Happy Werbung", artist: "MarkItch", url: "/music/happy-werbung.m4a" },
+  { id: "folk-house-drop", title: "Folk House Drop", artist: "MarkItch", url: "/music/folk-house-drop.m4a" },
+  { id: "synthpop-euphoric-drop", title: "SynthPop Euphoric Drop", artist: "MarkItch", url: "/music/synthpop-euphoric-drop.m4a" },
 ];
