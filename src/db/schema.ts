@@ -327,6 +327,8 @@ export const notifications = pgTable("notifications", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   message: text("message").notNull(),
+  // Luca 12.11.: englische Fassung — angezeigt wird je nach Sprache des Lesers.
+  messageEn: text("message_en"),
   battleId: uuid("battle_id").references(() => battles.id, { onDelete: "cascade" }),
   // Phase 35: a plain relative URL (e.g. "/?pitch=<id>", "/brands/<slug>") —
   // added so follow/like/comment notifications (which aren't always about a
@@ -515,6 +517,8 @@ export const mobilePushTokens = pgTable("mobile_push_tokens", {
     .references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull(),
   platform: text("platform").notNull(),
+  // Luca 12.11.: Sprache der App auf diesem Gerät — Pushes kommen darin.
+  language: text("language").notNull().default("de"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [uniqueIndex("mobile_push_tokens_token_unique_idx").on(table.token)]);

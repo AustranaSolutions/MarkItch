@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { recordVisitorEvent, type VisitorEventKind } from "@/lib/analytics";
+import { apiError } from "@/lib/api-error";
 
 const VALID_KINDS: VisitorEventKind[] = ["session_start", "register_started"];
 
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
   const kind = body?.kind;
   const ref = typeof body?.ref === "string" && body.ref ? body.ref.slice(0, 200) : null;
   if (typeof anonId !== "string" || !anonId || !VALID_KINDS.includes(kind)) {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 
   const viewer = await getOptionalUser();

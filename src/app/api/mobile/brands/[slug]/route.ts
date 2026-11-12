@@ -10,6 +10,7 @@ import { getFeedSoloPitchesForBrand, getFeedDuelsForBrand } from "@/lib/feed";
 import { getBlockedIds } from "@/lib/block";
 import { brandAccent } from "@/lib/brand-color";
 import { defaultProfileButton, profileButtonOf, publicLocationLabel } from "@/lib/brand-details";
+import { apiError } from "@/lib/api-error";
 
 // Luca 24.10.: hängt die Datenbank-Verbindung (Supabase-Aussetzer), nach 30 s
 // abbrechen statt 300 s Rechenzeit zu verbrauchen — die App zeigt dann „nochmal versuchen“.
@@ -19,7 +20,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const { slug } = await params;
   const [brand] = await db.select().from(brands).where(eq(brands.slug, slug)).limit(1);
   if (!brand) {
-    return NextResponse.json({ error: "Diese Marke gibt es nicht." }, { status: 404 });
+    return await apiError({ error: "Diese Marke gibt es nicht." }, { status: 404 });
   }
 
   const viewer = await getOptionalUser();

@@ -62,7 +62,10 @@ export async function openChallengeFor(user: { id: string }, input: { period: un
     .onConflictDoNothing()
     .returning({ id: creatorChallenges.id });
   if (!created) return { ok: false, error: `Für ${periodLabel(period)} hast du schon eine Challenge.` };
-  notifyFollowersOfNewCall(myBrand, `🏆 ${myBrand.name} hat eine Challenge für ${periodLabel(period)} eröffnet — jetzt ansehen und mitmachen!`, `/challenges/${created.id}`);
+  notifyFollowersOfNewCall(myBrand, {
+    de: `🏆 ${myBrand.name} hat eine Challenge für ${periodLabel(period)} eröffnet — jetzt ansehen und mitmachen!`,
+    en: `🏆 ${myBrand.name} opened a challenge for ${periodLabel(period, "en")} — check it out and join!`,
+  }, `/challenges/${created.id}`);
   return { ok: true, challengeId: created.id };
 }
 

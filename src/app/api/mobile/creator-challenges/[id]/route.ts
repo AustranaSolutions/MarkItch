@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { deleteChallengeFor, getChallengeDetails } from "@/lib/creator-challenge";
 import { isUuid, unauthorized } from "@/lib/mobile-auth";
+import { apiError } from "@/lib/api-error";
 
 // RN-7: eine Creator-Challenge mit Rangliste (Einreichungen als Feed-Karten, meiste Likes zuerst).
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const viewer = await getOptionalUser();
   const details = isUuid(id) ? await getChallengeDetails(id, viewer?.id ?? null) : null;
-  if (!details) return NextResponse.json({ error: "Diese Challenge gibt es nicht." }, { status: 404 });
+  if (!details) return await apiError({ error: "Diese Challenge gibt es nicht." }, { status: 404 });
   return NextResponse.json({
     id: details.challenge.id,
     prompt: details.challenge.prompt,
@@ -29,8 +30,8 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   const viewer = await getOptionalUser();
   if (!viewer) return unauthorized();
   const { id } = await params;
-  if (!isUuid(id)) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
+  if (!isUuid(id)) return await apiError({ error: "Nicht gefunden." }, { status: 404 });
   const result = await deleteChallengeFor(viewer, id);
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 403 });
+  if (!result.ok) return await apiError({ error: result.error }, { status: 403 });
   return NextResponse.json({ ok: true });
 }

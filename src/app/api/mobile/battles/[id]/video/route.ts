@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { submitBattleVideoFor } from "@/lib/battle-video";
 import { isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
+import { apiError } from "@/lib/api-error";
 
 // RN-5b: eigenes Duell-Video einreichen — gleiche Logik wie die Web-Action
 // uploadBattleVideo. Das Video liegt schon im Speicher (Direkt-Upload in den
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const viewer = await getOptionalUser();
   if (!viewer) return unauthorized();
   const { id } = await params;
-  if (!isUuid(id)) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
+  if (!isUuid(id)) return await apiError({ error: "Nicht gefunden." }, { status: 404 });
   const body = await readJsonBody(request);
   const text = (value: unknown) => (typeof value === "string" ? value : "");
   const form = new FormData();
@@ -22,6 +23,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (body.paidPartnership === true) form.set("paidPartnership", "on");
 
   const result = await submitBattleVideoFor(viewer, id, form);
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+  if (!result.ok) return await apiError({ error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { checkAdminKey } from "@/lib/admin-key";
 import { r2Enabled, r2Exists, r2PublicPrefix, r2Put } from "@/lib/r2";
+import { apiError } from "@/lib/api-error";
 
 // Luca 23.10.: Umzug der bestehenden Videos und Bilder von Supabase Storage
 // nach Cloudflare R2. Etappenweise (pro Aufruf höchstens `limit` Dateien),
@@ -58,8 +59,8 @@ async function repointUrl(oldUrl: string, newUrl: string): Promise<number> {
 export async function POST(request: NextRequest) {
   const denied = checkAdminKey(request);
   if (denied) return denied;
-  if (!r2Enabled) return NextResponse.json({ error: "R2 ist noch nicht vollständig eingerichtet (R2_PUBLIC_URL?)." }, { status: 400 });
-  if (!SUPABASE_URL) return NextResponse.json({ error: "Kein Supabase Storage konfiguriert." }, { status: 400 });
+  if (!r2Enabled) return await apiError({ error: "R2 ist noch nicht vollständig eingerichtet (R2_PUBLIC_URL?)." }, { status: 400 });
+  if (!SUPABASE_URL) return await apiError({ error: "Kein Supabase Storage konfiguriert." }, { status: 400 });
 
   const body = await request.json().catch(() => null);
   const dryRun = body?.dryRun !== false;

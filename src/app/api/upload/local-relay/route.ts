@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { writeLocalUpload } from "@/lib/storage";
 import { MAX_VIDEO_BYTES } from "@/lib/video-constants";
+import { apiError } from "@/lib/api-error";
 
 /**
  * Phase 29: dev-only counterpart to Supabase's signed upload URL (see
@@ -14,7 +15,7 @@ import { MAX_VIDEO_BYTES } from "@/lib/video-constants";
 export async function PUT(request: NextRequest) {
   const viewer = await getOptionalUser();
   if (!viewer) {
-    return NextResponse.json({ error: "Bitte melde dich an." }, { status: 401 });
+    return await apiError({ error: "Bitte melde dich an." }, { status: 401 });
   }
 
   const key = request.nextUrl.searchParams.get("key");
@@ -23,12 +24,12 @@ export async function PUT(request: NextRequest) {
   // to escape the uploads directory.
   // Audit 04.10. (M5): nur in den eigenen Ordner (<folder>/<userId>/…).
   if (!key || key.includes("..") || key.startsWith("/") || key.split("/")[1] !== viewer.id) {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 
   const bytes = Buffer.from(await request.arrayBuffer());
   if (bytes.length === 0 || bytes.length > MAX_VIDEO_BYTES) {
-    return NextResponse.json({ error: "Ungültige Dateigröße." }, { status: 400 });
+    return await apiError({ error: "Ungültige Dateigröße." }, { status: 400 });
   }
 
   await writeLocalUpload(key, bytes);

@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { brands } from "@/db/schema";
 import { recordAnalyticsEvents, type AnalyticsEventInput, type AnalyticsEventKind } from "@/lib/analytics";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { apiError } from "@/lib/api-error";
 
 /**
  * View/share tracking — deliberately open to anyone, logged-in or not (a
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     .filter((e): e is AnalyticsEventInput => e !== null)
     .slice(0, 20);
   if (events.length === 0) {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 
   const brandIds: string[] = [...new Set(events.map((e: AnalyticsEventInput) => e.brandId))];
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
   const validBrandIds = new Set(validBrands.map((b) => b.id));
   const validEvents = events.filter((e: AnalyticsEventInput) => validBrandIds.has(e.brandId));
   if (validEvents.length === 0) {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 
   await recordAnalyticsEvents(validEvents);

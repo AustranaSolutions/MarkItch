@@ -9,6 +9,7 @@ import { sendChallengeFor, sendChallengeFromSoloPitchFor } from "@/lib/challenge
 import { getBattlesAwaitingVideoFrom } from "@/lib/upcoming-battles";
 import { DUEL_CATEGORIES } from "@/lib/battle-format";
 import { isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
+import { apiError } from "@/lib/api-error";
 
 // RN-5b: Duell-Einladungen der eigenen Marke (Gegenstück zu
 // /profile/settings#einladungen) + Duelle, bei denen das eigene Video fehlt
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
   const body = await readJsonBody(request);
   const targetId = body.soloPitchId ?? body.challengedBrandId;
   if (typeof targetId !== "string" || !isUuid(targetId)) {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   }
   let video: FormData | null = null;
   if (typeof body.videoUrl === "string" && body.videoUrl) {
@@ -95,6 +96,6 @@ export async function POST(request: NextRequest) {
         productionDays: body.productionDays,
         video,
       });
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+  if (!result.ok) return await apiError({ error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true }, { status: 201 });
 }

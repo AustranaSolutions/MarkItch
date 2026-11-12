@@ -7,6 +7,7 @@ import { getBrandForUser } from "@/lib/brand";
 import { isAdminEmail } from "@/lib/moderation";
 import { deleteAccountForUser, updateProfileForUser } from "@/lib/account";
 import { fieldErrorResponse, readJsonBody, unauthorized } from "@/lib/mobile-auth";
+import { apiError } from "@/lib/api-error";
 
 /** RN-4: Daten für die Einstellungen-Seite der App (Gegenstück zu /profile/settings). */
 export async function GET() {
@@ -45,7 +46,7 @@ export async function PATCH(request: NextRequest) {
   const viewer = await getOptionalUser();
   if (!viewer) return unauthorized();
   const form = await request.formData().catch(() => null);
-  if (!form) return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+  if (!form) return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   const avatar = form.get("avatar");
   const result = await updateProfileForUser(viewer.id, {
     name: form.get("name"),

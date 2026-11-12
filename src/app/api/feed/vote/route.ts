@@ -5,11 +5,12 @@ import { battles } from "@/db/schema";
 import { getOptionalUser } from "@/lib/session";
 import { castVoteForUser, getVoteTally, publicTally } from "@/lib/vote";
 import { checkRateLimit, getClientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
+import { apiError } from "@/lib/api-error";
 
 export async function POST(request: NextRequest) {
   const viewer = await getOptionalUser();
   if (!viewer) {
-    return NextResponse.json({ error: "Bitte melde dich an." }, { status: 401 });
+    return await apiError({ error: "Bitte melde dich an." }, { status: 401 });
   }
 
   // Phase 14: per-IP, not per-user — the unique index on (battleId, userId)
@@ -17,19 +18,19 @@ export async function POST(request: NextRequest) {
   // a script spinning through many accounts from the same place instead.
   const { allowed } = await checkRateLimit("vote", await getClientIp(request));
   if (!allowed) {
-    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    return await apiError({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
   }
 
   const body = await request.json().catch(() => null);
   const battleId = body?.battleId;
   const votedForBrandId = body?.votedForBrandId;
   if (typeof battleId !== "string" || typeof votedForBrandId !== "string" || !battleId || !votedForBrandId) {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 
   const result = await castVoteForUser(viewer.id, battleId, votedForBrandId);
   if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return await apiError({ error: result.error }, { status: 400 });
   }
 
   const [battle] = await db.select().from(battles).where(eq(battles.id, battleId)).limit(1);

@@ -326,6 +326,26 @@ export async function resolveReport(reportId: string): Promise<void> {
  * brands/voters are part of, too destructive to trigger from a report;
  * ban the brand's owner(s) instead.
  */
+const CONTENT_LABEL_EN: Record<ReportTargetType, string> = {
+  solo_pitch: "your video",
+  reaction: "your reaction",
+  comment: "your comment",
+  battle_a: "your duel video",
+  battle_b: "your duel video",
+  casting_submission: "your casting submission",
+  creator_submission: "your challenge submission",
+  brand: "your profile",
+};
+const REASON_EN: Record<string, string> = {
+  "Unangemessener Inhalt": "Inappropriate content",
+  "Spam oder Betrug": "Spam or scam",
+  "Beleidigung oder Belästigung": "Insults or harassment",
+  "Musik ohne Rechte": "Music without rights",
+  Urheberrechtsverletzung: "Copyright infringement",
+  Sonstiges: "Other",
+  "Verstoß gegen die Nutzungsbedingungen": "Violation of the Terms of Use",
+};
+
 const CONTENT_LABEL: Record<ReportTargetType, string> = {
   solo_pitch: "dein Video",
   reaction: "deine Reaktion",
@@ -408,7 +428,14 @@ async function notifyRemoval(ownerIds: string[], targetType: ReportTargetType, t
   const reason = latest?.reason ?? "Verstoß gegen die Nutzungsbedingungen";
   const label = CONTENT_LABEL[targetType];
   const message = `Wir haben ${label} entfernt. Grund: ${reason}. Widerspruch: support@markitch.com`;
-  await notifyUsers(ownerIds, message, null);
+  await notifyUsers(
+    ownerIds,
+    {
+      de: message,
+      en: `We removed ${CONTENT_LABEL_EN[targetType]}. Reason: ${REASON_EN[reason] ?? reason}. To appeal: support@markitch.com`,
+    },
+    null,
+  );
   const owners = await db.select({ email: users.email }).from(users).where(inArray(users.id, ownerIds));
   await Promise.all(
     owners.map((o) =>

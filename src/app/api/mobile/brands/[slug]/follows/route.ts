@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { brands } from "@/db/schema";
 import { getFollowersForBrand, getFollowingForBrand } from "@/lib/follow";
+import { apiError } from "@/lib/api-error";
 
 /**
  * RN-7b: „Follower“ bzw. „Folgt“ einer Marke für die App — dieselben Listen
@@ -13,7 +14,7 @@ import { getFollowersForBrand, getFollowingForBrand } from "@/lib/follow";
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [brand] = await db.select({ id: brands.id, name: brands.name }).from(brands).where(eq(brands.slug, slug)).limit(1);
-  if (!brand) return NextResponse.json({ error: "Diese Marke gibt es nicht." }, { status: 404 });
+  if (!brand) return await apiError({ error: "Diese Marke gibt es nicht." }, { status: 404 });
 
   if (request.nextUrl.searchParams.get("type") === "following") {
     const rows = await getFollowingForBrand(brand.id);

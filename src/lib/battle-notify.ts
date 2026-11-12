@@ -26,11 +26,12 @@ import { getReminderUserIds } from "@/lib/reminder";
  */
 const RECENT_MS = 7 * 24 * 60 * 60 * 1000;
 
-type Note = { userId: string; message: string };
+type Msg = { de: string; en: string };
+type Note = { userId: string; message: Msg };
 
-async function deliver(notes: Note[], title: string, url: string): Promise<void> {
+async function deliver(notes: Note[], title: Msg, url: string): Promise<void> {
   if (notes.length === 0) return;
-  await db.insert(notifications).values(notes.map((n) => ({ userId: n.userId, message: n.message, link: url })));
+  await db.insert(notifications).values(notes.map((n) => ({ userId: n.userId, message: n.message.de, messageEn: n.message.en, link: url })));
   await Promise.all(notes.map((n) => sendPushToUser(n.userId, { title, body: n.message, url }).catch(() => {})));
 }
 
@@ -72,11 +73,20 @@ export async function finalizeAndNotifyBattle(battleId: string): Promise<void> {
     const reminderUserIds = await getReminderUserIds(battle.id);
     const notes: Note[] = [];
     const side = (members: string[], other: string, ownHasVideo: boolean, otherHasVideo: boolean) => {
-      const message = ownHasVideo
-        ? `Dein Duell gegen ${other} ist beendet: ${other} hat kein Video rechtzeitig hochgeladen. Es fand keine Abstimmung statt — dein Video bleibt in deinem Profil.`
+      const message: Msg = ownHasVideo
+        ? {
+            de: `Dein Duell gegen ${other} ist beendet: ${other} hat kein Video rechtzeitig hochgeladen. Es fand keine Abstimmung statt — dein Video bleibt in deinem Profil.`,
+            en: `Your duel against ${other} has ended: ${other} didn’t upload a video in time. There was no vote — your video stays on your profile.`,
+          }
         : otherHasVideo
-          ? `Dein Duell gegen ${other} ist beendet, weil du kein Video rechtzeitig hochgeladen hast. Beim nächsten Mal an die Frist denken!`
-          : `Dein Duell gegen ${other} ist beendet: Keine Seite hat rechtzeitig ein Video hochgeladen.`;
+          ? {
+              de: `Dein Duell gegen ${other} ist beendet, weil du kein Video rechtzeitig hochgeladen hast. Beim nächsten Mal an die Frist denken!`,
+              en: `Your duel against ${other} has ended because you didn’t upload a video in time. Keep the deadline in mind next time!`,
+            }
+          : {
+              de: `Dein Duell gegen ${other} ist beendet: Keine Seite hat rechtzeitig ein Video hochgeladen.`,
+              en: `Your duel against ${other} has ended: neither side uploaded a video in time.`,
+            };
       for (const userId of members) notes.push({ userId, message });
     };
     const hasA = Boolean(battle.brandAVideoUrl);
@@ -86,9 +96,15 @@ export async function finalizeAndNotifyBattle(battleId: string): Promise<void> {
     const participants = new Set([...membersA, ...membersB]);
     for (const userId of reminderUserIds) {
       if (participants.has(userId)) continue;
-      notes.push({ userId, message: `Das vorgemerkte Duell ${brandAName} vs. ${brandBName} findet nicht statt — es wurden nicht beide Videos rechtzeitig hochgeladen.` });
+      notes.push({
+        userId,
+        message: {
+          de: `Das vorgemerkte Duell ${brandAName} vs. ${brandBName} findet nicht statt — es wurden nicht beide Videos rechtzeitig hochgeladen.`,
+          en: `The duel you saved, ${brandAName} vs. ${brandBName}, won’t happen — not both videos were uploaded in time.`,
+        },
+      });
     }
-    await deliver(notes, `Duell ${brandAName} vs. ${brandBName} beendet`, url);
+    await deliver(notes, { de: `Duell ${brandAName} vs. ${brandBName} beendet`, en: `Duel ${brandAName} vs. ${brandBName} ended` }, url);
     return;
   }
 
@@ -100,12 +116,12 @@ export async function finalizeAndNotifyBattle(battleId: string): Promise<void> {
       .where(eq(votes.battleId, battle.id)),
   ]);
 
-  const title =
+  const winner = official.brandAVotes > official.brandBVotes ? brandAName : brandBName;
+  const loser = official.brandAVotes > official.brandBVotes ? brandBName : brandAName;
+  const title: Msg =
     official.brandAVotes === official.brandBVotes
-      ? `🤝 Unentschieden: ${brandAName} vs. ${brandBName}`
-      : official.brandAVotes > official.brandBVotes
-        ? `🏆 ${brandAName} gewinnt gegen ${brandBName}!`
-        : `🏆 ${brandBName} gewinnt gegen ${brandAName}!`;
+      ? { de: `🤝 Unentschieden: ${brandAName} vs. ${brandBName}`, en: `🤝 Tie: ${brandAName} vs. ${brandBName}` }
+      : { de: `🏆 ${winner} gewinnt gegen ${loser}!`, en: `🏆 ${winner} beats ${loser}!` };
 
   // Luca 11.10.: persönlich, aber ohne „richtig/falsch“ — wer gewinnt, ist
   // keine Wette. Nur: wofür du gestimmt hast und wie viele es so sahen wie du.
@@ -116,18 +132,27 @@ export async function finalizeAndNotifyBattle(battleId: string): Promise<void> {
     const pickedA = votedForBrandId === battle.brandAId;
     const picked = pickedA ? brandAName : brandBName;
     const same = pickedA ? official.brandAVotes : official.brandBVotes;
-    return `Ergebnis ${brandAName} vs. ${brandBName}: Du hast ${picked} gewählt — ${pct(same)} % sahen es wie du.`;
+    return {
+      de: `Ergebnis ${brandAName} vs. ${brandBName}: Du hast ${picked} gewählt — ${pct(same)} % sahen es wie du.`,
+      en: `Result ${brandAName} vs. ${brandBName}: you voted for ${picked} — ${pct(same)}% agreed with you.`,
+    };
   };
 
   // Luca 22.10.: auch die beiden Teilnehmer erfahren ihr Ergebnis.
-  const resultFor = (ownVotes: number, otherVotes: number, other: string) =>
+  const resultFor = (ownVotes: number, otherVotes: number, other: string): Msg =>
     total === 0
-      ? `Dein Duell gegen ${other} ist beendet — leider hat niemand abgestimmt.`
+      ? { de: `Dein Duell gegen ${other} ist beendet — leider hat niemand abgestimmt.`, en: `Your duel against ${other} has ended — unfortunately nobody voted.` }
       : ownVotes === otherVotes
-        ? `Dein Duell gegen ${other} ist beendet: Unentschieden (${total} Stimmen).`
+        ? { de: `Dein Duell gegen ${other} ist beendet: Unentschieden (${total} Stimmen).`, en: `Your duel against ${other} has ended: it’s a tie (${total} votes).` }
         : ownVotes > otherVotes
-          ? `🏆 Du hast dein Duell gegen ${other} gewonnen — mit ${pct(ownVotes)} % von ${total} Stimmen!`
-          : `Dein Duell gegen ${other} ist beendet: ${pct(ownVotes)} % von ${total} Stimmen für dich. Nächstes Mal!`;
+          ? {
+              de: `🏆 Du hast dein Duell gegen ${other} gewonnen — mit ${pct(ownVotes)} % von ${total} Stimmen!`,
+              en: `🏆 You won your duel against ${other} — with ${pct(ownVotes)}% of ${total} votes!`,
+            }
+          : {
+              de: `Dein Duell gegen ${other} ist beendet: ${pct(ownVotes)} % von ${total} Stimmen für dich. Nächstes Mal!`,
+              en: `Your duel against ${other} has ended: ${pct(ownVotes)}% of ${total} votes for you. Next time!`,
+            };
 
   const participants = new Set([...membersA, ...membersB]);
   const notes: Note[] = [

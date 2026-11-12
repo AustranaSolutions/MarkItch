@@ -169,7 +169,7 @@ async function notifyChallenge(challengedBrandId: string, challengerUserId: stri
   ]);
   await notifyUsers(
     memberIds,
-    `${actor.label} hat dich zu einem Duell herausgefordert.`,
+    { de: `${actor.label} hat dich zu einem Duell herausgefordert.`, en: `${actor.label} challenged you to a duel.` },
     "/profile/settings#einladungen",
     challengerUserId,
   );
@@ -268,7 +268,7 @@ export async function cancelChallengeFor(user: { id: string }, challengeId: unkn
     getBrandMemberUserIds(challenge.challengedBrandId),
     getActorLabel(user.id),
   ]);
-  await notifyUsers(challengedMemberIds, `${actor.label} hat die Duell-Einladung zurückgezogen.`, null, user.id);
+  await notifyUsers(challengedMemberIds, { de: `${actor.label} hat die Duell-Einladung zurückgezogen.`, en: `${actor.label} withdrew the duel invite.` }, null, user.id);
 
   return { ok: true };
 }
@@ -378,15 +378,21 @@ export async function respondToChallengeFor(
     await notifyUsers(
       challengerMemberIds,
       challenge.challengerVideoUrl
-        ? `${actor.label} hat deine Duell-Einladung angenommen — dein Video ist schon drin!`
-        : `${actor.label} hat deine Duell-Einladung angenommen — jetzt dein Video hochladen!`,
+        ? {
+            de: `${actor.label} hat deine Duell-Einladung angenommen — dein Video ist schon drin!`,
+            en: `${actor.label} accepted your duel invite — your video is already in!`,
+          }
+        : {
+            de: `${actor.label} hat deine Duell-Einladung angenommen — jetzt dein Video hochladen!`,
+            en: `${actor.label} accepted your duel invite — upload your video now!`,
+          },
       `/pitches/${battle.id}`,
       user.id,
     );
   } else {
     await notifyUsers(
       challengerMemberIds,
-      `${actor.label} hat deine Duell-Einladung abgelehnt.`,
+      { de: `${actor.label} hat deine Duell-Einladung abgelehnt.`, en: `${actor.label} declined your duel invite.` },
       "/profile/settings#einladungen",
       user.id,
     );

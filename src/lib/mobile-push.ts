@@ -3,6 +3,14 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { mobilePushTokens } from "@/db/schema";
 
+/** Text in beiden Sprachen (Luca 12.11.) — die App-Geräte bekommen ihre Sprache, Web-Push Deutsch. */
+export type PushText = string | { de: string; en: string };
+export type PushPayload = { title: PushText; body: PushText; url: string };
+
+export function pushText(text: PushText, lang: string): string {
+  return typeof text === "string" ? text : lang === "en" ? text.en : text.de;
+}
+
 // RN-6: Push an die native App über den Expo Push Service
 // (https://exp.host/--/api/v2/push/send). Kostenlos, kein eigenes Konto
 // nötig; nur wenn in Expo „Enhanced Security" aktiviert wird, braucht es
@@ -21,13 +29,13 @@ export function isExpoPushToken(token: unknown): token is string {
 }
 
 /** Upsert per Token — dasselbe Gerät mit anderem Account übernimmt den Token. */
-export async function saveMobilePushToken(userId: string, token: string, platform: string): Promise<void> {
+export async function saveMobilePushToken(userId: string, token: string, platform: string, language: string = "de"): Promise<void> {
   await db
     .insert(mobilePushTokens)
-    .values({ userId, token, platform })
+    .values({ userId, token, platform, language })
     .onConflictDoUpdate({
       target: mobilePushTokens.token,
-      set: { userId, platform, updatedAt: new Date() },
+      set: { userId, platform, language, updatedAt: new Date() },
     });
 }
 
@@ -40,7 +48,7 @@ export async function removeMobilePushToken(userId: string, token: string): Prom
 
 type ExpoTicket = { status: "ok" | "error"; message?: string; details?: { error?: string } };
 
-export async function sendMobilePushToUser(userId: string, payload: { title: string; body: string; url: string }): Promise<void> {
+export async function sendMobilePushToUser(userId: string, payload: PushPayload): Promise<void> {
   try {
     const rows = await db.select().from(mobilePushTokens).where(eq(mobilePushTokens.userId, userId));
     if (rows.length === 0) return;
@@ -54,8 +62,8 @@ export async function sendMobilePushToUser(userId: string, payload: { title: str
       body: JSON.stringify(
         rows.map((row) => ({
           to: row.token,
-          title: payload.title,
-          body: payload.body,
+          title: pushText(payload.title, row.language),
+          body: pushText(payload.body, row.language),
           sound: "default",
           // Die App öffnet beim Antippen genau dieses Ziel (openAppLink).
           data: { url: payload.url },

@@ -5,6 +5,7 @@ import { brands } from "@/db/schema";
 import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { currentPeriod, periodLabel, getChartForBrand, getChartPeriodsForBrand } from "@/lib/creator-charts";
+import { apiError } from "@/lib/api-error";
 
 const PERIOD_RE = /^\d{4}-\d{2}$/;
 
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const requested = request.nextUrl.searchParams.get("period");
   const period = requested && PERIOD_RE.test(requested) ? requested : currentPeriod();
   const [brand] = await db.select().from(brands).where(eq(brands.slug, slug)).limit(1);
-  if (!brand) return NextResponse.json({ error: "Diese Marke gibt es nicht." }, { status: 404 });
+  if (!brand) return await apiError({ error: "Diese Marke gibt es nicht." }, { status: 404 });
 
   const viewer = await getOptionalUser();
   const [{ entries, viewerVotedSubmissionId }, allPeriods, viewerBrand] = await Promise.all([

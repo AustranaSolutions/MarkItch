@@ -3,6 +3,14 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { brandMembers, brands, notifications, users, type Notification } from "@/db/schema";
 import { sendPushToUser } from "@/lib/push";
+import type { Lang } from "@/lib/i18n";
+
+/** Luca 12.11.: Benachrichtigungen in beiden Sprachen — gezeigt wird die des Lesers. */
+export type Msg = { de: string; en: string };
+
+export function notificationText(n: { message: string; messageEn: string | null }, lang: Lang): string {
+  return lang === "en" && n.messageEn ? n.messageEn : n.message;
+}
 
 const RECENT_LIMIT = 20;
 
@@ -24,7 +32,7 @@ export async function getActorLabel(userId: string): Promise<{ label: string; li
 
   const [userRow] = await db.select({ name: users.name, email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
   // Nie die volle E-Mail an andere schicken — nur der Teil vor dem @ (wie bei Kommentaren).
-  return { label: userRow?.name || "Nutzer:in", link: null };
+  return { label: userRow?.name || "MarkItch", link: null };
 }
 
 /**
@@ -44,13 +52,15 @@ export async function getActorLabel(userId: string): Promise<{ label: string; li
  */
 export async function notifyUsers(
   userIds: string[],
-  message: string,
+  message: Msg,
   link: string | null,
   excludeUserId?: string,
 ): Promise<void> {
   const recipients = [...new Set(userIds)].filter((id) => id !== excludeUserId);
   if (recipients.length === 0) return;
-  await db.insert(notifications).values(recipients.map((userId) => ({ userId, message, link })));
+  await db
+    .insert(notifications)
+    .values(recipients.map((userId) => ({ userId, message: message.de, messageEn: message.en, link })));
   await Promise.all(
     recipients.map((userId) =>
       sendPushToUser(userId, { title: "MarkItch", body: message, url: link ?? "/" }).catch(() => {}),

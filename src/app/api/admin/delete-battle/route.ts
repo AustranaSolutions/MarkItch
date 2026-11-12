@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { battles, brands } from "@/db/schema";
 import { checkAdminKey } from "@/lib/admin-key";
 import { isUuid } from "@/lib/mobile-auth";
+import { apiError } from "@/lib/api-error";
 
 // Luca 23.10.: ein einzelnes Duell gezielt per ID löschen (z. B. alte
 // Testduelle wie „Live P7 A vs Live P7 B“). Ohne `confirm: true` wird nur
@@ -17,10 +18,10 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const battleId = typeof body?.battleId === "string" ? body.battleId : "";
-  if (!isUuid(battleId)) return NextResponse.json({ error: "battleId fehlt oder ist ungültig." }, { status: 400 });
+  if (!isUuid(battleId)) return await apiError({ error: "battleId fehlt oder ist ungültig." }, { status: 400 });
 
   const [battle] = await db.select().from(battles).where(eq(battles.id, battleId)).limit(1);
-  if (!battle) return NextResponse.json({ error: "Duell nicht gefunden." }, { status: 404 });
+  if (!battle) return await apiError({ error: "Duell nicht gefunden." }, { status: 404 });
 
   const sides = await db
     .select({ id: brands.id, name: brands.name })

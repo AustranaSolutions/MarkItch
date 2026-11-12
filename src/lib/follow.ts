@@ -27,7 +27,7 @@ export async function toggleFollowForUser(userId: string, brandId: string): Prom
   // onConflictDoNothing: a double-click racing two requests shouldn't 500.
   await db.insert(follows).values({ userId, brandId }).onConflictDoNothing();
   const [memberIds, actor] = await Promise.all([getBrandMemberUserIds(brandId), getActorLabel(userId)]);
-  await notifyUsers(memberIds, `${actor.label} folgt dir jetzt.`, actor.link, userId);
+  await notifyUsers(memberIds, { de: `${actor.label} folgt dir jetzt.`, en: `${actor.label} is now following you.` }, actor.link, userId);
   return { following: true };
 }
 

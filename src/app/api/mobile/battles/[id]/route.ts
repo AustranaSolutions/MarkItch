@@ -5,6 +5,7 @@ import { getBattleById, resolveBattleVideos } from "@/lib/battle";
 import { getBattleStage } from "@/lib/battle-stage";
 import { getVoteTally } from "@/lib/vote";
 import { isUuid } from "@/lib/mobile-auth";
+import { apiError } from "@/lib/api-error";
 
 /**
  * RN-5b: Wartezimmer eines Duells (Gegenstück zu /pitches/[id]). Läuft das
@@ -15,7 +16,7 @@ import { isUuid } from "@/lib/mobile-auth";
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const battle = isUuid(id) ? await getBattleById(id) : null;
-  if (!battle) return NextResponse.json({ error: "Dieses Duell gibt es nicht." }, { status: 404 });
+  if (!battle) return await apiError({ error: "Dieses Duell gibt es nicht." }, { status: 404 });
 
   const viewer = await getOptionalUser();
   const viewerBrand = viewer ? await getBrandForUser(viewer.id) : null;

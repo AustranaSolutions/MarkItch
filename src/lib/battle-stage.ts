@@ -102,11 +102,13 @@ async function notifyFollowersOfLiveBattle(battleId: string, brandAId: string, b
     ...brandAFollowers.map((userId) => ({
       userId,
       message: `🎤 Pitch live: ${brandAName} vs. ${brandBName} — jetzt abstimmen!`,
+      messageEn: `🎤 Pitch live: ${brandAName} vs. ${brandBName} — vote now!`,
       battleId,
     })),
     ...brandBFollowers.map((userId) => ({
       userId,
       message: `🎤 Pitch live: ${brandBName} vs. ${brandAName} — jetzt abstimmen!`,
+      messageEn: `🎤 Pitch live: ${brandBName} vs. ${brandAName} — vote now!`,
       battleId,
     })),
   ];
@@ -120,6 +122,7 @@ async function notifyFollowersOfLiveBattle(battleId: string, brandAId: string, b
     rows.push({
       userId,
       message: `🔔 Dein vorgemerkter Pitch ist live: ${brandAName} vs. ${brandBName} — jetzt ansehen!`,
+      messageEn: `🔔 The pitch you saved is live: ${brandAName} vs. ${brandBName} — watch now!`,
       battleId,
     });
   }
@@ -133,7 +136,7 @@ async function notifyFollowersOfLiveBattle(battleId: string, brandAId: string, b
     // follow/like/comment notifications.
     const url = `/?battle=${battleId}`;
     await Promise.all(
-      rows.map((row) => sendPushToUser(row.userId, { title: "MarkItch", body: row.message, url }).catch(() => {})),
+      rows.map((row) => sendPushToUser(row.userId, { title: "MarkItch", body: { de: row.message, en: row.messageEn ?? row.message }, url }).catch(() => {})),
     );
   }
 }

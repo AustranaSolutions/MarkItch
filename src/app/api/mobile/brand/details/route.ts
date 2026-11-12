@@ -8,6 +8,7 @@ import { fieldErrorResponse, unauthorized } from "@/lib/mobile-auth";
 import { parseBrandDetails } from "@/lib/brand-details";
 import { readVideoUrlField, uploadImage } from "@/lib/storage";
 import { photoError } from "@/lib/video-thumbnails";
+import { apiError } from "@/lib/api-error";
 
 /**
  * Luca 24.10.: neues Profil — Banner, Vorstellungsvideo, „Button im Profil“,
@@ -24,7 +25,7 @@ export async function PATCH(request: NextRequest) {
   const brand = await getBrandForUser(viewer.id);
   if (!brand) return fieldErrorResponse({ _form: ["Du hast noch kein Profil angelegt."] });
   const form = await request.formData().catch(() => null);
-  if (!form) return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+  if (!form) return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
 
   const parsed = parseBrandDetails((key) => {
     const value = form.get(key);

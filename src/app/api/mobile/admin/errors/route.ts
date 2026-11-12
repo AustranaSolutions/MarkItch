@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { errorEvents } from "@/db/schema";
 import { readJsonBody } from "@/lib/mobile-auth";
 import { requireMobileAdmin } from "@/lib/mobile-admin";
+import { apiError } from "@/lib/api-error";
 
 // Luca 25.10.: Fehler-Alarm in der App — wie /admin/errors.
 
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   const body = await readJsonBody(request);
   if (typeof body.signature !== "string" || !body.signature) {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   }
   await db.delete(errorEvents).where(eq(errorEvents.signature, body.signature));
   return NextResponse.json({ ok: true });

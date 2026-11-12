@@ -7,17 +7,18 @@ import { toggleSoloPitchLikeForUser, toggleReactionLikeForUser } from "@/lib/lik
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { getActorLabel, notifyUsers } from "@/lib/notification";
 import { getBrandMemberUserIds } from "@/lib/brand";
+import { apiError } from "@/lib/api-error";
 
 /** Like toggle for a solo pitch or a reaction — see /api/feed/like for the battle-side equivalent. */
 export async function POST(request: NextRequest) {
   const viewer = await getOptionalUser();
   if (!viewer) {
-    return NextResponse.json({ error: "Bitte melde dich an." }, { status: 401 });
+    return await apiError({ error: "Bitte melde dich an." }, { status: 401 });
   }
 
   const { allowed } = await checkRateLimit("like", viewer.id);
   if (!allowed) {
-    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    return await apiError({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
   }
 
   const body = await request.json().catch(() => null);
@@ -26,11 +27,11 @@ export async function POST(request: NextRequest) {
 
   if (typeof soloPitchId === "string" && soloPitchId) {
     const [pitch] = await db.select({ brandId: soloPitches.brandId }).from(soloPitches).where(eq(soloPitches.id, soloPitchId)).limit(1);
-    if (!pitch) return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    if (!pitch) return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
     const result = await toggleSoloPitchLikeForUser(viewer.id, soloPitchId, pitch.brandId);
     if (result.liked) {
       const [memberIds, actor] = await Promise.all([getBrandMemberUserIds(pitch.brandId), getActorLabel(viewer.id)]);
-      await notifyUsers(memberIds, `${actor.label} gefällt dein Pitch.`, `/?pitch=${soloPitchId}`, viewer.id);
+      await notifyUsers(memberIds, { de: `${actor.label} gefällt dein Pitch.`, en: `${actor.label} likes your pitch.` }, `/?pitch=${soloPitchId}`, viewer.id);
     }
     return NextResponse.json(result);
   }
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       .from(reactions)
       .where(eq(reactions.id, reactionId))
       .limit(1);
-    if (!reaction) return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    if (!reaction) return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
     const result = await toggleReactionLikeForUser(viewer.id, reactionId, reaction.brandId);
     if (result.liked) {
       // Phase E: Community-Reaktion → das Zuschauer-Konto selbst benachrichtigen.
@@ -49,10 +50,10 @@ export async function POST(request: NextRequest) {
         reaction.brandId ? getBrandMemberUserIds(reaction.brandId) : Promise.resolve(reaction.userId ? [reaction.userId] : []),
         getActorLabel(viewer.id),
       ]);
-      await notifyUsers(memberIds, `${actor.label} gefällt deine Reaktion.`, reaction.soloPitchId ? `/?pitch=${reaction.soloPitchId}` : `/challenges/${reaction.creatorChallengeId}`, viewer.id);
+      await notifyUsers(memberIds, { de: `${actor.label} gefällt deine Reaktion.`, en: `${actor.label} likes your reaction.` }, reaction.soloPitchId ? `/?pitch=${reaction.soloPitchId}` : `/challenges/${reaction.creatorChallengeId}`, viewer.id);
     }
     return NextResponse.json(result);
   }
 
-  return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+  return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
 }

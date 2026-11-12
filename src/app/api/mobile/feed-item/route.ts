@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { getFeedDuelById, getFeedSoloPitchById } from "@/lib/feed";
+import { apiError } from "@/lib/api-error";
 
 // RN-5: ein einzelnes Duell/Solo-Pitch als Feed-Karte — Gegenstück zu
 // `/?battle=` bzw. `/?pitch=` im Web (Benachrichtigungen, Trending, geteilte Links).
@@ -13,6 +14,6 @@ export async function GET(request: NextRequest) {
     : pitchId
       ? await getFeedSoloPitchById(viewer?.id ?? null, pitchId)
       : null;
-  if (!item) return NextResponse.json({ error: "Nicht mehr verfügbar." }, { status: 404 });
+  if (!item) return await apiError({ error: "Nicht mehr verfügbar." }, { status: 404 });
   return NextResponse.json({ item });
 }

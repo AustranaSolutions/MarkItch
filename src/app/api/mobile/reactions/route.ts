@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { postReactionFor } from "@/lib/reaction-manage";
 import { isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
+import { apiError } from "@/lib/api-error";
 
 // RN-5c: Reaktion (oder Antwort auf eine Reaktion) aus der App posten —
 // gleiche Logik wie die Web-Action postReaction. Das Video liegt schon im
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
   const soloPitchId = text(body.soloPitchId);
   const parentReactionId = text(body.parentReactionId);
   if (!isUuid(soloPitchId) || (parentReactionId && !isUuid(parentReactionId))) {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   }
   const form = new FormData();
   form.set("soloPitchId", soloPitchId);
@@ -25,6 +26,6 @@ export async function POST(request: NextRequest) {
   if (body.containsAiContent === true) form.set("containsAiContent", "on");
 
   const result = await postReactionFor(viewer, form);
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+  if (!result.ok) return await apiError({ error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true }, { status: 201 });
 }

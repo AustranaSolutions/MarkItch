@@ -10,9 +10,9 @@ export function currentPeriod(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function periodLabel(period: string): string {
+export function periodLabel(period: string, lang: "de" | "en" = "de"): string {
   const [year, month] = period.split("-").map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+  return new Date(year, month - 1, 1).toLocaleDateString(lang === "en" ? "en-US" : "de-DE", { month: "long", year: "numeric" });
 }
 
 export type CreatorChartEntry = {

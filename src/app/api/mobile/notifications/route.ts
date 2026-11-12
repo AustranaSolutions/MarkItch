@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
-import { getNotificationsForUser, getUnreadNotificationCount } from "@/lib/notification";
+import { getNotificationsForUser, getUnreadNotificationCount, notificationText } from "@/lib/notification";
+import { langFromAcceptLanguage } from "@/lib/i18n";
 import { unauthorized } from "@/lib/mobile-auth";
 
 // RN-5: Benachrichtigungen für die App. `?countOnly=1` liefert nur die Zahl
@@ -13,11 +14,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ unreadCount });
   }
   const rows = await getNotificationsForUser(viewer.id);
+  const lang = langFromAcceptLanguage(request.headers.get("accept-language"));
   return NextResponse.json({
     unreadCount,
     notifications: rows.map((n) => ({
       id: n.id,
-      message: n.message,
+      message: notificationText(n, lang),
       // Ältere „Pitch live“-Einträge haben nur battleId (wie NotificationList im Web).
       link: n.link ?? (n.battleId ? `/?battle=${n.battleId}` : null),
       createdAt: n.createdAt.toISOString(),

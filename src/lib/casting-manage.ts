@@ -54,7 +54,10 @@ export async function startCastingFor(user: { id: string }, rawPrompt: unknown, 
   }
 
   const casting = await createCasting(myBrand.id, prompt, days);
-  notifyFollowersOfNewCall(myBrand, `📣 ${myBrand.name} sucht Partner: Partner-Casting eröffnet — jetzt ansehen und mitmachen!`, `/castings/${casting.id}`);
+  notifyFollowersOfNewCall(myBrand, {
+    de: `📣 ${myBrand.name} sucht Partner: Partner-Casting eröffnet — jetzt ansehen und mitmachen!`,
+    en: `📣 ${myBrand.name} is looking for partners: partner casting is open — check it out and join!`,
+  }, `/castings/${casting.id}`);
   return { ok: true, castingId: casting.id };
 }
 

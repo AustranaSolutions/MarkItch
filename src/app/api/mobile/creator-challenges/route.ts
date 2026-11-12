@@ -4,6 +4,7 @@ import { getBrandForUser } from "@/lib/brand";
 import { periodLabel } from "@/lib/creator-charts";
 import { challengeStage, getOpenChallengesForBrand, openChallengeFor, openablePeriods } from "@/lib/creator-challenge";
 import { readJsonBody, unauthorized } from "@/lib/mobile-auth";
+import { apiError } from "@/lib/api-error";
 
 // RN-7: Creator-Challenge eröffnen (nur die Marke selbst). GET liefert die
 // wählbaren Monate und die eigenen laufenden/kommenden Challenges fürs „+“.
@@ -24,6 +25,6 @@ export async function POST(request: NextRequest) {
   if (!viewer) return unauthorized();
   const body = await readJsonBody(request);
   const result = await openChallengeFor(viewer, { period: body.period, prompt: body.prompt });
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+  if (!result.ok) return await apiError({ error: result.error }, { status: 400 });
   return NextResponse.json({ challengeId: result.challengeId }, { status: 201 });
 }

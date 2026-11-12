@@ -3,7 +3,7 @@ import webpush from "web-push";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { pushSubscriptions, type NewPushSubscription } from "@/db/schema";
-import { sendMobilePushToUser } from "@/lib/mobile-push";
+import { pushText, sendMobilePushToUser, type PushPayload } from "@/lib/mobile-push";
 
 // Phase 12: web push. VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY are a keypair this
 // app generated for itself (npx web-push generate-vapid-keys) — not a
@@ -36,7 +36,7 @@ export async function saveSubscription(sub: NewPushSubscription): Promise<void> 
     });
 }
 
-export type PushPayload = { title: string; body: string; url: string };
+export type { PushPayload, PushText } from "@/lib/mobile-push";
 
 /**
  * Sends to every subscription this user has (phone + laptop, etc). A 404/410
@@ -56,7 +56,7 @@ async function sendWebPushToUser(userId: string, payload: PushPayload): Promise<
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          JSON.stringify(payload),
+          JSON.stringify({ ...payload, title: pushText(payload.title, "de"), body: pushText(payload.body, "de") }),
         );
       } catch (err) {
         const statusCode = (err as { statusCode?: number })?.statusCode;

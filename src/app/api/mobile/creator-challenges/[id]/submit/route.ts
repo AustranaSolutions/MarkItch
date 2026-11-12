@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { submitToChallengeFor } from "@/lib/creator-challenge";
 import { fieldErrorResponse, isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
+import { apiError } from "@/lib/api-error";
 
 // RN-7: bei einer Creator-Challenge mitmachen — Marken/Creator: ein normaler
 // Solo-Pitch mit Verweis auf die Challenge (solo-pitch-videos); Zuschauer
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const viewer = await getOptionalUser();
   if (!viewer) return unauthorized();
   const { id } = await params;
-  if (!isUuid(id)) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
+  if (!isUuid(id)) return await apiError({ error: "Nicht gefunden." }, { status: 404 });
   const body = await readJsonBody(request);
   const text = (value: unknown) => (typeof value === "string" ? value : "");
   const form = new FormData();

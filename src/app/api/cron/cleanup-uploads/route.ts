@@ -3,6 +3,7 @@ import { checkAdminKey } from "@/lib/admin-key";
 import { cleanupOrphanedUploads } from "@/lib/upload-cleanup";
 import { applyRetention } from "@/lib/retention";
 import { finalizeDueBattles } from "@/lib/battle-notify";
+import { apiError } from "@/lib/api-error";
 
 // Audit 04.10. (H5): verwaiste Uploads aufräumen (siehe lib/upload-cleanup.ts).
 //
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ checked: result.checked, deleted: result.deleted, retention, finalizedBattles });
   } catch (err) {
     console.error("[cron/cleanup-uploads]", err);
-    return NextResponse.json({ error: "Aufräumen fehlgeschlagen." }, { status: 500 });
+    return await apiError({ error: "Aufräumen fehlgeschlagen." }, { status: 500 });
   }
 }
 
@@ -37,6 +38,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error("[cron/cleanup-uploads]", err);
     const detail = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: detail }, { status: 500 });
+    return await apiError({ error: detail }, { status: 500 });
   }
 }
