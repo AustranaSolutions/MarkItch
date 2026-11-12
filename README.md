@@ -9,6 +9,8 @@ gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreic
 
 ## Stand (Oktober 2026)
 
+- **Sprachen (12.11.):** API-Fehler über `apiError()` (`lib/api-error.ts`) in der Sprache aus `Accept-Language`, Übersetzungen in `lib/server-messages.ts` (neue Meldung dort ergänzen). Benachrichtigungen `notifyUsers(ids, { de, en }, link)`; Push nach Gerätesprache. Website-Oberfläche folgt.
+
 - **Phase W (Okt. 2026):** Die Website ist die Begleit-Seite zur App: ansehen, abstimmen, `/app` mit Download, Rechtstexte. Posten nur noch in der App (`/post` → `/app`, Schalter `APP_STORE_LIVE` in `src/lib/feature-flags.ts`).
 - **Web-App live**, alle Formate fertig:
   - Solo-Pitch, Duell (7 Tage Abstimmung, Ergebnis verdeckt), Reaktion,
