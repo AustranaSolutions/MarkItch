@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { requestLang } from "@/lib/lang";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -32,7 +33,20 @@ async function sendEmail(to: string, subject: string, html: string, linkForLogs:
   }
 }
 
+// Luca 12.11.: System-Mails in der Sprache der Anfrage (Website: Umschalter/Browser, App: Handysprache).
 export async function sendVerificationEmail(to: string, verifyUrl: string) {
+  if ((await requestLang()) === "en") {
+    await sendEmail(
+      to,
+      "Confirm your email address — MarkItch",
+      `<p>Welcome to MarkItch!</p>
+     <p>Please confirm your email address to activate your account:</p>
+     <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+     <p>The link is valid for 24 hours.</p>`,
+      verifyUrl,
+    );
+    return;
+  }
   await sendEmail(
     to,
     "Bestätige deine E-Mail-Adresse — MarkItch",
@@ -45,6 +59,17 @@ export async function sendVerificationEmail(to: string, verifyUrl: string) {
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
+  if ((await requestLang()) === "en") {
+    await sendEmail(
+      to,
+      "Reset your password — MarkItch",
+      `<p>You asked to reset your password.</p>
+     <p><a href="${resetUrl}">${resetUrl}</a></p>
+     <p>The link is valid for 1 hour. If this wasn’t you, you can ignore this email.</p>`,
+      resetUrl,
+    );
+    return;
+  }
   await sendEmail(
     to,
     "Passwort zurücksetzen — MarkItch",
@@ -59,9 +84,18 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** Luca 18.10. (Art. 17 DSA): Begründung bei Entfernung oder Sperre — schlichter Text, ohne Links. */
-export async function sendModerationEmail(to: string, subject: string, paragraphs: string[]) {
-  await sendEmail(to, subject, paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("\n"), "(Moderation, kein Link)");
+/**
+ * Luca 18.10. (Art. 17 DSA): Begründung bei Entfernung oder Sperre — schlichter Text, ohne Links.
+ * Luca 12.11.: zweisprachig (erst Deutsch, dann Englisch) — ausgelöst von der Moderation, die Sprache der Person ist dort unbekannt.
+ */
+export async function sendModerationEmail(to: string, subject: string, paragraphs: string[], english?: { subject: string; paragraphs: string[] }) {
+  const html = (ps: string[]) => ps.map((p) => `<p>${escapeHtml(p)}</p>`).join("\n");
+  await sendEmail(
+    to,
+    english ? `${subject} / ${english.subject}` : subject,
+    english ? `${html(paragraphs)}\n<hr>\n${html(english.paragraphs)}` : html(paragraphs),
+    "(Moderation, kein Link)",
+  );
 }
 
 /** Luca 25.10.: Fehler-Alarm (lib/error-alerts.ts) — an die Adressen in ADMIN_EMAILS. */

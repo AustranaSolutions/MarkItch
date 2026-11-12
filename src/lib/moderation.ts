@@ -443,7 +443,14 @@ async function notifyRemoval(ownerIds: string[], targetType: ReportTargetType, t
         `Wir haben ${label} auf MarkItch entfernt.`,
         `Grund: ${reason}. Die Entscheidung beruht auf einer Meldung und wurde von uns geprüft; maßgeblich sind unsere Nutzungsbedingungen (www.markitch.com/nutzungsbedingungen).`,
         "Wenn du das für falsch hältst, antworte einfach auf diese E-Mail oder schreib an support@markitch.com — wir prüfen die Entscheidung dann erneut. Daneben stehen dir die gesetzlichen Wege offen.",
-      ]).catch(() => {}),
+      ], {
+        subject: "Content removed",
+        paragraphs: [
+          `We removed ${CONTENT_LABEL_EN[targetType]} on MarkItch.`,
+          `Reason: ${REASON_EN[reason] ?? reason}. The decision is based on a report and was reviewed by us; our Terms of Use apply (www.markitch.com/nutzungsbedingungen?lang=en).`,
+          "If you think this is wrong, just reply to this email or write to support@markitch.com — we will then review the decision again. Legal remedies also remain open to you.",
+        ],
+      }).catch(() => {}),
     ),
   );
 }
@@ -490,7 +497,13 @@ export async function banUser(userId: string): Promise<void> {
     await sendModerationEmail(row.email, "MarkItch: Konto gesperrt", [
       "Wir haben dein MarkItch-Konto gesperrt, weil es schwer oder wiederholt gegen unsere Nutzungsbedingungen verstoßen hat (www.markitch.com/nutzungsbedingungen).",
       "Wenn du das für falsch hältst, antworte auf diese E-Mail oder schreib an support@markitch.com — wir prüfen die Entscheidung dann erneut. Daneben stehen dir die gesetzlichen Wege offen.",
-    ]).catch(() => {});
+    ], {
+      subject: "Account suspended",
+      paragraphs: [
+        "We suspended your MarkItch account because it seriously or repeatedly violated our Terms of Use (www.markitch.com/nutzungsbedingungen?lang=en).",
+        "If you think this is wrong, reply to this email or write to support@markitch.com — we will then review the decision again. Legal remedies also remain open to you.",
+      ],
+    }).catch(() => {});
   }
 }
 
