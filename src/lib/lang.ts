@@ -57,3 +57,9 @@ export async function requestLang(): Promise<Lang> {
     return "de";
   }
 }
+
+/** Rechtstexte: ?lang=de|en (Links aus der App) geht vor der gewählten Sprache. */
+export async function pageLang(searchParams: Promise<{ lang?: string | string[] }>): Promise<Lang> {
+  const { lang } = await searchParams;
+  return parseLang(typeof lang === "string" ? lang : null) ?? (await getLang());
+}

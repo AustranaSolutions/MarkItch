@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { pageLang } from "@/lib/lang";
+import { ImprintEn } from "@/components/legal/en/imprint-en";
 
 // Phase 15/41: Impressumspflicht (§ 5 ECG) gilt für ein öffentlich
 // erreichbares, geschäftsmäßiges Telemedienangebot mit Registrierung —
@@ -10,7 +12,9 @@ import Link from "next/link";
 // das jeweilige Landesgericht. Nicht erfunden, sondern eine feste
 // gerichtsorganisatorische Tatsache, die direkt aus dem Sitz "1210 Wien"
 // folgt — kein Rückfrage-Punkt.
-export default function ImpressumPage() {
+export default async function ImpressumPage({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
+  // Luca 12.11.: englische Übersetzung für nicht deutschsprachige Besucher (verbindlich bleibt Deutsch).
+  if ((await pageLang(searchParams)) === "en") return <ImprintEn />;
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       <h1 className="mb-6 text-2xl font-bold text-white">Impressum</h1>

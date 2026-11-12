@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { pageLang } from "@/lib/lang";
+import { PrivacyEn } from "@/components/legal/en/privacy-en";
 import { ConsentSettings } from "@/components/analytics/consent-banner";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -20,7 +22,9 @@ function B({ children }: { children: React.ReactNode }) {
 // Einwilligung: components/analytics/consent-banner.tsx). Bei wesentlichen
 // Änderungen TERMS_VERSION in lib/legal.ts und „Stand“ hier anpassen.
 // Entwurf, kein Rechtsrat — vor dem öffentlichen Start anwaltlich prüfen.
-export default function DatenschutzPage() {
+export default async function DatenschutzPage({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
+  // Luca 12.11.: englische Übersetzung für nicht deutschsprachige Besucher (verbindlich bleibt Deutsch).
+  if ((await pageLang(searchParams)) === "en") return <PrivacyEn />;
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       <h1 className="mb-2 text-2xl font-bold text-white">Datenschutzerklärung</h1>

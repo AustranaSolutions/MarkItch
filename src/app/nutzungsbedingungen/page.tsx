@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { pageLang } from "@/lib/lang";
+import { TermsEn } from "@/components/legal/en/terms-en";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -18,7 +20,9 @@ function B({ children }: { children: React.ReactNode }) {
 // wesentlichen Änderungen TERMS_VERSION in lib/legal.ts und „Stand“ hier
 // anpassen — App und Web fragen dann alle Konten erneut nach Zustimmung.
 // Entwurf, kein Rechtsrat — vor dem öffentlichen Start anwaltlich prüfen.
-export default function NutzungsbedingungenPage() {
+export default async function NutzungsbedingungenPage({ searchParams }: { searchParams: Promise<{ lang?: string | string[] }> }) {
+  // Luca 12.11.: englische Übersetzung für nicht deutschsprachige Besucher (verbindlich bleibt Deutsch).
+  if ((await pageLang(searchParams)) === "en") return <TermsEn />;
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       <h1 className="mb-2 text-2xl font-bold text-white">Nutzungsbedingungen</h1>
