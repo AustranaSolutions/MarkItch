@@ -7,7 +7,7 @@ import { LiveDuelList } from "@/components/pitches/live-duel-list";
 import { getLiveFeedDuels } from "@/lib/feed";
 import { getBrandForUser } from "@/lib/brand";
 import { getT } from "@/lib/lang";
-import { type Translate } from "@/lib/i18n";
+import { duelCategoryLabel, langOf, type Translate } from "@/lib/i18n";
 
 // Always live data — without this, Next prerenders it once at build time
 // (no dynamic API is used otherwise) and it would never show a battle
@@ -113,7 +113,7 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
                     <BrandThumb brand={battle.brandB} />
                   </div>
                 </div>
-                {battle.category ? <p className="mt-3 text-center text-xs text-zinc-500">{battle.category}</p> : null}
+                {battle.category ? <p className="mt-3 text-center text-xs text-zinc-500">{duelCategoryLabel(battle.category, langOf(t))}</p> : null}
                 <div className="mt-3 flex items-center justify-center gap-3">
                   {deadline && <span className="text-xs text-zinc-600">{deadline}</span>}
                   {viewer ? (

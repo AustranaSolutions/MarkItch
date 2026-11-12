@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { useT } from "@/components/i18n/lang-provider";
+import { langOf } from "@/lib/i18n";
+import { categoryLabel } from "@/lib/brand-details";
 
 export type SearchableBrand = {
   id: string;
@@ -66,7 +68,7 @@ export function BrandSearchGrid({ brands }: { brands: SearchableBrand[] }) {
                 )}
                 <span className="text-sm font-semibold text-white">{brand.name}</span>
                 <span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-400">
-                  {brand.category}
+                  {categoryLabel(brand.category, langOf(t))}
                 </span>
               </Link>
             </li>
