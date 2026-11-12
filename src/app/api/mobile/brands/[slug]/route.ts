@@ -9,6 +9,7 @@ import { getFollowerCount, getFollowingCountForBrand, isFollowing } from "@/lib/
 import { getFeedSoloPitchesForBrand, getFeedDuelsForBrand } from "@/lib/feed";
 import { getBlockedIds } from "@/lib/block";
 import { brandAccent } from "@/lib/brand-color";
+import { getLang } from "@/lib/lang";
 import { defaultProfileButton, profileButtonOf, publicLocationLabel } from "@/lib/brand-details";
 import { apiError } from "@/lib/api-error";
 
@@ -55,7 +56,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       introVideoUrl: brand.videoUrl,
       locationType: brand.locationType,
       locationLabel: publicLocationLabel(brand.locationType, brand.locationLabel),
-      profileButton: profileButtonOf(brand),
+      profileButton: profileButtonOf(brand, await getLang()),
     },
     // Luca 24.10.: Info-Blatt (⋯ → Info) und eigene Einstellungen.
     details: {

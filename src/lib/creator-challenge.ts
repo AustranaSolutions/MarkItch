@@ -1,4 +1,5 @@
 import "server-only";
+import { requestLang } from "@/lib/lang";
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { brands, creatorChallenges, reactions, users, type CreatorChallenge } from "@/db/schema";
@@ -118,7 +119,7 @@ export async function getChallengeDetails(id: string, viewerId: string | null): 
     challenge: row.challenge,
     brand: row.brand,
     stage,
-    periodLabel: periodLabel(row.challenge.period),
+    periodLabel: periodLabel(row.challenge.period, await requestLang()),
     entries,
     allEntries,
     isOwner,

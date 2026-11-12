@@ -1,5 +1,6 @@
 "use server";
 
+import { localizeResult } from "@/lib/lang";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { requireUser } from "@/lib/session";
@@ -16,7 +17,7 @@ export type UploadBattleVideoFormState = { error?: string } | undefined;
  * storage by the time this runs (see video-picker-input.tsx) — this only
  * ever receives the resulting URL, never the file.
  */
-export async function uploadBattleVideo(
+async function uploadBattleVideoImpl(
   _prevState: UploadBattleVideoFormState,
   formData: FormData,
 ): Promise<UploadBattleVideoFormState> {
@@ -47,3 +48,8 @@ export async function uploadBattleVideo(
 // other invite (see actions/challenge.ts's respondToChallenge, which now
 // prefills from a brand's legacy videoUrl the same way it already did for
 // a solo pitch). One consistent path instead of two different mechanics.
+
+// Luca 12.11.: Ergebnisse in der Sprache der Person (siehe lib/lang.ts).
+export async function uploadBattleVideo(...args: Parameters<typeof uploadBattleVideoImpl>) {
+  return localizeResult(await uploadBattleVideoImpl(...args));
+}

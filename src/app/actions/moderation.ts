@@ -1,5 +1,6 @@
 "use server";
 
+import { localizeResult } from "@/lib/lang";
 import { refresh } from "next/cache";
 import {
   banUser,
@@ -10,7 +11,7 @@ import {
   type ReportTargetType,
 } from "@/lib/moderation";
 
-export async function resolveReportAction(formData: FormData) {
+async function resolveReportActionImpl(formData: FormData) {
   await requireAdminUser();
   const reportId = formData.get("reportId");
   if (typeof reportId !== "string" || !reportId) return;
@@ -19,7 +20,7 @@ export async function resolveReportAction(formData: FormData) {
 }
 
 /** Deletes/nulls the reported content itself, then resolves the report. */
-export async function removeContentAction(formData: FormData) {
+async function removeContentActionImpl(formData: FormData) {
   await requireAdminUser();
   const reportId = formData.get("reportId");
   const targetType = formData.get("targetType");
@@ -33,7 +34,7 @@ export async function removeContentAction(formData: FormData) {
 }
 
 /** Bans the content's owner and, if called from a report row, resolves that report too. */
-export async function banUserAction(formData: FormData) {
+async function banUserActionImpl(formData: FormData) {
   await requireAdminUser();
   const userId = formData.get("userId");
   if (typeof userId !== "string" || !userId) return;
@@ -43,10 +44,24 @@ export async function banUserAction(formData: FormData) {
   refresh();
 }
 
-export async function unbanUserAction(formData: FormData) {
+async function unbanUserActionImpl(formData: FormData) {
   await requireAdminUser();
   const userId = formData.get("userId");
   if (typeof userId !== "string" || !userId) return;
   await unbanUser(userId);
   refresh();
+}
+
+// Luca 12.11.: Ergebnisse in der Sprache der Person (siehe lib/lang.ts).
+export async function resolveReportAction(...args: Parameters<typeof resolveReportActionImpl>) {
+  return localizeResult(await resolveReportActionImpl(...args));
+}
+export async function removeContentAction(...args: Parameters<typeof removeContentActionImpl>) {
+  return localizeResult(await removeContentActionImpl(...args));
+}
+export async function banUserAction(...args: Parameters<typeof banUserActionImpl>) {
+  return localizeResult(await banUserActionImpl(...args));
+}
+export async function unbanUserAction(...args: Parameters<typeof unbanUserActionImpl>) {
+  return localizeResult(await unbanUserActionImpl(...args));
 }

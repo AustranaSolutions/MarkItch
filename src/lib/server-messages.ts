@@ -166,7 +166,12 @@ const EXACT: Record<string, string> = {
 const PATTERNS: [RegExp, (...m: string[]) => string][] = [
   [/^Maximal (\d+) Zeichen\.$/, (n) => `Maximum ${n} characters.`],
   [/^Mindestens (\d+) Zeichen\.$/, (n) => `At least ${n} characters.`],
+  [/^(Banner|Logo|Profilbild|Titelbild) darf maximal (\d+) MB groß sein\.$/, (label, n) => `${FIELD_EN[label] ?? label} can be at most ${n} MB.`],
+  [/^(Banner|Logo|Profilbild|Titelbild) fehlt\.$/, (label) => `${FIELD_EN[label] ?? label} is missing.`],
+  [/^Höchstens (\d+) Entwürfe — lösch zuerst einen alten\.$/, (n) => `At most ${n} drafts — delete an old one first.`],
 ];
+
+const FIELD_EN: Record<string, string> = { Banner: "Banner", Logo: "Logo", Profilbild: "Profile picture", Titelbild: "Cover" };
 
 export function translateMessage(message: string, lang: Lang): string {
   if (lang === "de") return message;

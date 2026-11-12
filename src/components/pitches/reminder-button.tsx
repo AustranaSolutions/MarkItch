@@ -4,8 +4,10 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Bell, Check } from "lucide-react";
 import { toggleReminder, type ReminderFormState } from "@/app/actions/reminder";
+import { useT } from "@/components/i18n/lang-provider";
 
 function ToggleButton({ hasReminder }: { hasReminder: boolean }) {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button
@@ -22,11 +24,11 @@ function ToggleButton({ hasReminder }: { hasReminder: boolean }) {
         "…"
       ) : hasReminder ? (
         <>
-          <Bell size={13} /> Erinnert <Check size={13} />
+          <Bell size={13} /> {t("Erinnert", "Reminder set")} <Check size={13} />
         </>
       ) : (
         <>
-          <Bell size={13} /> Erinnern
+          <Bell size={13} /> {t("Erinnern", "Remind me")}
         </>
       )}
     </button>

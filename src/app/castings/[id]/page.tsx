@@ -6,6 +6,8 @@ import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { SubmissionUploadForm } from "@/components/casting/submission-upload-form";
 import { CastingVoteList } from "@/components/casting/casting-vote-list";
+import { getT } from "@/lib/lang";
+import { type Translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +21,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-function timeLeftLabel(date: Date): string {
+function timeLeftLabel(date: Date, t: Translate): string {
   const hoursLeft = Math.max(0, (date.getTime() - Date.now()) / (60 * 60 * 1000));
-  if (hoursLeft >= 24) return `noch ${Math.ceil(hoursLeft / 24)} Tage`;
-  return `noch ${Math.max(1, Math.ceil(hoursLeft))}h`;
+  if (hoursLeft >= 24) return t(`noch ${Math.ceil(hoursLeft / 24)} Tage`, `${Math.ceil(hoursLeft / 24)} days left`);
+  return t(`noch ${Math.max(1, Math.ceil(hoursLeft))}h`, `${Math.max(1, Math.ceil(hoursLeft))}h left`);
 }
 
 /**
@@ -34,6 +36,7 @@ function timeLeftLabel(date: Date): string {
  * product idea this implements.
  */
 export default async function CastingPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const viewer = await getOptionalUser();
   const casting = await getCastingById(id, viewer?.id ?? null);
@@ -59,9 +62,9 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
           {casting.hostBrand.name}
         </Link>
         <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
-          {casting.stage.stage === "open" && `Einreichen: ${timeLeftLabel(casting.stage.deadline)}`}
-          {casting.stage.stage === "voting" && `Abstimmen: ${timeLeftLabel(casting.stage.endsAt)}`}
-          {casting.stage.stage === "finished" && "Beendet"}
+          {casting.stage.stage === "open" && `${t("Einreichen", "Submissions")}: ${timeLeftLabel(casting.stage.deadline, t)}`}
+          {casting.stage.stage === "voting" && `${t("Abstimmen", "Voting")}: ${timeLeftLabel(casting.stage.endsAt, t)}`}
+          {casting.stage.stage === "finished" && t("Beendet", "Ended")}
         </span>
       </div>
       <p className="mb-6 text-sm text-zinc-300">{casting.prompt}</p>
@@ -69,15 +72,15 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
       {casting.stage.stage === "finished" && (
         <p className="mb-6 rounded-lg border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-sm text-orange-300">
           {winnerBrandId
-            ? "Das Casting ist entschieden — die Community hat gewählt."
+            ? t("Das Casting ist entschieden — die Community hat gewählt.", "The casting is decided — the community has voted.")
             : casting.submissions.length === 0
-              ? "Niemand hat eingereicht — dieses Casting kam nicht zustande."
-              : "Unentschieden — keine Marke hat die meisten Stimmen für sich allein."}
+              ? t("Niemand hat eingereicht — dieses Casting kam nicht zustande.", "Nobody submitted — this casting didn’t happen.")
+              : t("Unentschieden — keine Marke hat die meisten Stimmen für sich allein.", "Tie — no brand has the most votes on its own.")}
         </p>
       )}
 
       {casting.submissions.length === 0 ? (
-        <p className="mb-6 text-sm text-zinc-500">Noch keine Einreichungen.</p>
+        <p className="mb-6 text-sm text-zinc-500">{t("Noch keine Einreichungen.", "No submissions yet.")}</p>
       ) : (
         <CastingVoteList
           castingId={casting.id}
@@ -91,12 +94,12 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
 
       {canSubmit && (
         <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-          <h2 className="mb-3 text-sm font-semibold text-white">Dein Video einreichen</h2>
+          <h2 className="mb-3 text-sm font-semibold text-white">{t("Dein Video einreichen", "Submit your video")}</h2>
           <SubmissionUploadForm castingId={casting.id} />
         </div>
       )}
       {isHost && casting.stage.stage !== "finished" && (
-        <p className="mt-6 text-center text-xs text-zinc-500">Das ist dein eigenes Casting — du kannst nicht selbst mitmachen oder abstimmen.</p>
+        <p className="mt-6 text-center text-xs text-zinc-500">{t("Das ist dein eigenes Casting — du kannst nicht selbst mitmachen oder abstimmen.", "This is your own casting — you can’t take part or vote yourself.")}</p>
       )}
     </div>
   );

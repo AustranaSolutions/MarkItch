@@ -4,12 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import type { BlockedEntry } from "@/lib/block";
 import { setBlocked } from "@/lib/block-client";
+import { useT } from "@/components/i18n/lang-provider";
 
 /** Luca 25.10.: wie in der App (settings/blocked.tsx) — Liste mit „Freigeben“. */
 export function BlockedList({ initial }: { initial: BlockedEntry[] }) {
+  const t = useT();
   const [entries, setEntries] = useState(initial);
   const [error, setError] = useState<string | null>(null);
-  if (entries.length === 0) return <p className="text-sm text-zinc-500">Du hast niemanden blockiert.</p>;
+  if (entries.length === 0) return <p className="text-sm text-zinc-500">{t("Du hast niemanden blockiert.", "You haven’t blocked anyone.")}</p>;
   return (
     <>
       {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
@@ -32,12 +34,12 @@ export function BlockedList({ initial }: { initial: BlockedEntry[] }) {
                     await setBlocked(entry.kind === "brand" ? { brandId: entry.brandId } : { userId: entry.userId }, false);
                     setEntries((list) => list.filter((e) => (e.kind === "brand" ? e.brandId : e.userId) !== key));
                   } catch (err) {
-                    setError(err instanceof Error ? err.message : "Hat nicht geklappt.");
+                    setError(err instanceof Error ? err.message : t("Hat nicht geklappt.", "That didn’t work."));
                   }
                 }}
                 className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300 hover:border-zinc-500"
               >
-                Freigeben
+                {t("Freigeben", "Unblock")}
               </button>
             </li>
           );

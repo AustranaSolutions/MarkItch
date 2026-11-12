@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { CastingSubmissionWithBrand } from "@/lib/casting";
 import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
+import { useT } from "@/components/i18n/lang-provider";
 
 export function CastingVoteList({
   castingId,
@@ -22,6 +23,7 @@ export function CastingVoteList({
   canVote: boolean;
   winnerBrandId: string | null;
 }) {
+  const t = useT();
   const router = useRouter();
   const [submissions, setSubmissions] = useState(initialSubmissions);
   const [votedId, setVotedId] = useState(initialViewerVotedSubmissionId);
@@ -43,13 +45,13 @@ export function CastingVoteList({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Abstimmen fehlgeschlagen.");
+        setError(data.error ?? t("Abstimmen fehlgeschlagen.", "Voting failed."));
         return;
       }
       setSubmissions(data.submissions ?? submissions);
       setVotedId(data.viewerVotedSubmissionId ?? submissionId);
     } catch {
-      setError("Abstimmen fehlgeschlagen.");
+      setError(t("Abstimmen fehlgeschlagen.", "Voting failed."));
     } finally {
       setPendingId(null);
     }
@@ -93,19 +95,19 @@ export function CastingVoteList({
             </div>
             <div className="flex items-center justify-between text-xs text-zinc-400">
               <span>
-                {s.voteCount} {s.voteCount === 1 ? "Stimme" : "Stimmen"} ({pct}%)
+                {s.voteCount} {s.voteCount === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")} ({pct}%)
               </span>
               <div className="flex items-center gap-3">
                 {canVote &&
                   (votedId ? (
-                    votedId === s.id && <span className="text-orange-400">✓ Deine Stimme</span>
+                    votedId === s.id && <span className="text-orange-400">{t("✓ Deine Stimme", "✓ Your vote")}</span>
                   ) : (
                     <button
                       onClick={() => handleVote(s.id)}
                       disabled={pendingId === s.id}
                       className="rounded-full bg-orange-600 px-3 py-1 font-semibold text-white hover:bg-orange-500 disabled:opacity-50"
                     >
-                      {pendingId === s.id ? "…" : "Abstimmen"}
+                      {pendingId === s.id ? "…" : t("Abstimmen", "Vote")}
                     </button>
                   ))}
                 <ReportButton targetType="casting_submission" targetId={s.id} isLoggedIn={isLoggedIn} variant="text" />

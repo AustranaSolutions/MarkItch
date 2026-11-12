@@ -6,6 +6,8 @@ import { Check, Send } from "lucide-react";
 import { sendChallengeFromSoloPitch, type ChallengeFormState } from "@/app/actions/challenge";
 import { FormError, SubmitButton } from "@/components/ui";
 import { DUEL_CATEGORIES, DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
+import { useT } from "@/components/i18n/lang-provider";
+import { duelCategoryLabel, langOf } from "@/lib/i18n";
 
 /**
  * "Duell einladen" — direct invite off a solo pitch, see
@@ -30,6 +32,7 @@ import { DUEL_CATEGORIES, DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
  * every browser engine).
  */
 export function PitchChallengeButton({ soloPitchId }: { soloPitchId: string }) {
+  const t = useT();
   const [state, action, isPending] = useActionState<ChallengeFormState, FormData>(sendChallengeFromSoloPitch, undefined);
   const wasPending = useRef(false);
   const [sent, setSent] = useState(false);
@@ -47,7 +50,7 @@ export function PitchChallengeButton({ soloPitchId }: { soloPitchId: string }) {
   if (sent) {
     return (
       <button type="button" disabled className="w-full rounded-lg bg-zinc-800 px-4 py-2 font-semibold text-zinc-400">
-        <Check size={14} className="inline -mt-0.5 mr-1" /> Eingeladen
+        <Check size={14} className="inline -mt-0.5 mr-1" /> {t("Eingeladen", "Invited")}
       </button>
     );
   }
@@ -59,7 +62,7 @@ export function PitchChallengeButton({ soloPitchId }: { soloPitchId: string }) {
         onClick={() => setOpen(true)}
         className="w-full rounded-lg bg-orange-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-orange-500"
       >
-        <Send size={14} className="inline -mt-0.5 mr-1" /> Duell einladen
+        <Send size={14} className="inline -mt-0.5 mr-1" /> {t("Duell einladen", "Invite to duel")}
       </button>
 
       {open &&
@@ -73,7 +76,7 @@ export function PitchChallengeButton({ soloPitchId }: { soloPitchId: string }) {
                 <input type="hidden" name="soloPitchId" value={soloPitchId} />
                 <div className="mb-3">
                   <label htmlFor={`category-${soloPitchId}`} className="mb-1 block text-sm font-medium text-zinc-300">
-                    Kategorie
+                    {t("Kategorie", "Category")}
                   </label>
                   <select
                     id={`category-${soloPitchId}`}
@@ -84,14 +87,14 @@ export function PitchChallengeButton({ soloPitchId }: { soloPitchId: string }) {
                   >
                     {DUEL_CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
-                        {cat}
+                        {duelCategoryLabel(cat, langOf(t))}
                       </option>
                     ))}
                   </select>
                 </div>
                 <FormError message={state?.error} />
                 <SubmitButton>
-                  <Send size={14} className="inline -mt-0.5 mr-1" /> Duell einladen
+                  <Send size={14} className="inline -mt-0.5 mr-1" /> {t("Duell einladen", "Invite to duel")}
                 </SubmitButton>
               </form>
             </div>

@@ -10,6 +10,7 @@ import { FeedSoloPitchCard } from "@/components/feed/feed-solo-pitch-card";
 import { CommentSheet, type CommentTarget } from "@/components/feed/comment-sheet";
 import { ReactionsOverlay } from "@/components/pitches/reactions-overlay";
 import { getNotificationPermission, subscribeToPush } from "@/lib/push-client";
+import { useT } from "@/components/i18n/lang-provider";
 
 type Tab = "foryou" | "following";
 
@@ -49,6 +50,7 @@ export function FeedClient({
   /** Phase 30: true right after posting — land on the fresh post at the top instead of restoring an old scroll offset. */
   resetScroll?: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("foryou");
   const [items, setItems] = useState<FeedItemWithReactions[]>(initialItems);
@@ -299,14 +301,14 @@ export function FeedClient({
     // lives (feed or waiting room) if it isn't a finished result.
     shareUrl(
       `${window.location.origin}/battles/${duel.battleId}?ref=battle:${duel.battleId}`,
-      `${duel.sides[0].brandName} vs. ${duel.sides[1].brandName} auf MarkItch`,
+      t(`${duel.sides[0].brandName} vs. ${duel.sides[1].brandName} auf MarkItch`, `${duel.sides[0].brandName} vs. ${duel.sides[1].brandName} on MarkItch`),
     );
   }
 
   function handleShareSolo(pitch: FeedSoloPitch) {
     shareUrl(
       `${window.location.origin}/?pitch=${pitch.soloPitchId}&ref=solo:${pitch.soloPitchId}`,
-      `${pitch.brandName} auf MarkItch`,
+      t(`${pitch.brandName} auf MarkItch`, `${pitch.brandName} on MarkItch`),
     );
   }
 
@@ -355,7 +357,7 @@ export function FeedClient({
   function handleShareReaction(item: FeedReaction) {
     const path = item.soloPitchId ? `/?pitch=${item.soloPitchId}` : `/challenges/${item.creatorChallengeId}`;
     const sep = path.includes("?") ? "&" : "?";
-    shareUrl(`${window.location.origin}${path}${sep}ref=reaction:${item.reactionId}`, `${item.authorName} auf MarkItch`);
+    shareUrl(`${window.location.origin}${path}${sep}ref=reaction:${item.reactionId}`, t(`${item.authorName} auf MarkItch`, `${item.authorName} on MarkItch`));
   }
 
   function handleCommentPosted(id: string) {
@@ -391,7 +393,7 @@ export function FeedClient({
         {(
           [
             ["foryou", "Feed"],
-            ["following", "Folge ich"],
+            ["following", t("Folge ich", "Following")],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -467,9 +469,9 @@ export function FeedClient({
 
         {items.length === 0 && !loading && !showEmptyFollowing && (
           <div className="flex h-full w-full flex-col items-center justify-center px-8 text-center">
-            <p className="text-lg font-semibold text-white">Noch keine Pitches</p>
+            <p className="text-lg font-semibold text-white">{t("Noch keine Pitches", "No pitches yet")}</p>
             <p className="mt-2 text-sm text-zinc-400">
-              Sobald jemand einen Solo-Pitch postet oder ein Duell live geht, taucht es hier auf.
+              {t("Sobald jemand einen Solo-Pitch postet oder ein Duell live geht, taucht es hier auf.", "As soon as someone posts a solo pitch or a duel goes live, it shows up here.")}
             </p>
           </div>
         )}
@@ -477,21 +479,21 @@ export function FeedClient({
         {showEmptyFollowing && (
           <div className="flex h-full w-full flex-col items-center justify-center px-8 text-center">
             <p className="text-lg font-semibold text-white">
-              {requiresLogin ? "Melde dich an" : followsAnyone ? "Noch nichts Neues" : "Folge ein paar Marken"}
+              {requiresLogin ? t("Melde dich an", "Log in") : followsAnyone ? t("Noch nichts Neues", "Nothing new yet") : t("Folge ein paar Marken", "Follow a few brands")}
             </p>
             <p className="mt-2 text-sm text-zinc-400">
               {requiresLogin
-                ? "Melde dich an, um zu sehen, wenn Marken, denen du folgst, einen neuen Pitch posten."
+                ? t("Melde dich an, um zu sehen, wenn Marken, denen du folgst, einen neuen Pitch posten.", "Log in to see when brands you follow post a new pitch.")
                 : followsAnyone
-                  ? "Die Marken, denen du folgst, haben noch nichts gepostet."
-                  : "Sobald du Marken folgst, siehst du hier ihre neuesten Pitches zuerst."}
+                  ? t("Die Marken, denen du folgst, haben noch nichts gepostet.", "The brands you follow haven’t posted anything yet.")
+                  : t("Sobald du Marken folgst, siehst du hier ihre neuesten Pitches zuerst.", "Once you follow brands, you’ll see their latest pitches here first.")}
             </p>
             {(requiresLogin || !followsAnyone) && (
               <a
                 href={requiresLogin ? "/login" : "/brands"}
                 className="mt-4 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500"
               >
-                {requiresLogin ? "Anmelden" : "Marken entdecken"}
+                {requiresLogin ? t("Anmelden", "Log in") : t("Marken entdecken", "Discover brands")}
               </a>
             )}
           </div>

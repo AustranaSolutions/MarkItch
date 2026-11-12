@@ -16,13 +16,13 @@ export default function GlobalError({ error, retry }: { error: Error & { digest?
   return (
     <html lang="de" className="h-full antialiased dark">
       <body className="flex min-h-full flex-col items-center justify-center gap-4 bg-black px-8 text-center text-white">
-        <p className="text-lg font-semibold">Etwas ist schiefgelaufen.</p>
-        <p className="text-sm text-zinc-400">Das ist ein Fehler in der App, nicht bei dir — einfach nochmal versuchen.</p>
+        <p className="text-lg font-semibold">Etwas ist schiefgelaufen. · Something went wrong.</p>
+        <p className="text-sm text-zinc-400">Bitte nochmal versuchen. · Please try again.</p>
         <button
           onClick={retry}
           className="rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-500"
         >
-          Nochmal versuchen
+          Nochmal versuchen · Try again
         </button>
       </body>
     </html>

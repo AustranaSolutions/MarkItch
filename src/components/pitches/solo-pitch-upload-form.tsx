@@ -8,9 +8,11 @@ import { VideoPickerInput } from "@/components/video-picker-input";
 import { CtaLinkFields } from "@/components/pitches/cta-link-fields";
 import { AudioRightsCheckbox } from "@/components/pitches/audio-rights-checkbox";
 import { AiContentCheckbox } from "@/components/pitches/ai-content-checkbox";
+import { useT } from "@/components/i18n/lang-provider";
 
 /** RN-7: mit `challengeId` wird der Post als Einreichung zu dieser Creator-Challenge gespeichert. */
 export function SoloPitchUploadForm({ challengeId }: { challengeId?: string } = {}) {
+  const t = useT();
   const [state, action] = useActionState<SoloPitchFormState, FormData>(
     challengeId ? submitChallengeEntry : postSoloPitch,
     undefined,
@@ -28,12 +30,12 @@ export function SoloPitchUploadForm({ challengeId }: { challengeId?: string } = 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     if (videoUploading) {
       e.preventDefault();
-      setClientError("Video wird noch hochgeladen — kurz warten.");
+      setClientError(t("Video wird noch hochgeladen — kurz warten.", "The video is still uploading — please wait a moment."));
       return;
     }
     if (!videoUploaded) {
       e.preventDefault();
-      setClientError("Bitte zuerst ein Video auswählen.");
+      setClientError(t("Bitte zuerst ein Video auswählen.", "Please choose a video first."));
       return;
     }
     setClientError(null);
@@ -56,7 +58,7 @@ export function SoloPitchUploadForm({ challengeId }: { challengeId?: string } = 
       />
       <div className="mb-4">
         <label htmlFor="description" className="mb-1 block text-sm font-medium text-zinc-300">
-          Beschreibung
+          {t("Beschreibung", "Description")}
         </label>
         <textarea
           id="description"
@@ -66,7 +68,7 @@ export function SoloPitchUploadForm({ challengeId }: { challengeId?: string } = 
           required
           maxLength={300}
           rows={3}
-          placeholder="Worum geht's in diesem Video?"
+          placeholder={t("Worum geht's in diesem Video?", "What’s this video about?")}
           className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white placeholder-zinc-500 outline-none focus:border-orange-500"
         />
       </div>
@@ -79,7 +81,7 @@ export function SoloPitchUploadForm({ challengeId }: { challengeId?: string } = 
       />
       <AudioRightsCheckbox errors={state?.errors} />
       <AiContentCheckbox />
-      <SubmitButton>{challengeId ? "Video einreichen" : "Solo-Pitch posten"}</SubmitButton>
+      <SubmitButton>{challengeId ? t("Video einreichen", "Submit video") : t("Solo-Pitch posten", "Post solo pitch")}</SubmitButton>
     </form>
   );
 }

@@ -2,6 +2,7 @@
 
 import { Plus, X } from "lucide-react";
 import type { ReactionRow } from "@/lib/reaction-threads";
+import { useT } from "@/components/i18n/lang-provider";
 
 function showFirstFrame(video: HTMLVideoElement) {
   if (video.readyState >= 1) video.currentTime = 0.1;
@@ -31,24 +32,25 @@ export function ReactionsGrid({
   onOpenReaction: (reactionId: string) => void;
   onPostNew: () => void;
 }) {
+  const t = useT();
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black">
       <div
         className="flex items-center justify-between px-4 pb-3"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 14px)" }}
       >
-        <h2 className="text-sm font-semibold text-white">Reaktionen</h2>
-        <button onClick={onClose} aria-label="Schließen" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white">
+        <h2 className="text-sm font-semibold text-white">{t("Reaktionen", "Reactions")}</h2>
+        <button onClick={onClose} aria-label={t("Schließen", "Close")} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white">
           <X size={18} />
         </button>
       </div>
 
       {topLevel.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-          <p className="text-sm text-zinc-500">Noch keine Reaktionen — sei die erste Marke.</p>
+          <p className="text-sm text-zinc-500">{t("Noch keine Reaktionen — sei die erste Marke.", "No reactions yet — be the first brand.")}</p>
           {canPostReaction && (
             <button onClick={onPostNew} className="rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500">
-              Reaktion posten
+              {t("Reaktion posten", "Post reaction")}
             </button>
           )}
         </div>
@@ -81,7 +83,7 @@ export function ReactionsGrid({
                     </span>
                     {replyCount > 0 && (
                       <span className="absolute right-1 top-1 rounded-full bg-orange-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                        {replyCount} {replyCount === 1 ? "Antwort" : "Antworten"}
+                        {replyCount} {replyCount === 1 ? t("Antwort", "reply") : t("Antworten", "replies")}
                       </span>
                     )}
                   </button>
@@ -95,7 +97,7 @@ export function ReactionsGrid({
       {canPostReaction && topLevel.length > 0 && (
         <button
           onClick={onPostNew}
-          aria-label="Reaktion posten"
+          aria-label={t("Reaktion posten", "Post reaction")}
           className="absolute bottom-6 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-orange-600 text-white shadow-lg shadow-orange-500/30 hover:bg-orange-500"
         >
           <Plus size={24} />

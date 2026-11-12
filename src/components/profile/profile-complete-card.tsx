@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
+import { useT } from "@/components/i18n/lang-provider";
+import { type Translate } from "@/lib/i18n";
 
 // Luca 25.10.: wie in der App (components/profile/profile-complete-card.tsx) —
 // nur im eigenen Profil, zuerst zugeklappt, verschwindet, wenn alles erledigt ist.
@@ -20,35 +22,36 @@ export type ProfileCompleteInput = {
   bannerUrl: string | null;
 };
 
-function profileSteps(p: ProfileCompleteInput): Step[] {
+function profileSteps(p: ProfileCompleteInput, t: Translate): Step[] {
   return [
-    { label: "Logo", done: Boolean(p.logoUrl), action: "Hinzufügen", href: "/profile/settings" },
+    { label: "Logo", done: Boolean(p.logoUrl), action: t("Hinzufügen", "Add"), href: "/profile/settings" },
     {
-      label: "Button im Profil & Standort",
+      label: t("Button im Profil & Standort", "Profile button & location"),
       done: Boolean(p.profileButtonType) && (p.creator || Boolean(p.locationType)),
-      action: "Einrichten",
+      action: t("Einrichten", "Set up"),
       href: "/profile/settings/contact",
     },
     {
-      label: p.creator ? "Info" : "Info & Impressum",
+      label: p.creator ? "Info" : t("Info & Impressum", "Info & legal notice"),
       done: Boolean(p.description) && (p.creator || Boolean(p.imprint)),
-      action: "Ausfüllen",
+      action: t("Ausfüllen", "Fill in"),
       href: "/profile/settings/info",
     },
-    { label: "Vorstellungsvideo", done: Boolean(p.introVideoUrl), action: "Aufnehmen", href: "/profile/settings/appearance" },
-    { label: "Banner", done: Boolean(p.bannerUrl), action: "Hinzufügen", href: "/profile/settings/appearance" },
+    { label: t("Vorstellungsvideo", "Intro video"), done: Boolean(p.introVideoUrl), action: t("Aufnehmen", "Record"), href: "/profile/settings/appearance" },
+    { label: "Banner", done: Boolean(p.bannerUrl), action: t("Hinzufügen", "Add"), href: "/profile/settings/appearance" },
   ];
 }
 
 export function ProfileCompleteCard({ profile }: { profile: ProfileCompleteInput }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
-  const steps = profileSteps(profile);
+  const steps = profileSteps(profile, t);
   const doneCount = steps.filter((s) => s.done).length;
   if (doneCount === steps.length) return null;
   return (
     <div className="mb-4 rounded-2xl border border-orange-500/40 bg-orange-500/5 p-4">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center justify-between">
-        <span className="text-base font-bold text-white">Profil vervollständigen</span>
+        <span className="text-base font-bold text-white">{t("Profil vervollständigen", "Complete your profile")}</span>
         <span className="flex items-center gap-2 text-sm font-bold text-orange-500">
           {doneCount}/{steps.length}
           {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}

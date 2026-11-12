@@ -7,8 +7,10 @@ import { VideoPickerInput } from "@/components/video-picker-input";
 import { CtaLinkFields } from "@/components/pitches/cta-link-fields";
 import { AudioRightsCheckbox } from "@/components/pitches/audio-rights-checkbox";
 import { AiContentCheckbox } from "@/components/pitches/ai-content-checkbox";
+import { useT } from "@/components/i18n/lang-provider";
 
 export function BattleVideoUploadForm({ battleId }: { battleId: string }) {
+  const t = useT();
   const [state, action] = useActionState<UploadBattleVideoFormState, FormData>(uploadBattleVideo, undefined);
   const [ctaLabel, setCtaLabel] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
@@ -21,12 +23,12 @@ export function BattleVideoUploadForm({ battleId }: { battleId: string }) {
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     if (videoUploading) {
       e.preventDefault();
-      setClientError("Video wird noch hochgeladen — kurz warten.");
+      setClientError(t("Video wird noch hochgeladen — kurz warten.", "The video is still uploading — please wait a moment."));
       return;
     }
     if (!videoUploaded) {
       e.preventDefault();
-      setClientError("Bitte zuerst ein Video auswählen.");
+      setClientError(t("Bitte zuerst ein Video auswählen.", "Please choose a video first."));
       return;
     }
     setClientError(null);
@@ -46,7 +48,7 @@ export function BattleVideoUploadForm({ battleId }: { battleId: string }) {
       <CtaLinkFields ctaLabel={ctaLabel} ctaUrl={ctaUrl} onCtaLabelChange={setCtaLabel} onCtaUrlChange={setCtaUrl} />
       <AudioRightsCheckbox />
       <AiContentCheckbox />
-      <SubmitButton>Dein Video hochladen</SubmitButton>
+      <SubmitButton>{t("Dein Video hochladen", "Upload your video")}</SubmitButton>
     </form>
   );
 }

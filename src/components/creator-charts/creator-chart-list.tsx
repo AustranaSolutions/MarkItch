@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { CreatorChartEntry } from "@/lib/creator-charts";
 import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
+import { useT } from "@/components/i18n/lang-provider";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -20,6 +21,7 @@ export function CreatorChartList({
   isLoggedIn: boolean;
   canVote: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const [entries, setEntries] = useState(initialEntries);
   const [votedId, setVotedId] = useState(initialViewerVotedSubmissionId);
@@ -41,7 +43,7 @@ export function CreatorChartList({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Abstimmen fehlgeschlagen.");
+        setError(data.error ?? t("Abstimmen fehlgeschlagen.", "Voting failed."));
         return;
       }
       setVotedId(submissionId);
@@ -51,14 +53,14 @@ export function CreatorChartList({
           .sort((a, b) => b.voteCount - a.voteCount),
       );
     } catch {
-      setError("Abstimmen fehlgeschlagen.");
+      setError(t("Abstimmen fehlgeschlagen.", "Voting failed."));
     } finally {
       setPendingId(null);
     }
   }
 
   if (entries.length === 0) {
-    return <p className="text-sm text-zinc-500">Noch keine Videos in dieser Runde.</p>;
+    return <p className="text-sm text-zinc-500">{t("Noch keine Videos in dieser Runde.", "No videos in this round yet.")}</p>;
   }
 
   return (
@@ -75,7 +77,7 @@ export function CreatorChartList({
               <AdLabel />
               {e.containsAiContent && <AiContentLabel />}
               <span className="text-xs text-zinc-500">
-                {e.voteCount} {e.voteCount === 1 ? "Stimme" : "Stimmen"}
+                {e.voteCount} {e.voteCount === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")}
               </span>
             </div>
           </div>
@@ -94,14 +96,14 @@ export function CreatorChartList({
           <div className="flex items-center justify-between">
             {canVote &&
               (votedId ? (
-                votedId === e.submissionId && <p className="text-xs text-orange-400">✓ Deine Stimme</p>
+                votedId === e.submissionId && <p className="text-xs text-orange-400">{t("✓ Deine Stimme", "✓ Your vote")}</p>
               ) : (
                 <button
                   onClick={() => handleVote(e.submissionId)}
                   disabled={pendingId === e.submissionId}
                   className="rounded-full bg-orange-600 px-3 py-1 text-xs font-semibold text-white hover:bg-orange-500 disabled:opacity-50"
                 >
-                  {pendingId === e.submissionId ? "…" : "Abstimmen"}
+                  {pendingId === e.submissionId ? "…" : t("Abstimmen", "Vote")}
                 </button>
               ))}
             <ReportButton targetType="creator_submission" targetId={e.submissionId} isLoggedIn={isLoggedIn} variant="text" />

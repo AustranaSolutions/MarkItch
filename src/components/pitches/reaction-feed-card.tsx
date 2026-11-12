@@ -12,6 +12,7 @@ import { SeekBar } from "@/components/feed/seek-bar";
 import { useVideoTrim } from "@/lib/use-video-trim";
 import { useVideoMusic } from "@/lib/use-video-music";
 import { ReactionOwnerMenu } from "@/components/pitches/reaction-owner-menu";
+import { useT } from "@/components/i18n/lang-provider";
 
 /**
  * Phase 34: one reaction, full-screen — same visual language as
@@ -60,6 +61,7 @@ export function ReactionFeedCard({
    */
   feedContext?: { label: string; href: string; linkLabel: string };
 }) {
+  const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [inView, setInView] = useState(false);
@@ -173,7 +175,7 @@ export function ReactionFeedCard({
           </span>
           <button
             onClick={onToggleMute}
-            aria-label={muted ? "Ton an" : "Ton aus"}
+            aria-label={muted ? t("Ton an", "Unmute") : t("Ton aus", "Mute")}
             className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white"
           >
             {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -195,7 +197,7 @@ export function ReactionFeedCard({
             )
           )}
           <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
-            {feedContext ? feedContext.label : reaction.parentReactionId ? "Antwort im Thread" : "Reaktion"}
+            {feedContext ? feedContext.label : reaction.parentReactionId ? t("Antwort im Thread", "Reply in thread") : t("Reaktion", "Reaction")}
           </span>
           {reaction.brand ? (
             <AdLabel />
@@ -214,7 +216,7 @@ export function ReactionFeedCard({
         )}
         {reaction.promotedToBattleId && (
           <Link href={`/pitches/${reaction.promotedToBattleId}`} className="pointer-events-auto text-sm text-orange-400 hover:underline">
-            Duell ansehen →
+            {t("Duell ansehen →", "View duel →")}
           </Link>
         )}
         {canPromote && !reaction.promotedToBattleId && (
@@ -240,15 +242,15 @@ export function ReactionFeedCard({
         </button>
 
         {canReply && (
-          <button onClick={() => onReply(reaction.id)} className="pointer-events-auto flex flex-col items-center gap-1 text-white" aria-label="Antworten">
+          <button onClick={() => onReply(reaction.id)} className="pointer-events-auto flex flex-col items-center gap-1 text-white" aria-label={t("Antworten", "Reply")}>
             <MessageSquareShare size={28} />
-            <span className="text-xs font-medium">Antworten</span>
+            <span className="text-xs font-medium">{t("Antworten", "Reply")}</span>
           </button>
         )}
 
         <button onClick={() => onShare(reaction)} className="pointer-events-auto flex flex-col items-center gap-1 text-white">
           <Share2 size={26} />
-          <span className="text-xs font-medium">Teilen</span>
+          <span className="text-xs font-medium">{t("Teilen", "Share")}</span>
         </button>
 
 {reaction.viewerIsOwner ? (

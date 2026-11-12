@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { confirmAndBlock, setBlocked } from "@/lib/block-client";
 import type { ProfileButtonType, PublicBrandDetails } from "@/lib/brand-details";
+import { useT } from "@/components/i18n/lang-provider";
 
 /**
  * Phase 32: shared by /profile (your own) and /brands/[slug] (anyone else's).
@@ -67,6 +68,7 @@ function formatTime(seconds: number) {
 }
 
 function IntroPlayer({ brand, caption, onClose }: { brand: HeaderBrand; caption: string | null; onClose: () => void }) {
+  const t = useT();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   useEffect(() => {
@@ -75,7 +77,7 @@ function IntroPlayer({ brand, caption, onClose }: { brand: HeaderBrand; caption:
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black" role="dialog" aria-label="Vorstellungsvideo">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black" role="dialog" aria-label={t("Vorstellungsvideo", "Intro video")}>
       <div className="relative h-full w-full max-w-md">
         <video
           src={brand.introVideoUrl ?? undefined}
@@ -93,9 +95,9 @@ function IntroPlayer({ brand, caption, onClose }: { brand: HeaderBrand; caption:
           <div className="mt-3 flex items-center gap-2">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-extrabold text-white">{brand.name}</p>
-              <p className="text-xs text-white/75">Vorstellung{duration ? ` · ${formatTime(duration)}` : ""}</p>
+              <p className="text-xs text-white/75">{t("Vorstellung", "Intro")}{duration ? ` · ${formatTime(duration)}` : ""}</p>
             </div>
-            <button onClick={onClose} aria-label="Schließen" className="flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white">
+            <button onClick={onClose} aria-label={t("Schließen", "Close")} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white">
               <X size={18} />
             </button>
           </div>
@@ -111,6 +113,7 @@ function IntroPlayer({ brand, caption, onClose }: { brand: HeaderBrand; caption:
 }
 
 function InfoDialog({ brand, details, onClose }: { brand: HeaderBrand; details: PublicBrandDetails; onClose: () => void }) {
+  const t = useT();
   const [imprintOpen, setImprintOpen] = useState(false);
   const websiteLabel = details.website?.replace(/^https?:\/\//, "").replace(/\/$/, "");
   const contact = details.phone || details.website || details.contactEmail || details.openingHours;
@@ -125,11 +128,11 @@ function InfoDialog({ brand, details, onClose }: { brand: HeaderBrand; details: 
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-extrabold text-white">{brand.name}</h3>
           <button onClick={onClose} className="text-sm font-bold text-orange-500">
-            Fertig
+            {t("Fertig", "Done")}
           </button>
         </div>
         <div className="space-y-3">
-          {empty && <p className="py-6 text-center text-sm text-zinc-400">Noch keine Infos hinterlegt.</p>}
+          {empty && <p className="py-6 text-center text-sm text-zinc-400">{t("Noch keine Infos hinterlegt.", "No info added yet.")}</p>}
           {details.description && <p className="text-sm leading-relaxed text-zinc-300">{details.description}</p>}
           {details.address ? (
             <a
@@ -140,7 +143,7 @@ function InfoDialog({ brand, details, onClose }: { brand: HeaderBrand; details: 
             >
               <MapPin size={16} />
               <span className="flex-1">{details.address}</span>
-              <span className="font-bold text-orange-500">Karte</span>
+              <span className="font-bold text-orange-500">{t("Karte", "Map")}</span>
             </a>
           ) : brand.locationLabel ? (
             <div className={`${row} rounded-xl border border-zinc-800 bg-zinc-900/60 px-3`}>
@@ -175,7 +178,7 @@ function InfoDialog({ brand, details, onClose }: { brand: HeaderBrand; details: 
           {details.imprint && (
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 px-3">
               <button onClick={() => setImprintOpen((o) => !o)} className={`${row} w-full text-left`}>
-                <FileText size={16} /> <span className="flex-1">Impressum</span>
+                <FileText size={16} /> <span className="flex-1">{t("Impressum", "Legal notice")}</span>
                 <span className="text-zinc-500">{imprintOpen ? "−" : "+"}</span>
               </button>
               {imprintOpen && <p className="whitespace-pre-line pb-3 text-xs leading-relaxed text-zinc-400">{details.imprint}</p>}
@@ -217,6 +220,7 @@ export function BrandProfileHeader({
   /** Luca 25.10.: fremdes Profil, angemeldet — ⋯ → Blockieren / Freigeben (wie in der App). */
   blockControl?: { brandId: string; blocked: boolean };
 }) {
+  const t = useT();
   const [introOpen, setIntroOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -239,7 +243,7 @@ export function BrandProfileHeader({
     setMenuOpen(false);
     const url = `${window.location.origin}/brands/${brand.slug}`;
     if (navigator.share) {
-      await navigator.share({ title: `${brand.name} auf MarkItch`, url }).catch(() => {});
+      await navigator.share({ title: t(`${brand.name} auf MarkItch`, `${brand.name} on MarkItch`), url }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(url).catch(() => {});
       setCopied(true);
@@ -283,14 +287,14 @@ export function BrandProfileHeader({
         </div>
         <div className="absolute right-3 top-3 z-10" ref={menuRef}>
           {own ? (
-            <Link href="/profile/settings" aria-label="Einstellungen" className="flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white">
+            <Link href="/profile/settings" aria-label={t("Einstellungen", "Settings")} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white">
               <Settings size={18} />
             </Link>
           ) : (
             <>
               <button
                 onClick={() => setMenuOpen((o) => !o)}
-                aria-label="Mehr"
+                aria-label={t("Mehr", "More")}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white"
               >
                 <MoreHorizontal size={20} />
@@ -307,7 +311,7 @@ export function BrandProfileHeader({
                     Info
                   </button>
                   <button onClick={share} className="block w-full border-t border-zinc-800 px-4 py-3 text-left text-white hover:bg-zinc-900">
-                    Profil teilen
+                    {t("Profil teilen", "Share profile")}
                   </button>
                   {blockControl && (
                     <button
@@ -317,12 +321,12 @@ export function BrandProfileHeader({
                           await setBlocked({ brandId: blockControl.brandId }, false).catch(() => {});
                           window.location.reload();
                         } else {
-                          await confirmAndBlock({ brandId: blockControl.brandId }, brand.name);
+                          await confirmAndBlock({ brandId: blockControl.brandId }, brand.name, t);
                         }
                       }}
                       className="block w-full border-t border-zinc-800 px-4 py-3 text-left text-red-400 hover:bg-zinc-900"
                     >
-                      {blockControl.blocked ? "Freigeben" : "Blockieren"}
+                      {blockControl.blocked ? t("Freigeben", "Unblock") : t("Blockieren", "Block")}
                     </button>
                   )}
                 </div>
@@ -337,7 +341,7 @@ export function BrandProfileHeader({
           type="button"
           disabled={!hasIntro}
           onClick={() => setIntroOpen(true)}
-          aria-label={hasIntro ? "Vorstellungsvideo ansehen" : undefined}
+          aria-label={hasIntro ? t("Vorstellungsvideo ansehen", "Watch intro video") : undefined}
           className={`relative block h-24 w-24 rounded-full p-[3px] ${hasIntro ? "bg-orange-500" : ""}`}
         >
           <span className="block h-full w-full rounded-full bg-[#06171b] p-[3px]">{avatar}</span>
@@ -350,7 +354,7 @@ export function BrandProfileHeader({
 
         <h2 className="mt-3 flex items-center gap-2 text-2xl font-extrabold text-white">
           {brand.name}
-          {brand.verified && <BadgeCheck size={20} className="fill-sky-400 text-[#06171b]" aria-label="Verifiziert" />}
+          {brand.verified && <BadgeCheck size={20} className="fill-sky-400 text-[#06171b]" aria-label={t("Verifiziert", "Verified")} />}
         </h2>
         <button type="button" onClick={() => setInfoOpen(true)} className="mt-1 flex flex-wrap items-center gap-1 text-left text-sm text-zinc-400">
           {brand.kind === "creator" ? "Creator · " : ""}
@@ -370,7 +374,7 @@ export function BrandProfileHeader({
           </Link>
           <span>·</span>
           <Link href={followingHref} className="hover:opacity-80">
-            <span className="font-bold text-white">{followingCount}</span> Folgt
+            <span className="font-bold text-white">{followingCount}</span> {t("Folgt", "Following")}
           </Link>
           {record.decided > 0 && (
             <>
@@ -379,7 +383,7 @@ export function BrandProfileHeader({
                 <span className="font-bold text-white">
                   {record.won}/{record.decided}
                 </span>{" "}
-                Duelle gewonnen
+                {t("Duelle gewonnen", "duels won")}
               </span>
             </>
           )}
@@ -392,16 +396,16 @@ export function BrandProfileHeader({
                 href="/profile/settings"
                 className="flex h-10 flex-1 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-sm font-bold text-white hover:bg-zinc-900"
               >
-                Profil bearbeiten
+                {t("Profil bearbeiten", "Edit profile")}
               </Link>
               {/* Luca 24.10.: den eigenen Button im Profil auch selbst sehen — Teilen dann nur als Symbol. */}
               {button && profileLink}
               <button
                 onClick={share}
-                aria-label="Profil teilen"
+                aria-label={t("Profil teilen", "Share profile")}
                 className={`flex h-10 items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 text-sm font-bold text-white hover:bg-zinc-900 ${button ? "w-10" : "w-32"}`}
               >
-                <Share2 size={15} /> {button ? null : copied ? "Kopiert ✓" : "Teilen"}
+                <Share2 size={15} /> {button ? null : copied ? t("Kopiert ✓", "Copied ✓") : t("Teilen", "Share")}
               </button>
             </div>
           ) : (
@@ -413,7 +417,7 @@ export function BrandProfileHeader({
                 </div>
               )}
               {duelAction}
-              {copied && <p className="text-xs text-zinc-400">Link kopiert ✓</p>}
+              {copied && <p className="text-xs text-zinc-400">{t("Link kopiert ✓", "Link copied ✓")}</p>}
             </>
           )}
         </div>

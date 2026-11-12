@@ -16,6 +16,7 @@ import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fas
 import { SeekBar } from "@/components/feed/seek-bar";
 import { useVideoTrim } from "@/lib/use-video-trim";
 import { useVideoMusic } from "@/lib/use-video-music";
+import { useT } from "@/components/i18n/lang-provider";
 
 export function FeedSoloPitchCard({
   pitch,
@@ -50,6 +51,7 @@ export function FeedSoloPitchCard({
   /** Phase 43: tells FeedClient this card is the one on screen now, so it can keep only nearby cards' videos mounted. */
   onActive?: () => void;
 }) {
+  const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [inView, setInView] = useState(false);
@@ -105,7 +107,7 @@ export function FeedSoloPitchCard({
   function handleShare() {
     onShare(pitch);
     trackAnalyticsEvent(pitch.brandId, "share");
-    setShareLabel("Link kopiert!");
+    setShareLabel(t("Link kopiert!", "Link copied!"));
     setTimeout(() => setShareLabel(null), 1800);
   }
 
@@ -194,7 +196,7 @@ export function FeedSoloPitchCard({
           </span>
           <button
             onClick={onToggleMute}
-            aria-label={muted ? "Ton an" : "Ton aus"}
+            aria-label={muted ? t("Ton an", "Unmute") : t("Ton aus", "Mute")}
             className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white"
           >
             {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -205,7 +207,7 @@ export function FeedSoloPitchCard({
       {onClose && (
         <button
           onClick={onClose}
-          aria-label="Schließen"
+          aria-label={t("Schließen", "Close")}
           className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white"
         >
           <X size={18} />
@@ -229,7 +231,7 @@ export function FeedSoloPitchCard({
           links/rechts sind Info-Text bzw. Action-Leiste belegt). */}
       <button
         onClick={() => setUiHidden((h) => !h)}
-        aria-label={uiHidden ? "Bedienelemente einblenden" : "Bedienelemente ausblenden"}
+        aria-label={uiHidden ? t("Bedienelemente einblenden", "Show controls") : t("Bedienelemente ausblenden", "Hide controls")}
         className="pointer-events-auto absolute left-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/70"
         style={{ top: "calc(env(safe-area-inset-top) + 56px)" }}
       >
@@ -309,7 +311,7 @@ export function FeedSoloPitchCard({
 
         <button onClick={handleShare} className="pointer-events-auto flex flex-col items-center gap-1 text-white">
           <Share2 size={26} />
-          <span className="text-xs font-medium">{shareLabel ? "Kopiert" : "Teilen"}</span>
+          <span className="text-xs font-medium">{shareLabel ? t("Kopiert", "Copied") : t("Teilen", "Share")}</span>
         </button>
 
         {pitch.viewerOwnsThisBrand ? (

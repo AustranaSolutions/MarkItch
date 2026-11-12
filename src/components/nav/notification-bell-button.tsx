@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Bell } from "lucide-react";
+import { getT } from "@/lib/lang";
 
 /**
  * Phase 28: moved out of the bottom nav (Instagram/TikTok convention —
@@ -11,13 +12,14 @@ import { Bell } from "lucide-react";
  * now only shown contextually, alongside the pause icon, when a video is
  * actually paused), freeing that corner up for this instead.
  */
-export function NotificationBellButton({ isLoggedIn, unreadCount = 0 }: { isLoggedIn: boolean; unreadCount?: number }) {
+export async function NotificationBellButton({ isLoggedIn, unreadCount = 0 }: { isLoggedIn: boolean; unreadCount?: number }) {
+  const t = await getT();
   if (!isLoggedIn) return null;
 
   return (
     <Link
       href="/notifications"
-      aria-label="Erinnerungen"
+      aria-label={t("Erinnerungen", "Notifications")}
       className="fixed z-30 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md"
       // Phase 30: same reasoning as bottom-nav.tsx — aligns with the feed's
       // centered 480px-max column on wide viewports (max(...) falls back to

@@ -1,4 +1,5 @@
 import "server-only";
+import { requestLang } from "@/lib/lang";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { brands, castingSubmissions, creatorChallenges, partnerCastings } from "@/db/schema";
@@ -36,6 +37,7 @@ export async function getSoloPitchContexts(
       .where(inArray(castingSubmissions.soloPitchId, pitches.map((p) => p.id))),
   ]);
 
+  const lang = await requestLang();
   const challengeById = new Map(challengeRows.map((c) => [c.id, c]));
   for (const p of pitches) {
     const c = p.creatorChallengeId ? challengeById.get(p.creatorChallengeId) : undefined;
@@ -43,7 +45,7 @@ export async function getSoloPitchContexts(
       result.set(p.id, {
         kind: "challenge",
         id: c.id,
-        label: `Creator-Challenge ${c.brandName} · ${periodLabel(c.period).split(" ")[0]}`,
+        label: `Creator-Challenge ${c.brandName} · ${periodLabel(c.period, lang).split(" ")[0]}`,
       });
     }
   }

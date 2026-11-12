@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/session";
-import { getNotificationsForUser } from "@/lib/notification";
+import { getNotificationsForUser, notificationText } from "@/lib/notification";
 import { NotificationList } from "@/components/notification/notification-list";
+import { getLang, getT } from "@/lib/lang";
 
 // Phase 10: a real, standalone screen for this — previously notifications
 // only showed up as a small block on /profile, which is exactly why a
@@ -10,12 +11,15 @@ import { NotificationList } from "@/components/notification/notification-list";
 // notification stays listed here (read or not) until the app is cleared out,
 // same as any other app's activity/inbox screen.
 export default async function NotificationsPage() {
+  const t = await getT();
   const user = await requireUser();
-  const notifications = await getNotificationsForUser(user.id);
+  const lang = await getLang();
+  // Luca 12.11.: Texte in der Sprache der Person (englische Fassung, falls vorhanden).
+  const notifications = (await getNotificationsForUser(user.id)).map((n) => ({ ...n, message: notificationText(n, lang) }));
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
-      <h1 className="mb-6 text-2xl font-bold text-white">Benachrichtigungen</h1>
+      <h1 className="mb-6 text-2xl font-bold text-white">{t("Benachrichtigungen", "Notifications")}</h1>
       <NotificationList notifications={notifications} />
     </div>
   );

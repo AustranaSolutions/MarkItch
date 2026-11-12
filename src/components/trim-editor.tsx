@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Pause, Play, X } from "lucide-react";
+import { useT } from "@/components/i18n/lang-provider";
+import { type Translate } from "@/lib/i18n";
 
 // Luca 25.10.: Website = App (MarkItch-mobile components/post/trim-editor.tsx).
 // Video kürzen ohne Neuberechnen: Anfang und Ende wählen, gespeichert wird nur
@@ -30,6 +32,7 @@ export function TrimEditor({
   /** `null` = nicht gekürzt (ganzes Video). */
   onDone: (trim: TrimValue | null) => Promise<void> | void;
 }) {
+  const t = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [duration, setDuration] = useState(0);
   const [start, setStart] = useState((initial?.startMs ?? 0) / 1000);
@@ -65,22 +68,22 @@ export function TrimEditor({
       await onDone(untrimmed ? null : { startMs: Math.round(start * 1000), endMs: effectiveEnd >= duration - 0.05 ? null : Math.round(effectiveEnd * 1000) });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Speichern fehlgeschlagen.");
+      setError(err instanceof Error ? err.message : t("Speichern fehlgeschlagen.", "Saving failed."));
       setSaving(false);
     }
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex flex-col bg-black px-4 pb-6 pt-4" role="dialog" aria-modal="true" aria-label="Video kürzen">
+    <div className="fixed inset-0 z-[200] flex flex-col bg-black px-4 pb-6 pt-4" role="dialog" aria-modal="true" aria-label={t("Video kürzen", "Trim video")}>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
         <div className="mb-3 flex items-center justify-between">
-          <button type="button" onClick={onClose} aria-label="Schließen" className="text-zinc-300 hover:text-white">
+          <button type="button" onClick={onClose} aria-label={t("Schließen", "Close")} className="text-zinc-300 hover:text-white">
             <X size={24} />
           </button>
-          <h2 className="text-base font-bold text-white">Video kürzen</h2>
+          <h2 className="text-base font-bold text-white">{t("Video kürzen", "Trim video")}</h2>
           <span className="w-6" />
         </div>
-        <p className="mb-3 text-center text-xs text-zinc-400">Wähle Anfang und Ende — gezeigt wird nur dieser Teil.</p>
+        <p className="mb-3 text-center text-xs text-zinc-400">{t("Wähle Anfang und Ende — gezeigt wird nur dieser Teil.", "Choose start and end — only this part is shown.")}</p>
 
         <div className="relative mx-auto aspect-[9/16] max-h-[50vh] overflow-hidden rounded-xl bg-zinc-900">
           <video
@@ -116,7 +119,7 @@ export function TrimEditor({
                     setPaused(true);
                   }
                 }}
-                aria-label={paused ? "Abspielen" : "Pause"}
+                aria-label={paused ? t("Abspielen", "Play") : t("Pause", "Pause")}
                 className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
               >
                 {paused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
@@ -131,7 +134,7 @@ export function TrimEditor({
             </div>
             <label className="block">
               <span className="mb-1 flex justify-between text-xs text-zinc-400">
-                <span>Anfang</span>
+                <span>{t("Anfang", "Start")}</span>
                 <span className="tabular-nums text-white">{formatTime(start)}</span>
               </span>
               <input
@@ -150,7 +153,7 @@ export function TrimEditor({
             </label>
             <label className="block">
               <span className="mb-1 flex justify-between text-xs text-zinc-400">
-                <span>Ende</span>
+                <span>{t("Ende", "End")}</span>
                 <span className="tabular-nums text-white">{formatTime(effectiveEnd)}</span>
               </span>
               <input
@@ -168,7 +171,7 @@ export function TrimEditor({
               />
             </label>
             <p className="text-center text-sm text-zinc-300">
-              Länge: <span className="font-bold tabular-nums text-white">{formatTime(effectiveEnd - start)}</span> von {formatTime(duration)}
+              {t("Länge", "Length")}: <span className="font-bold tabular-nums text-white">{formatTime(effectiveEnd - start)}</span> {t("von", "of")} {formatTime(duration)}
             </p>
           </div>
         )}
@@ -184,7 +187,7 @@ export function TrimEditor({
             }}
             className="flex-1 rounded-full border border-zinc-700 py-3 text-sm font-semibold text-white hover:border-zinc-500"
           >
-            Zurücksetzen
+            {t("Zurücksetzen", "Reset")}
           </button>
           <button
             type="button"
@@ -192,7 +195,7 @@ export function TrimEditor({
             disabled={saving || duration === 0}
             className="flex-1 rounded-full bg-orange-600 py-3 text-sm font-bold text-white hover:bg-orange-500 disabled:opacity-40"
           >
-            {saving ? "Wird gespeichert…" : "Übernehmen"}
+            {saving ? t("Wird gespeichert…", "Saving…") : t("Übernehmen", "Apply")}
           </button>
         </div>
       </div>
@@ -202,13 +205,13 @@ export function TrimEditor({
 }
 
 /** Kürzung für ein eigenes Video speichern (gleiche Schnittstelle wie die App). */
-export async function saveTrim(videoUrl: string, trim: TrimValue | null): Promise<TrimValue | null> {
+export async function saveTrim(videoUrl: string, trim: TrimValue | null, t: Translate): Promise<TrimValue | null> {
   const res = await fetch("/api/mobile/trims", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ videoUrl, startMs: trim?.startMs ?? 0, endMs: trim?.endMs ?? null }),
   });
   const data = (await res.json().catch(() => ({}))) as { trim?: TrimValue | null; error?: string };
-  if (!res.ok) throw new Error(data.error ?? "Kürzen fehlgeschlagen.");
+  if (!res.ok) throw new Error(data.error ?? t("Kürzen fehlgeschlagen.", "Trimming failed."));
   return data.trim ?? null;
 }

@@ -15,6 +15,7 @@ import { AiContentCheckbox } from "@/components/pitches/ai-content-checkbox";
 import type { FeedSoloPitch } from "@/lib/feed";
 import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
 import { TrimEditor, saveTrim } from "@/components/trim-editor";
+import { useT } from "@/components/i18n/lang-provider";
 
 type Screen = "closed" | "menu" | "edit" | "delete" | "thumbnail" | "trim";
 
@@ -35,6 +36,7 @@ export function SoloPitchOwnerMenuButton({
   onUpdated: (patch: Partial<FeedSoloPitch>) => void;
   onDeleted: () => void;
 }) {
+  const t = useT();
   const [screen, setScreen] = useState<Screen>("closed");
   const [description, setDescription] = useState(pitch.description ?? "");
   const [ctaLabel, setCtaLabel] = useState(pitch.ctaLabel ?? "");
@@ -78,7 +80,7 @@ export function SoloPitchOwnerMenuButton({
 
   return (
     <>
-      <button onClick={openMenu} aria-label="Mehr" className="pointer-events-auto flex flex-col items-center gap-1 text-white">
+      <button onClick={openMenu} aria-label={t("Mehr", "More")} className="pointer-events-auto flex flex-col items-center gap-1 text-white">
         <MoreVertical size={28} />
       </button>
 
@@ -89,7 +91,7 @@ export function SoloPitchOwnerMenuButton({
           remote
           onClose={() => setScreen("closed")}
           onPicked={async (image) => {
-            const thumbnailUrl = await uploadThumbnail(pitch.videoUrl, image);
+            const thumbnailUrl = await uploadThumbnail(pitch.videoUrl, image, t);
             onUpdated({ thumbnailUrl });
           }}
         />
@@ -101,7 +103,7 @@ export function SoloPitchOwnerMenuButton({
           initial={pitch.trim}
           onClose={() => setScreen("closed")}
           onDone={async (value) => {
-            const trim = await saveTrim(pitch.videoUrl, value);
+            const trim = await saveTrim(pitch.videoUrl, value, t);
             onUpdated({ trim });
           }}
         />
@@ -133,25 +135,25 @@ export function SoloPitchOwnerMenuButton({
                   onClick={() => setScreen("edit")}
                   className="w-full rounded-lg border border-zinc-800 px-3 py-2.5 text-left text-sm text-white"
                 >
-                  Bearbeiten
+                  {t("Bearbeiten", "Edit")}
                 </button>
                 <button
                   onClick={() => setScreen("thumbnail")}
                   className="w-full rounded-lg border border-zinc-800 px-3 py-2.5 text-left text-sm text-white"
                 >
-                  Titelbild ändern
+                  {t("Titelbild ändern", "Change cover")}
                 </button>
                 <button
                   onClick={() => setScreen("trim")}
                   className="w-full rounded-lg border border-zinc-800 px-3 py-2.5 text-left text-sm text-white"
                 >
-                  Video kürzen
+                  {t("Video kürzen", "Trim video")}
                 </button>
                 <button
                   onClick={() => setScreen("delete")}
                   className="w-full rounded-lg border border-red-500/40 px-3 py-2.5 text-left text-sm text-red-400"
                 >
-                  Löschen
+                  {t("Löschen", "Delete")}
                 </button>
               </div>
             )}
@@ -165,7 +167,7 @@ export function SoloPitchOwnerMenuButton({
                     htmlFor={`description-${pitch.soloPitchId}`}
                     className="mb-1 block text-sm font-medium text-zinc-300"
                   >
-                    Beschreibung
+                    {t("Beschreibung", "Description")}
                   </label>
                   <textarea
                     id={`description-${pitch.soloPitchId}`}
@@ -189,13 +191,13 @@ export function SoloPitchOwnerMenuButton({
                   <AiContentCheckbox defaultChecked={pitch.containsAiContent} />
                 </div>
                 <div className="flex gap-2">
-                  <SubmitButton>Speichern</SubmitButton>
+                  <SubmitButton>{t("Speichern", "Save")}</SubmitButton>
                   <button
                     type="button"
                     onClick={() => setScreen("menu")}
                     className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 hover:border-zinc-500"
                   >
-                    Zurück
+                    {t("Zurück", "Back")}
                   </button>
                 </div>
               </form>
@@ -203,7 +205,7 @@ export function SoloPitchOwnerMenuButton({
 
             {screen === "delete" && (
               <div>
-                <p className="mb-3 text-sm text-white">Diesen Pitch wirklich löschen?</p>
+                <p className="mb-3 text-sm text-white">{t("Diesen Pitch wirklich löschen?", "Really delete this pitch?")}</p>
                 {deleteState?.error && <FormError message={deleteState.error} />}
                 <form action={deleteAction} className="flex gap-2">
                   <input type="hidden" name="soloPitchId" value={pitch.soloPitchId} />
@@ -212,14 +214,14 @@ export function SoloPitchOwnerMenuButton({
                     disabled={deletePending}
                     className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50"
                   >
-                    {deletePending ? "…" : "Ja, löschen"}
+                    {deletePending ? "…" : t("Ja, löschen", "Yes, delete")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setScreen("menu")}
                     className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 hover:border-zinc-500"
                   >
-                    Abbrechen
+                    {t("Abbrechen", "Cancel")}
                   </button>
                 </form>
               </div>

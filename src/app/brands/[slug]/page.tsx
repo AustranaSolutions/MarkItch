@@ -16,6 +16,8 @@ import { profileHeaderOf } from "@/lib/brand-details";
 import { duelRecord } from "@/lib/duel-record";
 import { brandAccent } from "@/lib/brand-color";
 import { getBlockedIds } from "@/lib/block";
+import { getLang } from "@/lib/lang";
+import { getT } from "@/lib/lang";
 
 // Note: this page already reads the session (getOptionalUser -> auth(),
 // which touches cookies), so Next treats it as dynamic automatically —
@@ -23,6 +25,7 @@ import { getBlockedIds } from "@/lib/block";
 // is needed here.
 
 export default async function BrandProfilePage({ params }: { params: Promise<{ slug: string }> }) {
+  const t = await getT();
   const { slug } = await params;
   const [brand] = await db.select().from(brands).where(eq(brands.slug, slug)).limit(1);
 
@@ -50,7 +53,7 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
           this same set of components instead of keeping two copies that
           can silently drift apart again. */}
       <BrandProfileHeader
-        {...profileHeaderOf(brand, accentColor)}
+        {...profileHeaderOf(brand, accentColor, await getLang())}
         followerCount={followerCount}
         followingCount={followingCount}
         record={duelRecord(duels, brand.id)}
@@ -67,7 +70,7 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
               href="/login"
               className="flex h-10 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-[#0e2328] hover:bg-orange-400"
             >
-              Folgen
+              {t("Folgen", "Follow")}
             </Link>
           )
         }
@@ -76,8 +79,8 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
             extras.livePending ? (
               <p className="text-center text-sm text-zinc-400">
                 {extras.livePending.challengerBrandId === viewerBrand.id
-                  ? "Du hast dieses Profil bereits eingeladen — Antwort steht noch aus."
-                  : "Dieses Profil hat dich bereits eingeladen — schau in deinem Profil vorbei."}
+                  ? t("Du hast dieses Profil bereits eingeladen — Antwort steht noch aus.", "You’ve already invited this profile — waiting for a reply.")
+                  : t("Dieses Profil hat dich bereits eingeladen — schau in deinem Profil vorbei.", "This profile has already invited you — check your profile.")}
               </p>
             ) : (
               <ChallengeButton challengedBrandId={brand.id} />

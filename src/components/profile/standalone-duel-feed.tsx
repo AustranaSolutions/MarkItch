@@ -6,6 +6,7 @@ import { FeedDuelCard } from "@/components/feed/feed-duel-card";
 import { CommentSheet, type CommentTarget } from "@/components/feed/comment-sheet";
 import { BottomNav } from "@/components/nav/bottom-nav";
 import type { FeedDuel } from "@/lib/feed";
+import { useT } from "@/components/i18n/lang-provider";
 
 // Phase 44: same fix as StandaloneSoloPitchFeed — this overlay mounted
 // every duel in the list at once, unbounded, and a duel card mounts *two*
@@ -34,6 +35,7 @@ export function StandaloneDuelFeed({
   isLoggedIn: boolean;
   onClose: () => void;
 }) {
+  const t = useT();
   const [duels, setDuels] = useState(initialDuels);
   const [muted, setMuted] = useState(true);
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
@@ -105,7 +107,7 @@ export function StandaloneDuelFeed({
 
   function handleShare(duel: FeedDuel) {
     const url = `${window.location.origin}/battles/${duel.battleId}`;
-    const shareData = { title: `${duel.sides[0].brandName} vs. ${duel.sides[1].brandName} auf MarkItch`, url };
+    const shareData = { title: t(`${duel.sides[0].brandName} vs. ${duel.sides[1].brandName} auf MarkItch`, `${duel.sides[0].brandName} vs. ${duel.sides[1].brandName} on MarkItch`), url };
     if (navigator.share) navigator.share(shareData).catch(() => {});
     else if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {});
   }
@@ -114,7 +116,7 @@ export function StandaloneDuelFeed({
     <div className="fixed inset-0 z-50 bg-black">
       <button
         onClick={onClose}
-        aria-label="Schließen"
+        aria-label={t("Schließen", "Close")}
         className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white"
         style={{ marginTop: "env(safe-area-inset-top)" }}
       >

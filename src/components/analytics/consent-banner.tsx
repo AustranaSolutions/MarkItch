@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getStatsConsent, setStatsConsent } from "@/lib/analytics-client";
+import { useT } from "@/components/i18n/lang-provider";
 
 /**
  * Beide Knöpfe gleich gewichtet (keine Lenkung zur Zustimmung).
@@ -12,6 +13,7 @@ import { getStatsConsent, setStatsConsent } from "@/lib/analytics-client";
  * oder Drittanbieter-Cookies — die gibt es auf MarkItch nicht.
  */
 export function ConsentBanner() {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -30,15 +32,17 @@ export function ConsentBanner() {
   return (
     <div
       role="dialog"
-      aria-label="Statistik-Einwilligung"
+      aria-label={t("Statistik-Einwilligung", "Statistics consent")}
       className="fixed inset-x-3 z-[90] mx-auto max-w-lg rounded-2xl border border-zinc-700 bg-zinc-950 p-4 shadow-xl"
       style={{ bottom: "calc(var(--bottom-nav-h) + 12px)" }}
     >
       <p className="text-sm text-zinc-300">
-        Dürfen wir anonym zählen, wie oft Videos angesehen werden und ob Besucher:innen wiederkommen? Dafür setzen wir
-        ein Cookie. Keine Werbung, kein Tracking über andere Seiten.{" "}
+        {t(
+          "Dürfen wir anonym zählen, wie oft Videos angesehen werden und ob Besucher:innen wiederkommen? Dafür setzen wir ein Cookie. Keine Werbung, kein Tracking über andere Seiten.",
+          "May we anonymously count how often videos are watched and whether visitors come back? We set a cookie for this. No ads, no tracking across other sites.",
+        )}{" "}
         <Link href="/datenschutz" className="text-orange-400 hover:underline">
-          Mehr dazu
+          {t("Mehr dazu", "Learn more")}
         </Link>
       </p>
       <div className="mt-3 flex gap-2">
@@ -47,14 +51,14 @@ export function ConsentBanner() {
           onClick={() => choose("necessary")}
           className="flex-1 rounded-lg border border-zinc-700 px-3 py-2 text-sm font-semibold text-white hover:border-zinc-500"
         >
-          Nur notwendige
+          {t("Nur notwendige", "Necessary only")}
         </button>
         <button
           type="button"
           onClick={() => choose("stats")}
           className="flex-1 rounded-lg border border-zinc-700 px-3 py-2 text-sm font-semibold text-white hover:border-zinc-500"
         >
-          Statistik erlauben
+          {t("Statistik erlauben", "Allow statistics")}
         </button>
       </div>
     </div>
@@ -63,6 +67,7 @@ export function ConsentBanner() {
 
 /** Für die Datenschutzerklärung: Wahl jederzeit ändern. */
 export function ConsentSettings() {
+  const t = useT();
   const [consent, setConsent] = useState<string | null>(null);
   useEffect(() => {
     const timer = setTimeout(() => setConsent(getStatsConsent()), 0);
@@ -75,10 +80,10 @@ export function ConsentSettings() {
   return (
     <span className="mt-2 flex flex-wrap items-center gap-2">
       <span className="text-zinc-500">
-        Deine Wahl auf diesem Gerät: {consent === "stats" ? "Statistik erlaubt" : consent === "necessary" ? "nur notwendige" : "noch keine"}
+        {t("Deine Wahl auf diesem Gerät:", "Your choice on this device:")} {consent === "stats" ? t("Statistik erlaubt", "statistics allowed") : consent === "necessary" ? t("nur notwendige", "necessary only") : t("noch keine", "none yet")}
       </span>
       <button type="button" onClick={() => change(consent === "stats" ? "necessary" : "stats")} className="text-orange-400 hover:underline">
-        {consent === "stats" ? "Statistik widerrufen" : "Statistik erlauben"}
+        {consent === "stats" ? t("Statistik widerrufen", "Withdraw statistics consent") : t("Statistik erlauben", "Allow statistics")}
       </button>
     </span>
   );

@@ -4,15 +4,13 @@ import { useActionState, useState } from "react";
 import { createBrand, type BrandFormState } from "@/app/actions/brand";
 import { Field, FormError, SubmitButton } from "@/components/ui";
 import { BrandCategories, BrandCountries, CreatorCategories } from "@/lib/validation";
+import { useT } from "@/components/i18n/lang-provider";
+import { categoryLabel } from "@/lib/brand-details";
+import { countryLabel, langOf } from "@/lib/i18n";
 
-const COUNTRY_LABELS: Record<(typeof BrandCountries)[number], string> = {
-  AT: "Österreich",
-  DE: "Deutschland",
-  CH: "Schweiz",
-  Other: "Andere",
-};
 
 export function CreateBrandForm() {
+  const t = useT();
   const [state, action] = useActionState<BrandFormState, FormData>(createBrand, undefined);
   // Phase 23: controlled, same reason as register-form.tsx — this form has
   // enough fields that a single rejected one (e.g. missing category)
@@ -37,8 +35,8 @@ export function CreateBrandForm() {
       <div className="mb-4 flex gap-2">
         {(
           [
-            ["brand", "Unternehmen", "Friseur, Lokal, Nagelstudio, Shop oder Marke"],
-            ["creator", "Creator", "Influencer, Content Creator"],
+            ["brand", t("Unternehmen", "Business"), t("Friseur, Lokal, Nagelstudio, Shop oder Marke", "Salon, restaurant, nail studio, shop or brand")],
+            ["creator", "Creator", t("Influencer, Content Creator", "Influencer, content creator")],
           ] as const
         ).map(([value, title, text]) => (
           <button
@@ -60,7 +58,7 @@ export function CreateBrandForm() {
       </div>
 
       <Field
-        label={kind === "creator" ? "Profilname" : "Name (Unternehmen oder Marke)"}
+        label={kind === "creator" ? t("Profilname", "Profile name") : t("Name (Unternehmen oder Marke)", "Name (business or brand)")}
         name="name"
         errors={state?.errors?.name}
         value={name}
@@ -69,7 +67,7 @@ export function CreateBrandForm() {
 
       <div className="mb-4">
         <label htmlFor="description" className="mb-1 block text-sm font-medium text-zinc-300">
-          Beschreibung (optional)
+          {t("Beschreibung (optional)", "Description (optional)")}
         </label>
         <textarea
           id="description"
@@ -89,7 +87,7 @@ export function CreateBrandForm() {
       <div className="mb-4 grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="category" className="mb-1 block text-sm font-medium text-zinc-300">
-            Kategorie
+            {t("Kategorie", "Category")}
           </label>
           <select
             id="category"
@@ -100,11 +98,11 @@ export function CreateBrandForm() {
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-orange-500"
           >
             <option value="" disabled>
-              Wählen…
+              {t("Wählen…", "Choose…")}
             </option>
             {categories.map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {categoryLabel(cat, langOf(t))}
               </option>
             ))}
           </select>
@@ -117,7 +115,7 @@ export function CreateBrandForm() {
 
         <div>
           <label htmlFor="country" className="mb-1 block text-sm font-medium text-zinc-300">
-            Land
+            {t("Land", "Country")}
           </label>
           <select
             id="country"
@@ -128,11 +126,11 @@ export function CreateBrandForm() {
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-orange-500"
           >
             <option value="" disabled>
-              Wählen…
+              {t("Wählen…", "Choose…")}
             </option>
             {BrandCountries.map((c) => (
               <option key={c} value={c}>
-                {COUNTRY_LABELS[c]}
+                {countryLabel(c, t)}
               </option>
             ))}
           </select>
@@ -156,13 +154,13 @@ export function CreateBrandForm() {
 
       {/* Luca 25.10.: Standort beim Anlegen — wie in der App (brand-form.tsx). */}
       <div className="mb-4">
-        <span className="mb-1 block text-sm font-medium text-zinc-300">{kind === "creator" ? "Standort (freiwillig)" : "Wo findet man dich?"}</span>
+        <span className="mb-1 block text-sm font-medium text-zinc-300">{kind === "creator" ? t("Standort (freiwillig)", "Location (optional)") : t("Wo findet man dich?", "Where can people find you?")}</span>
         <input type="hidden" name="locationType" value={locationType} />
         <div className="flex rounded-full border border-zinc-800 p-1">
           {(
             [
-              ["address", "Mit Adresse"],
-              ["area", "Einsatzgebiet"],
+              ["address", t("Mit Adresse", "With address")],
+              ["area", t("Einsatzgebiet", "Service area")],
               ["online", "Online"],
             ] as const
           ).map(([key, label]) => (
@@ -184,17 +182,17 @@ export function CreateBrandForm() {
       </div>
       {locationType === "address" && (
         <>
-          <Field label="Ort im Profil (z. B. Graz-Eggenberg)" name="locationLabel" errors={state?.errors?.locationLabel} value={locationLabel} onChange={setLocationLabel} />
-          <Field label="Adresse (optional)" name="address" required={false} errors={state?.errors?.address} value={address} onChange={setAddress} />
+          <Field label={t("Ort im Profil (z. B. Graz-Eggenberg)", "Location on profile (e.g. Graz-Eggenberg)")} name="locationLabel" errors={state?.errors?.locationLabel} value={locationLabel} onChange={setLocationLabel} />
+          <Field label={t("Adresse (optional)", "Address (optional)")} name="address" required={false} errors={state?.errors?.address} value={address} onChange={setAddress} />
         </>
       )}
       {locationType === "area" && (
-        <Field label="Einsatzgebiet (z. B. Graz und Umgebung)" name="locationLabel" errors={state?.errors?.locationLabel} value={locationLabel} onChange={setLocationLabel} />
+        <Field label={t("Einsatzgebiet (z. B. Graz und Umgebung)", "Service area (e.g. Graz and surroundings)")} name="locationLabel" errors={state?.errors?.locationLabel} value={locationLabel} onChange={setLocationLabel} />
       )}
 
       <div className="mb-6">
         <label htmlFor="logo" className="mb-1 block text-sm font-medium text-zinc-300">
-          Logo (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)
+          {t("Logo (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)", "Logo (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)")}
         </label>
         <input
           id="logo"
@@ -212,8 +210,10 @@ export function CreateBrandForm() {
 
       <label className="mb-6 flex items-start gap-2 text-sm text-zinc-300">
         <input type="checkbox" name="industryCompliance" required className="mt-1" />
-        Ich bestätige, dass meine Marke keine Tabakwaren, E-Zigaretten, verschreibungspflichtigen
-        Medikamente oder anderweitig rechtlich unzulässigen Produkte/Dienstleistungen bewirbt.
+        {t(
+          "Ich bestätige, dass meine Marke keine Tabakwaren, E-Zigaretten, verschreibungspflichtigen Medikamente oder anderweitig rechtlich unzulässigen Produkte/Dienstleistungen bewirbt.",
+          "I confirm that my brand doesn’t promote tobacco, e-cigarettes, prescription drugs or any other legally prohibited products/services.",
+        )}
       </label>
       {state?.errors?.industryCompliance?.map((err) => (
         <p key={err} className="mb-4 -mt-4 text-sm text-red-400">
@@ -221,7 +221,7 @@ export function CreateBrandForm() {
         </p>
       ))}
 
-      <SubmitButton>Marke veröffentlichen</SubmitButton>
+      <SubmitButton>{t("Marke veröffentlichen", "Publish brand")}</SubmitButton>
     </form>
   );
 }

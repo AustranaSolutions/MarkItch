@@ -6,6 +6,7 @@ import { FormError, SubmitButton } from "@/components/ui";
 import { VideoPickerInput } from "@/components/video-picker-input";
 import { AudioRightsCheckbox } from "@/components/pitches/audio-rights-checkbox";
 import { AiContentCheckbox } from "@/components/pitches/ai-content-checkbox";
+import { useT } from "@/components/i18n/lang-provider";
 
 export function ReactionUploadForm({
   soloPitchId,
@@ -16,6 +17,7 @@ export function ReactionUploadForm({
   parentReactionId?: string | null;
   onPosted: () => void;
 }) {
+  const t = useT();
   const [state, action, isPending] = useActionState<ReactionFormState, FormData>(postReaction, undefined);
   const wasPending = useRef(false);
   const [clientError, setClientError] = useState<string | null>(null);
@@ -38,12 +40,12 @@ export function ReactionUploadForm({
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     if (videoUploading) {
       e.preventDefault();
-      setClientError("Video wird noch hochgeladen — kurz warten.");
+      setClientError(t("Video wird noch hochgeladen — kurz warten.", "The video is still uploading — please wait a moment."));
       return;
     }
     if (!videoUploaded) {
       e.preventDefault();
-      setClientError("Bitte zuerst ein Video auswählen.");
+      setClientError(t("Bitte zuerst ein Video auswählen.", "Please choose a video first."));
       return;
     }
     setClientError(null);
@@ -63,7 +65,7 @@ export function ReactionUploadForm({
       />
       <AudioRightsCheckbox />
       <AiContentCheckbox />
-      <SubmitButton>{parentReactionId ? "Antwort posten" : "Reaktion posten"}</SubmitButton>
+      <SubmitButton>{parentReactionId ? t("Antwort posten", "Post reply") : t("Reaktion posten", "Post reaction")}</SubmitButton>
     </form>
   );
 }

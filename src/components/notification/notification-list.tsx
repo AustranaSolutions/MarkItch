@@ -1,26 +1,19 @@
 "use client";
 
+import { shortTimeAgo } from "@/lib/i18n";
 import Link from "next/link";
 import { useTransition } from "react";
 import { markAllNotificationsRead } from "@/app/actions/notification";
 import type { Notification } from "@/db/schema";
-
-function timeAgo(date: Date): string {
-  const minutes = Math.floor((Date.now() - date.getTime()) / (60 * 1000));
-  if (minutes < 1) return "gerade eben";
-  if (minutes < 60) return `vor ${minutes}min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `vor ${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `vor ${days}d`;
-}
+import { useT } from "@/components/i18n/lang-provider";
 
 export function NotificationList({ notifications }: { notifications: Notification[] }) {
+  const t = useT();
   const [isPending, startTransition] = useTransition();
   const hasUnread = notifications.some((n) => !n.readAt);
 
   if (notifications.length === 0) {
-    return <p className="text-sm text-zinc-500">Noch keine Benachrichtigungen — folge Marken, um nichts zu verpassen.</p>;
+    return <p className="text-sm text-zinc-500">{t("Noch keine Benachrichtigungen — folge Marken, um nichts zu verpassen.", "No notifications yet — follow brands so you don’t miss anything.")}</p>;
   }
 
   return (
@@ -32,7 +25,7 @@ export function NotificationList({ notifications }: { notifications: Notificatio
           onClick={() => startTransition(() => markAllNotificationsRead())}
           className="mb-3 text-xs font-medium text-orange-500 hover:underline disabled:opacity-50"
         >
-          Alle als gelesen markieren
+          {t("Alle als gelesen markieren", "Mark all as read")}
         </button>
       )}
       <ul className="space-y-2">
@@ -45,7 +38,7 @@ export function NotificationList({ notifications }: { notifications: Notificatio
               }
             >
               <p>{n.message}</p>
-              <p className="mt-1 text-xs text-zinc-500">{timeAgo(n.createdAt)}</p>
+              <p className="mt-1 text-xs text-zinc-500">{shortTimeAgo(n.createdAt, t)}</p>
             </div>
           );
           // Phase 35: `link` covers every new notification type (follow/

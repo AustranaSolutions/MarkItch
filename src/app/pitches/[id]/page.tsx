@@ -7,10 +7,12 @@ import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { getVoteTally } from "@/lib/vote";
 import { getCommentsForBattle } from "@/lib/comment";
+import { getT, getLang } from "@/lib/lang";
+import { type Translate, duelCategoryLabel } from "@/lib/i18n";
 
-function timeLeftLabel(date: Date): string {
+function timeLeftLabel(date: Date, t: Translate): string {
   const hoursLeft = Math.max(0, (date.getTime() - Date.now()) / (60 * 60 * 1000));
-  if (hoursLeft >= 24) return `${Math.ceil(hoursLeft / 24)} Tage`;
+  if (hoursLeft >= 24) return t(`${Math.ceil(hoursLeft / 24)} Tage`, `${Math.ceil(hoursLeft / 24)} days`);
   return `${Math.max(1, Math.ceil(hoursLeft))}h`;
 }
 
@@ -21,6 +23,7 @@ function timeLeftLabel(date: Date): string {
 // — see FeedDuelCard — so this redirects there instead of maintaining a
 // second, separate way to watch/vote on the same Duell.
 export default async function PitchPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const battle = await getBattleById(id);
   if (!battle) notFound();
@@ -56,26 +59,26 @@ export default async function PitchPage({ params }: { params: Promise<{ id: stri
         <h1 className="text-2xl font-bold text-white">
           {battle.brandA.name} <span className="text-orange-500">vs</span> {battle.brandB.name}
         </h1>
-        {battle.category ? <p className="mt-2 text-xs uppercase tracking-wide text-zinc-600">{battle.category}</p> : null}
+        {battle.category ? <p className="mt-2 text-xs uppercase tracking-wide text-zinc-600">{duelCategoryLabel(battle.category, await getLang())}</p> : null}
       </div>
 
       {stage.stage === "awaiting_videos" && (
         <div className="mx-auto max-w-[380px] rounded-xl border border-zinc-800 p-6 text-center">
           <p className="mb-1 text-sm text-zinc-400">
             {stage.waitingOnBrandIds.length === 2
-              ? "Beide Seiten müssen noch ihr Video hochladen."
-              : `Wartet noch auf ${stage.waitingOnBrandIds[0] === battle.brandAId ? battle.brandA.name : battle.brandB.name}.`}
+              ? t("Beide Seiten müssen noch ihr Video hochladen.", "Both sides still need to upload their video.")
+              : t(`Wartet noch auf ${stage.waitingOnBrandIds[0] === battle.brandAId ? battle.brandA.name : battle.brandB.name}.`, `Still waiting on ${stage.waitingOnBrandIds[0] === battle.brandAId ? battle.brandA.name : battle.brandB.name}.`)}
           </p>
           {stage.deadline && (
-            <p className="mb-4 text-xs text-zinc-600">Frist: noch {timeLeftLabel(stage.deadline)}</p>
+            <p className="mb-4 text-xs text-zinc-600">{t("Frist: noch", "Deadline: ")} {timeLeftLabel(stage.deadline, t)}{t("", " left")}</p>
           )}
           <p className="text-xs text-zinc-600">
-            Videos bleiben unsichtbar, bis beide Seiten geliefert haben — erst dann startet der Pitch.
+            {t("Videos bleiben unsichtbar, bis beide Seiten geliefert haben — erst dann startet der Pitch.", "Videos stay hidden until both sides have delivered — only then does the pitch start.")}
           </p>
           {isOwnBrandA && !videoUrlA && <BattleVideoUploadForm battleId={battle.id} />}
           {isOwnBrandB && !videoUrlB && <BattleVideoUploadForm battleId={battle.id} />}
           {((isOwnBrandA && videoUrlA) || (isOwnBrandB && videoUrlB)) && (
-            <p className="mt-4 text-sm text-orange-400">Dein Video ist eingereicht — warte auf die Gegenseite.</p>
+            <p className="mt-4 text-sm text-orange-400">{t("Dein Video ist eingereicht — warte auf die Gegenseite.", "Your video is in — waiting for the other side.")}</p>
           )}
         </div>
       )}
@@ -85,16 +88,16 @@ export default async function PitchPage({ params }: { params: Promise<{ id: stri
           just the outcome. */}
       {stage.stage === "finished" && stage.resolution === "walkover" && (
         <p className="mx-auto mt-6 max-w-[380px] rounded-xl border border-zinc-800 p-4 text-center text-sm text-zinc-400">
-          🏆 Sieg durch Nichtantritt für{" "}
+          🏆 {t("Sieg durch Nichtantritt für", "Win by forfeit for")}{" "}
           <span className="font-semibold text-orange-400">
             {stage.winnerBrandId === battle.brandAId ? battle.brandA.name : battle.brandB.name}
           </span>{" "}
-          — die Gegenseite hat ihr Video nicht rechtzeitig hochgeladen.
+          {t("— die Gegenseite hat ihr Video nicht rechtzeitig hochgeladen.", "— the other side didn’t upload their video in time.")}
         </p>
       )}
       {stage.stage === "finished" && stage.resolution === "no_show" && (
         <p className="mx-auto mt-6 max-w-[380px] rounded-xl border border-zinc-800 p-4 text-center text-sm text-zinc-500">
-          Keine Seite hat rechtzeitig ein Video hochgeladen — dieser Pitch kam nicht zustande.
+          {t("Keine Seite hat rechtzeitig ein Video hochgeladen — dieser Pitch kam nicht zustande.", "Neither side uploaded a video in time — this pitch didn’t happen.")}
         </p>
       )}
 

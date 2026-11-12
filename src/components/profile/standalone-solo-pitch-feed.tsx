@@ -7,6 +7,7 @@ import { CommentSheet, type CommentTarget } from "@/components/feed/comment-shee
 import { ReactionsOverlay } from "@/components/pitches/reactions-overlay";
 import { BottomNav } from "@/components/nav/bottom-nav";
 import type { FeedSoloPitch } from "@/lib/feed";
+import { useT } from "@/components/i18n/lang-provider";
 
 // Phase 44: this overlay mounted every single video in the list at once,
 // unbounded — the exact same "OS kills the app for memory" bug already
@@ -43,6 +44,7 @@ export function StandaloneSoloPitchFeed({
   onPitchUpdated?: (soloPitchId: string, patch: Partial<FeedSoloPitch>) => void;
   onPitchDeleted?: (soloPitchId: string) => void;
 }) {
+  const t = useT();
   const [pitches, setPitches] = useState(initialPitches);
   const [muted, setMuted] = useState(true);
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
@@ -88,7 +90,7 @@ export function StandaloneSoloPitchFeed({
 
   function handleShare(pitch: FeedSoloPitch) {
     const url = `${window.location.origin}/?pitch=${pitch.soloPitchId}`;
-    const shareData = { title: `${pitch.brandName} auf MarkItch`, url };
+    const shareData = { title: t(`${pitch.brandName} auf MarkItch`, `${pitch.brandName} on MarkItch`), url };
     if (navigator.share) navigator.share(shareData).catch(() => {});
     else if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {});
   }
@@ -97,7 +99,7 @@ export function StandaloneSoloPitchFeed({
     <div className="fixed inset-0 z-50 bg-black">
       <button
         onClick={onClose}
-        aria-label="Schließen"
+        aria-label={t("Schließen", "Close")}
         className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white"
         style={{ marginTop: "env(safe-area-inset-top)" }}
       >

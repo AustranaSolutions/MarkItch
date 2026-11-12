@@ -1,4 +1,7 @@
+"use client";
+
 import { Field } from "@/components/ui";
+import { useT } from "@/components/i18n/lang-provider";
 
 // Phase 27: shared by every fresh video upload (Solo-Pitch, Duell-Video,
 // Kontern) — a video without a "wohin jetzt" ist für den Zuschauer eine
@@ -22,14 +25,17 @@ export function CtaLinkFields({
   onCtaLabelChange?: (value: string) => void;
   onCtaUrlChange?: (value: string) => void;
 }) {
+  const t = useT();
   return (
     <div className="mb-3 rounded-lg border border-zinc-800 p-3">
       <p className="mb-2 text-xs text-zinc-500">
-        Wohin soll ein interessierter Zuschauer geleitet werden? Shop, Speisekarte, Standort/Route,
-        Rabattcode-Landingpage — was auch immer zu diesem Video passt.
+        {t(
+          "Wohin soll ein interessierter Zuschauer geleitet werden? Shop, Speisekarte, Standort/Route, Rabattcode-Landingpage — was auch immer zu diesem Video passt.",
+          "Where should an interested viewer go? Shop, menu, location/directions, discount landing page — whatever fits this video.",
+        )}
       </p>
       <Field
-        label="Beschriftung (z. B. „Jetzt bestellen“, „Route“)"
+        label={t("Beschriftung (z. B. „Jetzt bestellen“, „Route“)", "Button text (e.g. “Order now”, “Directions”)")}
         name="ctaLabel"
         errors={errors?.ctaLabel}
         value={ctaLabel}

@@ -5,6 +5,7 @@ import { ImageIcon } from "lucide-react";
 import { StandaloneDuelFeed } from "@/components/profile/standalone-duel-feed";
 import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
 import type { FeedDuel } from "@/lib/feed";
+import { useT } from "@/components/i18n/lang-provider";
 
 // Phase 38: same seek-a-hair-in trick as SoloPitchGrid's thumbnails —
 // `preload="metadata"` alone often only guarantees duration/dimensions, not
@@ -37,6 +38,7 @@ export function DuelGrid({
   /** Eigenes Profil: Titelbild der eigenen Seite änderbar (App: lange drücken). */
   own?: boolean;
 }) {
+  const t = useT();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [duels, setDuels] = useState(initialDuels);
   const [thumbnailFor, setThumbnailFor] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export function DuelGrid({
               <button
                 onClick={() => setOpenIndex(index)}
                 className="relative flex aspect-[4/5] w-full gap-0.5 overflow-hidden rounded-xl"
-                aria-label={`Duell ${sides[0].brandName} gegen ${sides[1].brandName}`}
+                aria-label={t(`Duell ${sides[0].brandName} gegen ${sides[1].brandName}`, `Duel ${sides[0].brandName} vs. ${sides[1].brandName}`)}
               >
                 {sides.map((side) => (
                   <span key={side.brandId} className="h-full flex-1 bg-zinc-900">
@@ -83,7 +85,7 @@ export function DuelGrid({
                 <button
                   type="button"
                   onClick={() => setThumbnailFor(sides[0].videoUrl)}
-                  aria-label="Titelbild ändern"
+                  aria-label={t("Titelbild ändern", "Change cover")}
                   className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
                 >
                   <ImageIcon size={14} />
@@ -100,7 +102,7 @@ export function DuelGrid({
           remote
           onClose={() => setThumbnailFor(null)}
           onPicked={async (image) => {
-            const thumbnailUrl = await uploadThumbnail(thumbnailFor, image);
+            const thumbnailUrl = await uploadThumbnail(thumbnailFor, image, t);
             setDuels((list) =>
               list.map((d) => ({
                 ...d,

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { updateProfile, type FormState } from "@/app/actions/auth";
 import { Field, FormError, FormSuccess, SubmitButton } from "@/components/ui";
+import { useT } from "@/components/i18n/lang-provider";
 
 export function EditProfileForm({
   initialName,
@@ -13,6 +14,7 @@ export function EditProfileForm({
   initialEmail: string;
   initialAvatarUrl: string | null;
 }) {
+  const t = useT();
   const [state, action] = useActionState<FormState, FormData>(updateProfile, undefined);
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState(initialEmail);
@@ -24,12 +26,12 @@ export function EditProfileForm({
       <FormError message={state?.errors?._form?.[0]} />
       {state?.success && (
         <FormSuccess
-          message={emailChanged ? "Gespeichert — bestätige deine neue E-Mail-Adresse, der Link wurde verschickt." : "Gespeichert."}
+          message={emailChanged ? t("Gespeichert — bestätige deine neue E-Mail-Adresse, der Link wurde verschickt.", "Saved — confirm your new email address, the link has been sent.") : t("Gespeichert.", "Saved.")}
         />
       )}
       <div className="mb-4">
         <label htmlFor="avatar" className="mb-1 block text-sm font-medium text-zinc-300">
-          Profilbild (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)
+          {t("Profilbild (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)", "Profile picture (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)")}
         </label>
         <div className="flex items-center gap-3">
           {avatarPreview ? (
@@ -60,7 +62,7 @@ export function EditProfileForm({
       </div>
       <Field label="Name" name="name" errors={state?.errors?.name} value={name} onChange={setName} />
       <Field
-        label="E-Mail"
+        label={t("E-Mail", "Email")}
         name="email"
         type="email"
         autoComplete="email"
@@ -70,11 +72,13 @@ export function EditProfileForm({
       />
       {emailChanged && (
         <p className="mb-4 text-xs text-yellow-400">
-          Du änderst deine E-Mail-Adresse — dein Account gilt danach wieder als nicht verifiziert, bis du den neuen
-          Bestätigungslink anklickst.
+          {t(
+            "Du änderst deine E-Mail-Adresse — dein Account gilt danach wieder als nicht verifiziert, bis du den neuen Bestätigungslink anklickst.",
+            "You’re changing your email address — your account will count as unverified until you click the new confirmation link.",
+          )}
         </p>
       )}
-      <SubmitButton>Speichern</SubmitButton>
+      <SubmitButton>{t("Speichern", "Save")}</SubmitButton>
     </form>
   );
 }

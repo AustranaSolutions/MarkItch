@@ -5,6 +5,7 @@ import Link from "next/link";
 import { registerUser, type FormState } from "@/app/actions/auth";
 import { Field, FormError, SubmitButton } from "@/components/ui";
 import { trackVisitorEvent } from "@/lib/analytics-client";
+import { useT } from "@/components/i18n/lang-provider";
 
 type AccountType = "acro" | "assent";
 
@@ -37,6 +38,7 @@ function RoleCard({
 }
 
 export function RegisterForm() {
+  const t = useT();
   const [state, action] = useActionState<FormState, FormData>(registerUser, undefined);
   // Luca 18.10.: Marke und Creator sind beide Acro — die Art wählt man danach beim Profil.
   const [role, setRole] = useState<"brand" | "creator" | "assent">("assent");
@@ -60,27 +62,27 @@ export function RegisterForm() {
       <FormError message={state?.errors?._form?.[0]} />
 
       <div className="mb-4">
-        <p className="mb-2 text-sm font-medium text-zinc-300">Wer bist du?</p>
+        <p className="mb-2 text-sm font-medium text-zinc-300">{t("Wer bist du?", "Who are you?")}</p>
         <input type="hidden" name="accountType" value={accountType} />
         <div className="flex flex-col gap-2 sm:flex-row">
           <RoleCard
             value="assent"
-            title="Zuschauer"
-            description="Schaut zu & stimmt ab"
+            title={t("Zuschauer", "Viewer")}
+            description={t("Schaut zu & stimmt ab", "Watches & votes")}
             selected={role === "assent"}
             onSelect={() => setRole("assent")}
           />
           <RoleCard
             value="acro"
-            title="Unternehmen"
-            description="Friseur, Lokal, Shop, Marke — Videos & Duelle"
+            title={t("Unternehmen", "Business")}
+            description={t("Friseur, Lokal, Shop, Marke — Videos & Duelle", "Salon, restaurant, shop, brand — videos & duels")}
             selected={role === "brand"}
             onSelect={() => setRole("brand")}
           />
           <RoleCard
             value="acro"
             title="Creator"
-            description="Influencer — postet Videos & Duelle"
+            description={t("Influencer — postet Videos & Duelle", "Influencer — posts videos & duels")}
             selected={role === "creator"}
             onSelect={() => setRole("creator")}
           />
@@ -94,7 +96,7 @@ export function RegisterForm() {
 
       <Field label="Name" name="name" autoComplete="name" errors={state?.errors?.name} value={name} onChange={setName} />
       <Field
-        label="E-Mail"
+        label={t("E-Mail", "Email")}
         name="email"
         type="email"
         autoComplete="email"
@@ -103,28 +105,28 @@ export function RegisterForm() {
         onChange={setEmail}
       />
       <Field
-        label="Passwort"
+        label={t("Passwort", "Password")}
         name="password"
         type="password"
         autoComplete="new-password"
         errors={state?.errors?.password}
       />
-      <SubmitButton>Account erstellen</SubmitButton>
+      <SubmitButton>{t("Account erstellen", "Create account")}</SubmitButton>
       <p className="mt-3 text-center text-xs text-zinc-500">
-        Mit der Registrierung bestätigst du, dass du mindestens 16 Jahre alt bist, und akzeptierst die{" "}
+        {t("Mit der Registrierung bestätigst du, dass du mindestens 16 Jahre alt bist, und akzeptierst die", "By signing up you confirm that you’re at least 16 years old and accept the")}{" "}
         <Link href="/nutzungsbedingungen" className="text-orange-400 hover:underline">
-          Nutzungsbedingungen
+          {t("Nutzungsbedingungen", "Terms of Use")}
         </Link>{" "}
-        und die{" "}
+        {t("und die", "and the")}{" "}
         <Link href="/datenschutz" className="text-orange-400 hover:underline">
-          Datenschutzerklärung
+          {t("Datenschutzerklärung", "Privacy Policy")}
         </Link>
         .
       </p>
       <p className="mt-4 text-center text-sm text-zinc-400">
-        Schon registriert?{" "}
+        {t("Schon registriert?", "Already registered?")}{" "}
         <Link href="/login" className="text-orange-500 hover:underline">
-          Anmelden
+          {t("Anmelden", "Log in")}
         </Link>
       </p>
     </form>

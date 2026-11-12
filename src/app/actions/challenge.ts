@@ -1,5 +1,6 @@
 "use server";
 
+import { localizeResult } from "@/lib/lang";
 import { refresh } from "next/cache";
 import { requireUser } from "@/lib/session";
 import {
@@ -24,7 +25,7 @@ function toFormState(result: ChallengeResult): { error?: string } | undefined {
 }
 
 /** Brand A challenges Brand B. Triggered from B's public profile page. */
-export async function sendChallenge(_prevState: ChallengeFormState, formData: FormData): Promise<ChallengeFormState> {
+async function sendChallengeImpl(_prevState: ChallengeFormState, formData: FormData): Promise<ChallengeFormState> {
   const user = await requireUser();
   return toFormState(
     await sendChallengeFor(user, { challengedBrandId: formData.get("challengedBrandId"), category: formData.get("category") }),
@@ -32,7 +33,7 @@ export async function sendChallenge(_prevState: ChallengeFormState, formData: Fo
 }
 
 /** Phase 13: "Duell einladen" direkt von einem Solo-Pitch aus. */
-export async function sendChallengeFromSoloPitch(
+async function sendChallengeFromSoloPitchImpl(
   _prevState: ChallengeFormState,
   formData: FormData,
 ): Promise<ChallengeFormState> {
@@ -43,13 +44,27 @@ export async function sendChallengeFromSoloPitch(
 }
 
 /** The challenger withdraws their own still-pending invitation. */
-export async function cancelChallenge(_prevState: CancelFormState, formData: FormData): Promise<CancelFormState> {
+async function cancelChallengeImpl(_prevState: CancelFormState, formData: FormData): Promise<CancelFormState> {
   const user = await requireUser();
   return toFormState(await cancelChallengeFor(user, formData.get("challengeId")));
 }
 
 /** The challenged brand accepts or declines. */
-export async function respondToChallenge(_prevState: RespondFormState, formData: FormData): Promise<RespondFormState> {
+async function respondToChallengeImpl(_prevState: RespondFormState, formData: FormData): Promise<RespondFormState> {
   const user = await requireUser();
   return toFormState(await respondToChallengeFor(user, formData.get("challengeId"), formData.get("decision")));
+}
+
+// Luca 12.11.: Ergebnisse in der Sprache der Person (siehe lib/lang.ts).
+export async function sendChallenge(...args: Parameters<typeof sendChallengeImpl>) {
+  return localizeResult(await sendChallengeImpl(...args));
+}
+export async function sendChallengeFromSoloPitch(...args: Parameters<typeof sendChallengeFromSoloPitchImpl>) {
+  return localizeResult(await sendChallengeFromSoloPitchImpl(...args));
+}
+export async function cancelChallenge(...args: Parameters<typeof cancelChallengeImpl>) {
+  return localizeResult(await cancelChallengeImpl(...args));
+}
+export async function respondToChallenge(...args: Parameters<typeof respondToChallengeImpl>) {
+  return localizeResult(await respondToChallengeImpl(...args));
 }

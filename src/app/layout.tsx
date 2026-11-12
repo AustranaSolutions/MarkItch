@@ -11,17 +11,28 @@ import { ConsentBanner } from "@/components/analytics/consent-banner";
 import { TermsNotice } from "@/components/legal/terms-notice";
 import { NameNotice } from "@/components/legal/name-notice";
 import { APP_STORE_ID } from "@/lib/feature-flags";
+import { getLang } from "@/lib/lang";
+import { LangProvider } from "@/components/i18n/lang-provider";
 
 // Luca 17.10.: Manrope wie in der App (variable Schrift, alle Schnitte).
-const manrope = Manrope({ subsets: ["latin", "latin-ext"], variable: "--font-manrope" });
+const manrope = Manrope({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-manrope",
+});
 
-export const metadata: Metadata = {
-  title: "MarkItch",
-  description: "Werbung wird zum Entertainment.",
-  metadataBase: new URL("https://www.markitch.com"),
-  // Phase W: Safaris eigenes App-Banner („Öffnen“ / „Laden“) — erscheint erst, wenn die App im App Store ist.
-  itunes: { appId: APP_STORE_ID },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await getLang();
+  return {
+    title: "MarkItch",
+    description:
+      lang === "en"
+        ? "Advertising becomes entertainment."
+        : "Werbung wird zum Entertainment.",
+    metadataBase: new URL("https://www.markitch.com"),
+    // Phase W: Safaris eigenes App-Banner („Öffnen“ / „Laden“) — erscheint erst, wenn die App im App Store ist.
+    itunes: { appId: APP_STORE_ID },
+  };
+}
 
 // Phase 41: no viewport config existed at all, so pinch-zoom and double-tap-
 // zoom stayed fully active — Luca, on a real touchscreen: swiping a Duell's
@@ -41,9 +52,10 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getOptionalUser();
   const unreadCount = user ? await getUnreadNotificationCount(user.id) : 0;
+  const lang = await getLang();
 
   return (
-    <html lang="de" className={`h-full antialiased dark ${manrope.variable}`}>
+    <html lang={lang} className={`h-full antialiased dark ${manrope.variable}`}>
       <body className="flex min-h-full flex-col bg-black text-white font-sans">
         {/* Luca 07.10.: Browser-Fehler (auch vor dem Start von React) an den Server melden, max. 5 pro Seite. */}
         <script
@@ -51,14 +63,19 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             __html: `(function(){var n=0;function s(m){if(n++>=5)return;try{navigator.sendBeacon("/api/client-error",location.pathname+" :: "+m)}catch(e){}}addEventListener("error",function(e){s((e.message||"Ladefehler")+" @ "+(e.filename||(e.target&&(e.target.src||e.target.href))||"")+":"+(e.lineno||""))},true);addEventListener("unhandledrejection",function(e){s("Promise: "+(e.reason&&(e.reason.stack||e.reason.message)||e.reason))})})();`,
           }}
         />
-        <SplashScreen />
-        <SessionBoot />
-        <ConsentBanner />
-        {user ? <TermsNotice userId={user.id} /> : null}
-        {user ? <NameNotice userId={user.id} /> : null}
-        {children}
-        <NotificationBellButton isLoggedIn={Boolean(user)} unreadCount={unreadCount} />
-        <BottomNav isLoggedIn={Boolean(user)} />
+        <LangProvider lang={lang}>
+          <SplashScreen />
+          <SessionBoot />
+          <ConsentBanner />
+          {user ? <TermsNotice userId={user.id} /> : null}
+          {user ? <NameNotice userId={user.id} /> : null}
+          {children}
+          <NotificationBellButton
+            isLoggedIn={Boolean(user)}
+            unreadCount={unreadCount}
+          />
+          <BottomNav isLoggedIn={Boolean(user)} />
+        </LangProvider>
       </body>
     </html>
   );

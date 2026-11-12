@@ -6,6 +6,8 @@ import { ReminderButton } from "@/components/pitches/reminder-button";
 import { LiveDuelList } from "@/components/pitches/live-duel-list";
 import { getLiveFeedDuels } from "@/lib/feed";
 import { getBrandForUser } from "@/lib/brand";
+import { getT } from "@/lib/lang";
+import { type Translate } from "@/lib/i18n";
 
 // Always live data — without this, Next prerenders it once at build time
 // (no dynamic API is used otherwise) and it would never show a battle
@@ -23,11 +25,11 @@ function BrandThumb({ brand }: { brand: { name: string; logoUrl: string | null }
   );
 }
 
-function deadlineLabel(deadline: Date | null): string | null {
+function deadlineLabel(deadline: Date | null, t: Translate): string | null {
   if (!deadline) return null;
   const hoursLeft = Math.max(0, (deadline.getTime() - Date.now()) / (60 * 60 * 1000));
-  const label = hoursLeft >= 24 ? `noch ${Math.ceil(hoursLeft / 24)} Tage` : `noch ${Math.max(1, Math.ceil(hoursLeft))}h`;
-  return `Kommt spätestens in ${label}`;
+  const label = hoursLeft >= 24 ? t(`noch ${Math.ceil(hoursLeft / 24)} Tage`, `${Math.ceil(hoursLeft / 24)} days`) : t(`noch ${Math.max(1, Math.ceil(hoursLeft))}h`, `${Math.max(1, Math.ceil(hoursLeft))}h`);
+  return t(`Kommt spätestens in ${label}`, `Coming within ${label}`);
 }
 
 // Phase 10: this is now purely a "kommt bald" preview — every Duell that's
@@ -40,6 +42,7 @@ function deadlineLabel(deadline: Date | null): string | null {
 // Feed = the only place to actually watch/vote/comment.
 // Luca 26.10.: Reiter „Demnächst“ / „Live“ wie in der App (?tab=live).
 export default async function PitchesPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const t = await getT();
   const { tab: rawTab } = await searchParams;
   const tab = rawTab === "live" ? "live" : "soon";
   const viewer = await getOptionalUser();
@@ -55,8 +58,8 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
       <h1 className="mb-1 text-2xl font-bold text-white">Pitches</h1>
       <p className="mb-6 text-sm text-zinc-500">
         {tab === "soon"
-          ? "Kommende Duelle — merk dir eins vor, dann sagen wir dir Bescheid, sobald es live geht."
-          : "Duelle, bei denen gerade abgestimmt wird — antippen und wie im Feed durchwischen."}
+          ? t("Kommende Duelle — merk dir eins vor, dann sagen wir dir Bescheid, sobald es live geht.", "Upcoming duels — set a reminder and we’ll let you know as soon as one goes live.")
+          : t("Duelle, bei denen gerade abgestimmt wird — antippen und wie im Feed durchwischen.", "Duels open for voting right now — tap one and swipe through like in the feed.")}
       </p>
 
       {viewerBrand && (
@@ -64,7 +67,7 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
           href="/profile/settings"
           className="mb-6 flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-900"
         >
-          ✉️ Duell-Einladungen
+          {t("✉️ Duell-Einladungen", "✉️ Duel invites")}
           <span className="text-zinc-500">›</span>
         </Link>
       )}
@@ -73,7 +76,7 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
       <div className="mb-6 flex border-b border-zinc-800">
         {(
           [
-            ["soon", "Demnächst", upcoming.length],
+            ["soon", t("Demnächst", "Coming soon"), upcoming.length],
             ["live", "Live", live.length],
           ] as const
         ).map(([key, label, n]) => (
@@ -91,11 +94,11 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
       {tab === "live" ? (
         <LiveDuelList duels={live} isLoggedIn={Boolean(viewer)} />
       ) : upcoming.length === 0 ? (
-        <p className="text-sm text-zinc-500">Gerade kommt nichts Neues — schau später wieder vorbei.</p>
+        <p className="text-sm text-zinc-500">{t("Gerade kommt nichts Neues — schau später wieder vorbei.", "Nothing new right now — check back later.")}</p>
       ) : (
         <ul className="space-y-3">
           {upcoming.map(({ battle, deadline: productionDeadline }) => {
-            const deadline = deadlineLabel(productionDeadline);
+            const deadline = deadlineLabel(productionDeadline, t);
 
             return (
               <li key={battle.id} className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
@@ -117,7 +120,7 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
                     <ReminderButton battleId={battle.id} hasReminder={remindedIds.has(battle.id)} />
                   ) : (
                     <Link href="/login" className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:border-orange-400 hover:text-orange-400">
-                      🔔 Anmelden zum Erinnern
+                      {t("🔔 Anmelden zum Erinnern", "🔔 Log in to get reminded")}
                     </Link>
                   )}
                 </div>

@@ -4,11 +4,13 @@ import { getOptionalUser } from "@/lib/session";
 import { isUuid } from "@/lib/mobile-auth";
 import { getPublicViewerProfile } from "@/lib/public-profile";
 import { ViewerProfile } from "@/components/profile/viewer-profile";
+import { getT } from "@/lib/lang";
 
 export const metadata: Metadata = { robots: { index: false } };
 
 /** Luca 02.11.: öffentliches Zuschauer-Profil (Name bei Meinungen/Reaktionen antippen). Website = App (app/users/[id].tsx). */
 export default async function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   if (!isUuid(id)) notFound();
   const viewer = await getOptionalUser();
@@ -29,7 +31,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
           </div>
         )}
         <h1 className="mt-3 text-lg font-semibold text-white">{user.name}</h1>
-        <p className="mt-1 text-sm text-zinc-400">Schaut zu, stimmt ab und reagiert mit eigenen Videos.</p>
+        <p className="mt-1 text-sm text-zinc-400">{t("Schaut zu, stimmt ab und reagiert mit eigenen Videos.", "Watches, votes and reacts with their own videos.")}</p>
       </div>
       <ViewerProfile activity={activity} reactions={activity.reactions} own={false} />
     </div>

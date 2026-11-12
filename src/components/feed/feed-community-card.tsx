@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { FeedReaction } from "@/lib/community-feed";
 import type { ReactionRow } from "@/lib/reaction-threads";
 import { ReactionFeedCard } from "@/components/pitches/reaction-feed-card";
+import { useT } from "@/components/i18n/lang-provider";
 
 /**
  * Luca 05.11.: Community-Reaktionen und Challenge-Beiträge von Zuschauern im
@@ -29,6 +30,7 @@ export function FeedCommunityCard({
   onShare: (item: FeedReaction) => void;
   onActive: () => void;
 }) {
+  const t = useT();
   const reaction = useMemo<ReactionRow>(
     () => ({
       id: item.reactionId,
@@ -69,11 +71,11 @@ export function FeedCommunityCard({
       onActive={onActive}
       feedContext={
         challenge
-          ? { label: `Challenge von ${item.original.brandName}`, href: `/challenges/${item.creatorChallengeId}`, linkLabel: "Zur Challenge" }
+          ? { label: t(`Challenge von ${item.original.brandName}`, `Challenge by ${item.original.brandName}`), href: `/challenges/${item.creatorChallengeId}`, linkLabel: t("Zur Challenge", "Go to challenge") }
           : {
-              label: `${item.parentReactionId ? "Antwort" : "Reaktion"} auf ${item.original.brandName}`,
+              label: item.parentReactionId ? t(`Antwort auf ${item.original.brandName}`, `Reply to ${item.original.brandName}`) : t(`Reaktion auf ${item.original.brandName}`, `Reaction to ${item.original.brandName}`),
               href: `/?pitch=${item.soloPitchId}`,
-              linkLabel: "Original ansehen",
+              linkLabel: t("Original ansehen", "View original"),
             }
       }
     />

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, X } from "lucide-react";
 import type { ReactionRow } from "@/lib/reaction-threads";
 import { ReactionFeedCard } from "@/components/pitches/reaction-feed-card";
+import { useT } from "@/components/i18n/lang-provider";
 
 // Phase 44: same fix as StandaloneSoloPitchFeed/StandaloneDuelFeed — every
 // reaction in the list was mounted (and its video loaded) at once,
@@ -50,6 +51,7 @@ export function ReactionsFeed({
   onClose: () => void;
   onBackToGrid: () => void;
 }) {
+  const t = useT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(startIndex);
 
@@ -78,7 +80,7 @@ export function ReactionsFeed({
     <div className="fixed inset-0 z-[60] bg-black">
       <button
         onClick={onBackToGrid}
-        aria-label="Zurück zur Übersicht"
+        aria-label={t("Zurück zur Übersicht", "Back to overview")}
         className="absolute left-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white"
         style={{ marginTop: "env(safe-area-inset-top)" }}
       >
@@ -86,7 +88,7 @@ export function ReactionsFeed({
       </button>
       <button
         onClick={onClose}
-        aria-label="Schließen"
+        aria-label={t("Schließen", "Close")}
         className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white"
         style={{ marginTop: "env(safe-area-inset-top)" }}
       >

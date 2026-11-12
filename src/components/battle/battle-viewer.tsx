@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { VideoPlayer } from "@/components/brand/video-player";
+import { useT } from "@/components/i18n/lang-provider";
 
 type Side = {
   id: string;
@@ -34,6 +35,7 @@ function TabButton({ label, isActive, onClick }: { label: string; isActive: bool
  * active, so switching also pauses the other video.
  */
 export function BattleViewer({ brandA, brandB }: { brandA: Side; brandB: Side }) {
+  const t = useT();
   const [active, setActive] = useState<"A" | "B">("A");
   const activeBrand = active === "A" ? brandA : brandB;
 
@@ -48,7 +50,7 @@ export function BattleViewer({ brandA, brandB }: { brandA: Side; brandB: Side })
         <VideoPlayer key={activeBrand.id} src={activeBrand.videoUrl} />
       ) : (
         <div className="flex aspect-[9/16] w-full items-center justify-center rounded-xl border border-dashed border-zinc-800 text-center text-sm text-zinc-600">
-          Noch kein Video hochgeladen
+          {t("Noch kein Video hochgeladen", "No video uploaded yet")}
         </div>
       )}
 
@@ -64,7 +66,7 @@ export function BattleViewer({ brandA, brandB }: { brandA: Side; brandB: Side })
             {activeBrand.name.charAt(0).toUpperCase()}
           </div>
         )}
-        {activeBrand.name} ansehen →
+        {t(`${activeBrand.name} ansehen →`, `View ${activeBrand.name} →`)}
       </Link>
     </div>
   );

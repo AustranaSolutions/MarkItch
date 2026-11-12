@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { getBattleById, resolveBattleVideos } from "@/lib/battle";
 import { getBattleStage } from "@/lib/battle-stage";
 import { getVoteTally, getVoteTallyAsOf } from "@/lib/vote";
+import { getT } from "@/lib/lang";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -43,6 +44,7 @@ function fallbackImage() {
  * gets a sensible image here.
  */
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const battle = await getBattleById(id);
   if (!battle) return fallbackImage();
@@ -91,14 +93,14 @@ export default async function Image({ params }: { params: Promise<{ id: string }
             <div style={{ display: "flex", fontSize: 60, fontWeight: 800, color: winner === "A" ? ORANGE : "white" }}>
               {battle.brandA.name}
             </div>
-            {winner === "A" && <div style={{ display: "flex", fontSize: 30 }}>🏆 Gewinner</div>}
+            {winner === "A" && <div style={{ display: "flex", fontSize: 30 }}>{t("🏆 Gewinner", "🏆 Winner")}</div>}
           </div>
           <div style={{ display: "flex", fontSize: 40, fontWeight: 700, color: ZINC_LIGHT }}>VS</div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, gap: 12 }}>
             <div style={{ display: "flex", fontSize: 60, fontWeight: 800, color: winner === "B" ? ORANGE : "white" }}>
               {battle.brandB.name}
             </div>
-            {winner === "B" && <div style={{ display: "flex", fontSize: 30 }}>🏆 Gewinner</div>}
+            {winner === "B" && <div style={{ display: "flex", fontSize: 30 }}>{t("🏆 Gewinner", "🏆 Winner")}</div>}
           </div>
         </div>
 
@@ -118,12 +120,12 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           </div>
         ) : (
           <div style={{ display: "flex", justifyContent: "center", fontSize: 34, fontWeight: 700, color: ORANGE }}>
-            Wer gewinnt? Jetzt abstimmen
+            {t("Wer gewinnt? Jetzt abstimmen", "Who wins? Vote now")}
           </div>
         )}
 
         <div style={{ display: "flex", justifyContent: "center", fontSize: 24, color: ZINC_LIGHT, marginTop: 32 }}>
-          {isFinished ? `${tally.total} Stimmen · Ergebnis` : `${tally.total} Stimmen bisher · läuft noch`}
+          {isFinished ? t(`${tally.total} Stimmen · Ergebnis`, `${tally.total} votes · result`) : t(`${tally.total} Stimmen bisher · läuft noch`, `${tally.total} votes so far · still running`)}
         </div>
       </div>
     ),

@@ -6,6 +6,7 @@ import type { ProfileChallenge, ProfileChallengeWinners } from "@/lib/brand-prof
 import { SoloPitchGrid } from "@/components/profile/solo-pitch-grid";
 import { DuelGrid } from "@/components/profile/duel-grid";
 import type { FeedSoloPitch, FeedDuel } from "@/lib/feed";
+import { useT } from "@/components/i18n/lang-provider";
 
 export type ProfileInfo = {
   category: string;
@@ -57,6 +58,7 @@ export function ProfileContentTabs({
   viewerBrandId?: string | null;
   info: ProfileInfo;
 }) {
+  const t = useT();
   const [tab, setTab] = useState<"solo" | "duels" | "info">("solo");
 
   return (
@@ -72,13 +74,13 @@ export function ProfileContentTabs({
           onClick={() => setTab("duels")}
           className={`flex-1 border-b-2 py-2.5 ${tab === "duels" ? "border-orange-500 text-white" : "border-transparent text-zinc-500"}`}
         >
-          Duelle ({duels.length})
+          {t("Duelle", "Duels")} ({duels.length})
         </button>
         <button
           onClick={() => setTab("info")}
           className={`flex-1 border-b-2 py-2.5 ${tab === "info" ? "border-orange-500 text-white" : "border-transparent text-zinc-500"}`}
         >
-          Aktionen
+          {t("Aktionen", "Actions")}
         </button>
       </div>
 
@@ -86,19 +88,19 @@ export function ProfileContentTabs({
         soloPitches.length > 0 ? (
           <SoloPitchGrid initialPitches={soloPitches} isLoggedIn={isLoggedIn} viewerBrandId={viewerBrandId} />
         ) : (
-          <p className="py-8 text-center text-sm text-zinc-500">Noch keine Videos gepostet.</p>
+          <p className="py-8 text-center text-sm text-zinc-500">{t("Noch keine Videos gepostet.", "No videos posted yet.")}</p>
         )
       ) : tab === "duels" ? (
         duels.length > 0 ? (
           <DuelGrid duels={duels} isLoggedIn={isLoggedIn} ownBrandId={profileBrandId} own={viewerBrandId === profileBrandId} />
         ) : (
-          <p className="py-8 text-center text-sm text-zinc-500">Noch keine Duelle.</p>
+          <p className="py-8 text-center text-sm text-zinc-500">{t("Noch keine Duelle.", "No duels yet.")}</p>
         )
       ) : (
         <div className="space-y-4">
           {/* Luca 24.10.: Kategorie/Website stehen jetzt oben bzw. unter ⋯ → Info. */}
           {!info.challenges.length && !info.challengeWinners && !info.activeCasting && !info.castingWinner && (
-            <p className="py-8 text-center text-sm text-zinc-500">Gerade keine Challenges oder Castings.</p>
+            <p className="py-8 text-center text-sm text-zinc-500">{t("Gerade keine Challenges oder Castings.", "No challenges or castings right now.")}</p>
           )}
 
           {/* RN-7: Creator-Challenges eröffnet nur die Marke selbst (statt offener Monats-Charts). */}
@@ -106,10 +108,10 @@ export function ProfileContentTabs({
             <div key={c.id} className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 text-center">
               <p className="mb-2 text-sm text-orange-300">
                 🏆 Creator-Challenge {c.periodLabel}
-                {c.stage === "upcoming" ? " (startet bald)" : ""}: „{c.prompt}“
+                {c.stage === "upcoming" ? t(" (startet bald)", " (starting soon)") : ""}: „{c.prompt}“
               </p>
               <Link href={`/challenges/${c.id}`} className="text-sm font-semibold text-orange-400 hover:underline">
-                {info.isOwnBrand ? "Ansehen" : "Ansehen & mitmachen"} →
+                {info.isOwnBrand ? t("Ansehen", "View") : t("Ansehen & mitmachen", "View & join")} →
               </Link>
             </div>
           ))}
@@ -129,16 +131,16 @@ export function ProfileContentTabs({
                 ))}
               </p>
               <Link href={`/challenges/${info.challengeWinners.challengeId}`} className="mt-1 inline-block text-xs text-orange-400/80 hover:underline">
-                Challenge ansehen →
+                {t("Challenge ansehen →", "View challenge →")}
               </Link>
             </div>
           )}
 
           {info.activeCasting && (
             <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 text-center">
-              <p className="mb-2 text-sm text-orange-300">🎬 Partner-Casting läuft (neuer Partner gesucht): „{info.activeCasting.prompt}“</p>
+              <p className="mb-2 text-sm text-orange-300">🎬 {t("Partner-Casting läuft (neuer Partner gesucht)", "Partner casting open (new partner wanted)")}: „{info.activeCasting.prompt}“</p>
               <Link href={`/castings/${info.activeCasting.id}`} className="text-sm font-semibold text-orange-400 hover:underline">
-                {info.isOwnBrand ? "Ansehen" : "Ansehen & mitmachen"} →
+                {info.isOwnBrand ? t("Ansehen", "View") : t("Ansehen & mitmachen", "View & join")} →
               </Link>
             </div>
           )}
@@ -146,13 +148,13 @@ export function ProfileContentTabs({
           {!info.activeCasting && info.castingWinner && info.latestFinishedCastingId && (
             <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 text-center">
               <p className="text-sm text-orange-300">
-                🏆 Offizieller Partner:{" "}
+                🏆 {t("Offizieller Partner", "Official partner")}:{" "}
                 <Link href={`/brands/${info.castingWinner.brandSlug}`} className="font-semibold hover:underline">
                   {info.castingWinner.brandName}
                 </Link>
               </p>
               <Link href={`/castings/${info.latestFinishedCastingId}`} className="mt-1 inline-block text-xs text-orange-400/80 hover:underline">
-                Casting ansehen →
+                {t("Casting ansehen →", "View casting →")}
               </Link>
             </div>
           )}

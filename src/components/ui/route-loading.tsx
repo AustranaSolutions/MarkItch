@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useT } from "@/components/i18n/lang-provider";
 
 // Phase 41: every route here was fully server-rendered with no
 // `loading.tsx` anywhere in the app — Next.js showed *nothing* during a
@@ -38,6 +39,7 @@ const STUCK_RELOAD_MS = 2500;
  * a few seconds" instead.
  */
 export function RouteLoading() {
+  const t = useT();
   useEffect(() => {
     const timer = setTimeout(() => {
       window.location.reload();
@@ -47,7 +49,7 @@ export function RouteLoading() {
 
   return (
     <div className="flex min-h-[50vh] w-full items-center justify-center">
-      <p className="animate-pulse text-sm text-zinc-500">Lädt…</p>
+      <p className="animate-pulse text-sm text-zinc-500">{t("Lädt…", "Loading…")}</p>
     </div>
   );
 }

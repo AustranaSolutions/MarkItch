@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { useVideoTrim, type Trim } from "@/lib/use-video-trim";
+import { useT } from "@/components/i18n/lang-provider";
 
 export type ViewerReactionTile = {
   id: string;
@@ -22,6 +23,7 @@ const number = (n: number) => n.toLocaleString("de-DE");
 
 /** Luca 02.11.: Reaktions-Kacheln im Zuschauer-Profil; Antippen spielt die Reaktion (wie in der App), mit „Original ansehen“. */
 export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReactionTile[]; own: boolean }) {
+  const t = useT();
   const [open, setOpen] = useState<ViewerReactionTile | null>(null);
   return (
     <>
@@ -31,7 +33,7 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
             <button
               type="button"
               onClick={() => setOpen(r)}
-              aria-label={`${own ? "Deine Reaktion" : "Reaktion"} auf ${r.originalBrandName}`}
+              aria-label={own ? t(`Deine Reaktion auf ${r.originalBrandName}`, `Your reaction to ${r.originalBrandName}`) : t(`Reaktion auf ${r.originalBrandName}`, `Reaction to ${r.originalBrandName}`)}
               className="relative block aspect-[9/16] w-full overflow-hidden rounded-lg bg-zinc-900"
             >
               {r.thumbnailUrl ? (
@@ -42,7 +44,7 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
               )}
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-6 text-left">
                 <span className="block truncate text-xs font-semibold text-white">
-                  {r.soloPitchId ? "Auf" : "Challenge"} {r.originalBrandName}
+                  {r.soloPitchId ? t("Auf", "To") : "Challenge"} {r.originalBrandName}
                 </span>
                 <span className="block text-[11px] text-zinc-300">♥ {number(r.likeCount)}</span>
               </span>
@@ -51,12 +53,12 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
         ))}
       </ul>
       {open && (
-        <div className="fixed inset-0 z-[120] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Reaktion">
+        <div className="fixed inset-0 z-[120] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label={t("Reaktion", "Reaction")}>
           <div className="flex items-center justify-between px-4 pb-3" style={{ paddingTop: "calc(env(safe-area-inset-top) + 14px)" }}>
             <span className="text-sm font-semibold text-white">
-              {open.soloPitchId ? "Reaktion auf" : "Challenge von"} {open.originalBrandName}
+              {open.soloPitchId ? t("Reaktion auf", "Reaction to") : t("Challenge von", "Challenge by")} {open.originalBrandName}
             </span>
-            <button onClick={() => setOpen(null)} aria-label="Schließen" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white">
+            <button onClick={() => setOpen(null)} aria-label={t("Schließen", "Close")} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white">
               <X size={18} />
             </button>
           </div>
@@ -66,7 +68,7 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
               href={open.soloPitchId ? `/?pitch=${open.soloPitchId}` : `/challenges/${open.creatorChallengeId}`}
               className="block rounded-full bg-orange-600 py-3 text-center text-sm font-bold text-white hover:bg-orange-500"
             >
-              {open.soloPitchId ? "Original ansehen" : "Zur Challenge"}
+              {open.soloPitchId ? t("Original ansehen", "View original") : t("Zur Challenge", "Go to challenge")}
             </Link>
           </div>
         </div>

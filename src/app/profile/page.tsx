@@ -20,6 +20,7 @@ import { getViewerActivity } from "@/lib/viewer-activity";
 import { getThumbnailMap } from "@/lib/video-thumbnails";
 import { getTrimMap } from "@/lib/video-trims";
 import { ViewerProfile } from "@/components/profile/viewer-profile";
+import { getT, getLang } from "@/lib/lang";
 
 /**
  * Phase 23: rebuilt to actually look like a profile tab (Instagram/TikTok
@@ -37,6 +38,7 @@ import { ViewerProfile } from "@/components/profile/viewer-profile";
  * "Info" tab) with that page instead of a second, drifting copy.
  */
 export default async function ProfilePage() {
+  const t = await getT();
   const sessionUser = await requireUser();
   // Phase 42: brand lookup only needs the id already on hand from
   // requireUser() — it doesn't depend on the user row, so it was a needless
@@ -68,8 +70,8 @@ export default async function ProfilePage() {
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       {!brand && (
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Profil</h1>
-          <Link href="/profile/settings" aria-label="Einstellungen" className="text-zinc-400 hover:text-white">
+          <h1 className="text-2xl font-bold text-white">{t("Profil", "Profile")}</h1>
+          <Link href="/profile/settings" aria-label={t("Einstellungen", "Settings")} className="text-zinc-400 hover:text-white">
             <Settings size={24} strokeWidth={1.75} />
           </Link>
         </div>
@@ -78,7 +80,7 @@ export default async function ProfilePage() {
       {brand && extras ? (
         <>
           <BrandProfileHeader
-            {...profileHeaderOf(brand, accentColor)}
+            {...profileHeaderOf(brand, accentColor, await getLang())}
             followerCount={followerCount}
             followingCount={followingCount}
             record={duelRecord(myDuels, brand.id)}
@@ -121,7 +123,7 @@ export default async function ProfilePage() {
         </>
       ) : user.accountType === "acro" ? (
         <div>
-          <p className="mb-4 text-sm text-zinc-400">Leg zuerst deine Marke an, dann bekommst du ein eigenes Profil.</p>
+          <p className="mb-4 text-sm text-zinc-400">{t("Leg zuerst deine Marke an, dann bekommst du ein eigenes Profil.", "Create your brand first, then you’ll get your own profile.")}</p>
           <CreateBrandForm />
         </div>
       ) : (
@@ -135,7 +137,7 @@ export default async function ProfilePage() {
             </div>
           )}
           <h2 className="mt-3 text-lg font-semibold text-white">{user.name || user.email}</h2>
-          <p className="mt-2 text-sm text-zinc-400">Du schaust zu, stimmst ab und reagierst mit eigenen Videos.</p>
+          <p className="mt-2 text-sm text-zinc-400">{t("Du schaust zu, stimmst ab und reagierst mit eigenen Videos.", "You watch, vote and react with your own videos.")}</p>
           {/* Luca 02.11.: Zuschauer-Profil wie in der App — Serie, Zahlen, Geschmack, eigene Reaktionen. */}
           <div className="mt-6">
             <OwnViewerProfile userId={user.id} />

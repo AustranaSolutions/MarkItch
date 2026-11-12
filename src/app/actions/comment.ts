@@ -1,5 +1,6 @@
 "use server";
 
+import { localizeResult } from "@/lib/lang";
 import { eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { db } from "@/db";
@@ -12,7 +13,7 @@ import { getBrandMemberUserIds } from "@/lib/brand";
 export type CommentFormState = { error?: string } | undefined;
 
 /** Anyone signed in can comment — Acro or Assent, including a Pitch's own brands. */
-export async function postComment(_prevState: CommentFormState, formData: FormData): Promise<CommentFormState> {
+async function postCommentImpl(_prevState: CommentFormState, formData: FormData): Promise<CommentFormState> {
   const user = await requireUser();
   const battleId = formData.get("battleId");
   const content = formData.get("content");
@@ -45,4 +46,9 @@ export async function postComment(_prevState: CommentFormState, formData: FormDa
 
   refresh();
   return undefined;
+}
+
+// Luca 12.11.: Ergebnisse in der Sprache der Person (siehe lib/lang.ts).
+export async function postComment(...args: Parameters<typeof postCommentImpl>) {
+  return localizeResult(await postCommentImpl(...args));
 }

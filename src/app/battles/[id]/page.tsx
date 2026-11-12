@@ -5,6 +5,7 @@ import { getBattleById, resolveBattleVideos } from "@/lib/battle";
 import { getBattleStage } from "@/lib/battle-stage";
 import { getVoteTally, getVoteTallyAsOf } from "@/lib/vote";
 import { ShareResultImageButton } from "@/components/battle/share-result-image-button";
+import { getT } from "@/lib/lang";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +23,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     productionDeadline: battle.productionDeadline,
     votingEndsAt: battle.votingEndsAt,
   });
+  const t = await getT();
   const description =
     stage.stage === "finished"
-      ? "Wer hat gewonnen? Jetzt auf MarkItch ansehen."
+      ? t("Wer hat gewonnen? Jetzt auf MarkItch ansehen.", "Who won? Watch now on MarkItch.")
       : stage.stage === "voting"
-        ? "Das Duell läuft — schau beide Videos an und stimm mit ab."
-        : "Dieses Duell startet bald — sei dabei, wenn es losgeht.";
+        ? t("Das Duell läuft — schau beide Videos an und stimm mit ab.", "The duel is on — watch both videos and cast your vote.")
+        : t("Dieses Duell startet bald — sei dabei, wenn es losgeht.", "This duel starts soon — be there when it kicks off.");
   return {
     title: `${battle.brandA.name} vs. ${battle.brandB.name} — MarkItch`,
     description,
@@ -46,6 +48,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
  * onward.
  */
 export default async function BattleResultPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const battle = await getBattleById(id);
   if (!battle) notFound();
@@ -76,7 +79,7 @@ export default async function BattleResultPage({ params }: { params: Promise<{ i
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col items-center px-4 py-16 text-center">
-      <p className="mb-1 text-xs uppercase tracking-wide text-orange-500">Ergebnis</p>
+      <p className="mb-1 text-xs uppercase tracking-wide text-orange-500">{t("Ergebnis", "Result")}</p>
       <h1 className="mb-6 text-2xl font-bold text-white">
         {battle.brandA.name} <span className="text-orange-500">vs</span> {battle.brandB.name}
       </h1>
@@ -98,14 +101,14 @@ export default async function BattleResultPage({ params }: { params: Promise<{ i
         <span>{pctB}%</span>
       </div>
 
-      <p className="mb-8 text-sm text-zinc-500">{tally.total} {tally.total === 1 ? "Stimme" : "Stimmen"} insgesamt</p>
+      <p className="mb-8 text-sm text-zinc-500">{t(`${tally.total} ${tally.total === 1 ? "Stimme" : "Stimmen"} insgesamt`, `${tally.total} ${tally.total === 1 ? "vote" : "votes"} in total`)}</p>
 
       <div className="flex w-full flex-col gap-3">
         <Link
           href={`/?battle=${battle.id}`}
           className="w-full rounded-lg bg-orange-600 px-4 py-2.5 font-semibold text-white hover:bg-orange-500"
         >
-          Im Feed ansehen
+          {t("Im Feed ansehen", "Watch in feed")}
         </Link>
         <ShareResultImageButton battleId={battle.id} brandAName={battle.brandA.name} brandBName={battle.brandB.name} />
       </div>

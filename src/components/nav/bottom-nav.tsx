@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Mic, Search, User, Smartphone, type LucideIcon } from "lucide-react";
+import { useT } from "@/components/i18n/lang-provider";
 
 // Phase 12d: real line icons instead of emoji. Emoji render inconsistently
 // across platforms (different weight/style per OS, some look like clip art)
@@ -20,8 +21,9 @@ const TABS: { href: string; label: string; icon: LucideIcon }[] = [
 ];
 
 export function BottomNav({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const t = useT();
   const pathname = usePathname();
-  const searchTab = { href: "/brands", label: "Suche", icon: Search };
+  const searchTab = { href: "/brands", label: t("Suche", "Search"), icon: Search };
   // Phase 21: a real "+" tab, TikTok/Instagram-style — every posting action
   // (Solo-Pitch, Creator-Video, Partner-Casting) lives behind this one
   // entry point now instead of being buried as forms inside /profile. See
@@ -29,7 +31,7 @@ export function BottomNav({ isLoggedIn }: { isLoggedIn: boolean }) {
   // Phase W (Luca 17.10.): Posten gibt es nur noch in der App — der mittlere
   // Knopf führt Website-Besucher (z. B. aus einer Instagram-Story) zur App.
   const postTab = { href: "/app", label: "App", icon: Smartphone };
-  const profileTab = { href: isLoggedIn ? "/profile" : "/login", label: isLoggedIn ? "Profil" : "Anmelden", icon: User };
+  const profileTab = { href: isLoggedIn ? "/profile" : "/login", label: isLoggedIn ? t("Profil", "Profile") : t("Anmelden", "Log in"), icon: User };
 
   // Phase 33: Posten belongs dead center (Luca) — Suche and Posten swapped
   // so it's the 3rd of 5 slots, not the 4th.

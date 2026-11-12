@@ -8,6 +8,8 @@ import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { currentPeriod, periodLabel, getChartForBrand, getChartPeriodsForBrand } from "@/lib/creator-charts";
 import { CreatorChartList } from "@/components/creator-charts/creator-chart-list";
+import { getT, getLang } from "@/lib/lang";
+import { langOf } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug, period } = await params;
   const [brand] = await db.select({ name: brands.name }).from(brands).where(eq(brands.slug, slug)).limit(1);
   if (!brand) return {};
-  return { title: `Creator-Charts: ${brand.name} (${periodLabel(period)}) — MarkItch` };
+  return { title: `Creator-Charts: ${brand.name} (${periodLabel(period, await getLang())}) — MarkItch` };
 }
 
 /**
@@ -26,6 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
  * Ideen-Backlog for why that framing matters here.
  */
 export default async function CreatorChartsPage({ params }: { params: Promise<{ slug: string; period: string }> }) {
+  const t = await getT();
   const { slug, period } = await params;
   const [brand] = await db.select().from(brands).where(eq(brands.slug, slug)).limit(1);
   if (!brand) notFound();
@@ -50,12 +53,12 @@ export default async function CreatorChartsPage({ params }: { params: Promise<{ 
           {brand.name}
         </Link>
         <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
-          {isLive ? "Läuft" : "Beendet"}
+          {isLive ? t("Läuft", "Live") : t("Beendet", "Ended")}
         </span>
       </div>
-      <p className="mb-4 text-sm text-zinc-400">{periodLabel(period)}</p>
+      <p className="mb-4 text-sm text-zinc-400">{periodLabel(period, await getLang())}</p>
       <p className="mb-6 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-500">
-        Community-Inhalt — von Creatorn selbst gepostet, nicht notwendigerweise offiziell von {brand.name} bestätigt.
+        {t(`Community-Inhalt — von Creatorn selbst gepostet, nicht notwendigerweise offiziell von ${brand.name} bestätigt.`, `Community content — posted by creators themselves, not necessarily officially confirmed by ${brand.name}.`)}
       </p>
 
       <CreatorChartList
@@ -67,7 +70,7 @@ export default async function CreatorChartsPage({ params }: { params: Promise<{ 
 
       {allPeriods.length > 1 && (
         <div className="mt-8">
-          <h2 className="mb-2 text-sm font-semibold text-white">Frühere Runden</h2>
+          <h2 className="mb-2 text-sm font-semibold text-white">{t("Frühere Runden", "Previous rounds")}</h2>
           <ul className="flex flex-wrap gap-2">
             {allPeriods
               .filter((p) => p !== period)
@@ -77,7 +80,7 @@ export default async function CreatorChartsPage({ params }: { params: Promise<{ 
                     href={`/brands/${brand.slug}/charts/${p}`}
                     className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300 hover:border-orange-400 hover:text-orange-400"
                   >
-                    {periodLabel(p)}
+                    {periodLabel(p, langOf(t))}
                   </Link>
                 </li>
               ))}

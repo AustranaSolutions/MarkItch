@@ -1,20 +1,12 @@
 "use client";
 
+import { shortTimeAgo } from "@/lib/i18n";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import type { CommentWithAuthor } from "@/lib/comment";
 import { ReportButton } from "@/components/moderation/report-button";
-
-function timeAgo(iso: string): string {
-  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / (60 * 1000));
-  if (minutes < 1) return "gerade eben";
-  if (minutes < 60) return `vor ${minutes}min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `vor ${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `vor ${days}d`;
-}
+import { useT } from "@/components/i18n/lang-provider";
 
 type CommentRow = Omit<CommentWithAuthor, "createdAt"> & { createdAt: string };
 
@@ -44,6 +36,7 @@ export function CommentSheet({
   onClose: () => void;
   onCommentPosted: (id: string) => void;
 }) {
+  const t = useT();
   const [comments, setComments] = useState<CommentRow[] | null>(null);
   const [content, setContent] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -80,14 +73,14 @@ export function CommentSheet({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Meinung konnte nicht gespeichert werden.");
+        setError(data.error ?? t("Meinung konnte nicht gespeichert werden.", "Your comment couldn’t be saved."));
         return;
       }
       setComments(data.comments ?? []);
       setContent("");
       onCommentPosted(target.id);
     } catch {
-      setError("Meinung konnte nicht gespeichert werden.");
+      setError(t("Meinung konnte nicht gespeichert werden.", "Your comment couldn’t be saved."));
     } finally {
       setPosting(false);
     }
@@ -101,18 +94,18 @@ export function CommentSheet({
       >
         <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
           <h2 className="text-sm font-semibold text-white">
-            Meinungen {comments && comments.length > 0 ? `(${comments.length})` : ""}
+            {t("Meinungen", "Comments")} {comments && comments.length > 0 ? `(${comments.length})` : ""}
           </h2>
-          <button onClick={onClose} aria-label="Schließen" className="text-zinc-500 hover:text-white">
+          <button onClick={onClose} aria-label={t("Schließen", "Close")} className="text-zinc-500 hover:text-white">
             <X size={18} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-3">
           {comments === null ? (
-            <p className="text-sm text-zinc-600">Lädt…</p>
+            <p className="text-sm text-zinc-600">{t("Lädt…", "Loading…")}</p>
           ) : comments.length === 0 ? (
-            <p className="text-sm text-zinc-600">Noch keine Meinungen — sag als Erste:r, was du denkst.</p>
+            <p className="text-sm text-zinc-600">{t("Noch keine Meinungen — sag als Erste:r, was du denkst.", "No comments yet — be the first to say what you think.")}</p>
           ) : (
             <ul className="space-y-3">
               {comments.map((c) => (
@@ -125,7 +118,7 @@ export function CommentSheet({
                       {c.authorName}
                     </Link>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-600">{timeAgo(c.createdAt)}</span>
+                      <span className="text-xs text-zinc-600">{shortTimeAgo(c.createdAt, t)}</span>
                       {!c.viewerIsAuthor && (
                         <ReportButton
                           targetType="comment"
@@ -152,7 +145,7 @@ export function CommentSheet({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 maxLength={500}
-                placeholder="Was denkst du?"
+                placeholder={t("Was denkst du?", "What do you think?")}
                 className="flex-1 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-orange-500"
               />
               <button
@@ -160,15 +153,15 @@ export function CommentSheet({
                 disabled={posting || !content.trim()}
                 className="rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               >
-                {posting ? "…" : "Senden"}
+                {posting ? "…" : t("Senden", "Send")}
               </button>
             </form>
           ) : (
             <p className="text-center text-sm text-zinc-500">
               <a href="/login" className="text-orange-500 hover:underline">
-                Anmelden
+                {t("Anmelden", "Log in")}
               </a>
-              , um zu kommentieren.
+              {t(", um zu kommentieren.", ", to comment.")}
             </p>
           )}
           {error && <p className="mt-2 text-center text-sm text-red-400">{error}</p>}

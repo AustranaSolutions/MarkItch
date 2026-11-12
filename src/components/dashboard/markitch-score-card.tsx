@@ -1,4 +1,6 @@
 import type { MarkItchScore } from "@/lib/markitch-score";
+import { getT, getLang } from "@/lib/lang";
+import { localeOf } from "@/lib/i18n";
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -7,22 +9,23 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  * MarkItch-mobile components/stats/markitch-score-card.tsx). Nur die Zahl,
  * keine Aufschlüsselung (kommt später mit den erweiterten Statistiken).
  */
-export function MarkItchScoreCard({ score }: { score: MarkItchScore }) {
+export async function MarkItchScoreCard({ score }: { score: MarkItchScore }) {
+  const t = await getT();
   if (!score.unlocked) {
     const duelsLeft = Math.max(0, score.duelsNeeded - score.duels);
     const videosLeft = Math.max(0, score.videosNeeded - score.videos);
-    const missing = [duelsLeft ? plural(duelsLeft, "Duell", "Duelle") : null, videosLeft ? plural(videosLeft, "Video", "Videos") : null]
+    const missing = [duelsLeft ? plural(duelsLeft, t("Duell", "duel"), t("Duelle", "duels")) : null, videosLeft ? plural(videosLeft, t("Video", "video"), t("Videos", "videos")) : null]
       .filter(Boolean)
-      .join(" und ");
+      .join(t(" und ", " and "));
     return (
       <div className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">MarkItch Score</p>
-        <p className="mt-2 text-base font-bold text-white">Noch {missing} bis zu deinem Score</p>
+        <p className="mt-2 text-base font-bold text-white">{t(`Noch ${missing} bis zu deinem Score`, `${missing} to go until your score`)}</p>
         <p className="mt-1 text-sm text-zinc-400">
-          Dein Score von 1 bis 10 zeigt, wie gut deine Videos ankommen. Er startet nach {score.duelsNeeded} Duellen und {score.videosNeeded} Videos.
+          {t(`Dein Score von 1 bis 10 zeigt, wie gut deine Videos ankommen. Er startet nach ${score.duelsNeeded} Duellen und ${score.videosNeeded} Videos.`, `Your score from 1 to 10 shows how well your videos land. It starts after ${score.duelsNeeded} duels and ${score.videosNeeded} videos.`)}
         </p>
         <div className="mt-4 space-y-2 text-sm">
-          <Progress label="Duelle" value={score.duels} max={score.duelsNeeded} />
+          <Progress label={t("Duelle", "Duels")} value={score.duels} max={score.duelsNeeded} />
           <Progress label="Videos" value={score.videos} max={score.videosNeeded} />
         </div>
       </div>
@@ -30,10 +33,10 @@ export function MarkItchScoreCard({ score }: { score: MarkItchScore }) {
   }
   return (
     <div className="mb-8 flex items-center gap-5 rounded-2xl border border-orange-500/35 bg-orange-500/10 p-5">
-      <p className="text-5xl font-black tabular-nums text-white">{score.score.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>
+      <p className="text-5xl font-black tabular-nums text-white">{score.score.toLocaleString(localeOf(await getLang()), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-orange-400">MarkItch Score</p>
-        <p className="mt-1 text-sm text-zinc-300">Wie gut deine Videos ankommen — Duelle, Link-Klicks, Likes, Meinungen und Follower der letzten 90 Tage. Skala 1 bis 10.</p>
+        <p className="mt-1 text-sm text-zinc-300">{t("Wie gut deine Videos ankommen — Duelle, Link-Klicks, Likes, Meinungen und Follower der letzten 90 Tage. Skala 1 bis 10.", "How well your videos land — duels, link clicks, likes, comments and followers from the last 90 days. Scale of 1 to 10.")}</p>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 "use server";
 
+import { localizeResult } from "@/lib/lang";
 import { eq } from "drizzle-orm";
 import { AuthError } from "next-auth";
 import { db } from "@/db";
@@ -27,7 +28,7 @@ import {
 
 export type FormState = { errors?: Record<string, string[]>; success?: boolean } | undefined;
 
-export async function registerUser(_prevState: FormState, formData: FormData): Promise<FormState> {
+async function registerUserImpl(_prevState: FormState, formData: FormData): Promise<FormState> {
   // Phase 14: the one lever against mass fake-account creation this stack
   // has without adding a CAPTCHA/phone-verification dependency — an IP can
   // still register a handful of real accounts (shared household/office
@@ -63,7 +64,7 @@ export async function registerUser(_prevState: FormState, formData: FormData): P
   }
 }
 
-export async function loginUser(_prevState: FormState, formData: FormData): Promise<FormState> {
+async function loginUserImpl(_prevState: FormState, formData: FormData): Promise<FormState> {
   const parsed = LoginSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return { errors: parsed.error.flatten().fieldErrors };
@@ -83,11 +84,11 @@ export async function loginUser(_prevState: FormState, formData: FormData): Prom
   }
 }
 
-export async function logoutUser() {
+async function logoutUserImpl() {
   await signOut({ redirectTo: "/" });
 }
 
-export async function requestPasswordReset(_prevState: FormState, formData: FormData): Promise<FormState> {
+async function requestPasswordResetImpl(_prevState: FormState, formData: FormData): Promise<FormState> {
   const parsed = ForgotPasswordSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return { errors: parsed.error.flatten().fieldErrors };
@@ -100,7 +101,7 @@ export async function requestPasswordReset(_prevState: FormState, formData: Form
   return { success: true };
 }
 
-export async function resetPassword(_prevState: FormState, formData: FormData): Promise<FormState> {
+async function resetPasswordImpl(_prevState: FormState, formData: FormData): Promise<FormState> {
   const parsed = ResetPasswordSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return { errors: parsed.error.flatten().fieldErrors };
@@ -125,7 +126,7 @@ export async function resetPassword(_prevState: FormState, formData: FormData): 
   return { success: true };
 }
 
-export async function resendVerificationEmail(): Promise<FormState> {
+async function resendVerificationEmailImpl(): Promise<FormState> {
   const sessionUser = await requireUser();
   const result = await resendVerificationFor(sessionUser.id);
   if (!result.ok) return { errors: { _form: ["Account nicht gefunden."] } };
@@ -138,7 +139,7 @@ export async function resendVerificationEmail(): Promise<FormState> {
  * verification (same token flow as registration/resend), since the old
  * verification no longer proves you own the new address.
  */
-export async function updateProfile(_prevState: FormState, formData: FormData): Promise<FormState> {
+async function updateProfileImpl(_prevState: FormState, formData: FormData): Promise<FormState> {
   const sessionUser = await requireUser();
   // Phase 48: Profilbild optional; Logik (inkl. Neu-Verifizierung bei
   // geänderter E-Mail) in lib/account.ts, gemeinsam mit der App-Route.
@@ -152,7 +153,7 @@ export async function updateProfile(_prevState: FormState, formData: FormData): 
   return { success: true };
 }
 
-export async function changePassword(_prevState: FormState, formData: FormData): Promise<FormState> {
+async function changePasswordImpl(_prevState: FormState, formData: FormData): Promise<FormState> {
   const sessionUser = await requireUser();
   const result = await changePasswordForUser(sessionUser.id, {
     currentPassword: formData.get("currentPassword"),
@@ -173,9 +174,38 @@ export async function changePassword(_prevState: FormState, formData: FormData):
  * wipe any Duell it's currently part of for the *other* brand and that
  * Duell's voters, too destructive to do silently as a side effect here.
  */
-export async function deleteAccount(_prevState: FormState, formData: FormData): Promise<FormState> {
+async function deleteAccountImpl(_prevState: FormState, formData: FormData): Promise<FormState> {
   const sessionUser = await requireUser();
   const result = await deleteAccountForUser(sessionUser.id, { password: formData.get("password") });
   if (!result.ok) return { errors: result.errors };
   await signOut({ redirectTo: "/" });
+}
+
+// Luca 12.11.: Ergebnisse in der Sprache der Person (siehe lib/lang.ts).
+export async function registerUser(...args: Parameters<typeof registerUserImpl>) {
+  return localizeResult(await registerUserImpl(...args));
+}
+export async function loginUser(...args: Parameters<typeof loginUserImpl>) {
+  return localizeResult(await loginUserImpl(...args));
+}
+export async function logoutUser(...args: Parameters<typeof logoutUserImpl>) {
+  return localizeResult(await logoutUserImpl(...args));
+}
+export async function requestPasswordReset(...args: Parameters<typeof requestPasswordResetImpl>) {
+  return localizeResult(await requestPasswordResetImpl(...args));
+}
+export async function resetPassword(...args: Parameters<typeof resetPasswordImpl>) {
+  return localizeResult(await resetPasswordImpl(...args));
+}
+export async function resendVerificationEmail(...args: Parameters<typeof resendVerificationEmailImpl>) {
+  return localizeResult(await resendVerificationEmailImpl(...args));
+}
+export async function updateProfile(...args: Parameters<typeof updateProfileImpl>) {
+  return localizeResult(await updateProfileImpl(...args));
+}
+export async function changePassword(...args: Parameters<typeof changePasswordImpl>) {
+  return localizeResult(await changePasswordImpl(...args));
+}
+export async function deleteAccount(...args: Parameters<typeof deleteAccountImpl>) {
+  return localizeResult(await deleteAccountImpl(...args));
 }

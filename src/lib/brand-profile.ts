@@ -1,4 +1,5 @@
 import "server-only";
+import { requestLang } from "@/lib/lang";
 import { getActiveCastingForBrand, getLatestFinishedCastingForBrand } from "@/lib/casting";
 import { periodLabel } from "@/lib/creator-charts";
 import { getLivePendingChallengeBetween } from "@/lib/challenge";
@@ -59,13 +60,14 @@ export async function getBrandProfileExtras(
     ? latestFinishedCasting?.submissions.find((s) => s.brandId === winnerBrandId)
     : null;
 
+  const lang = await requestLang();
   return {
     category: brand.category,
     country: brand.country,
     website: brand.website,
     challenges: openChallenges.map((c) => ({
       id: c.id,
-      periodLabel: periodLabel(c.period),
+      periodLabel: periodLabel(c.period, lang),
       prompt: c.prompt,
       stage: challengeStage(c.period) === "upcoming" ? ("upcoming" as const) : ("running" as const),
     })),

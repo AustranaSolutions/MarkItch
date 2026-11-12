@@ -1,5 +1,6 @@
 "use server";
 
+import { localizeResult } from "@/lib/lang";
 import { refresh } from "next/cache";
 import { requireUser } from "@/lib/session";
 import { toggleFollowForUser } from "@/lib/follow";
@@ -7,7 +8,7 @@ import { toggleFollowForUser } from "@/lib/follow";
 export type FollowFormState = { error?: string } | undefined;
 
 /** Toggle follow/unfollow for the current user on one brand. */
-export async function toggleFollow(_prevState: FollowFormState, formData: FormData): Promise<FollowFormState> {
+async function toggleFollowImpl(_prevState: FollowFormState, formData: FormData): Promise<FollowFormState> {
   const user = await requireUser();
   const brandId = formData.get("brandId");
   if (typeof brandId !== "string" || !brandId) {
@@ -20,4 +21,9 @@ export async function toggleFollow(_prevState: FollowFormState, formData: FormDa
 
   refresh();
   return undefined;
+}
+
+// Luca 12.11.: Ergebnisse in der Sprache der Person (siehe lib/lang.ts).
+export async function toggleFollow(...args: Parameters<typeof toggleFollowImpl>) {
+  return localizeResult(await toggleFollowImpl(...args));
 }

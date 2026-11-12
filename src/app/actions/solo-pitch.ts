@@ -1,5 +1,6 @@
 "use server";
 
+import { localizeResult } from "@/lib/lang";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { requireUser } from "@/lib/session";
@@ -25,7 +26,7 @@ export type SoloPitchFormState = { errors?: Record<string, string[]> } | undefin
  * entirely (same fix already used by counterWithVideo/promoteReaction), so
  * there's nothing left to double-submit.
  */
-export async function postSoloPitch(_prevState: SoloPitchFormState, formData: FormData): Promise<SoloPitchFormState> {
+async function postSoloPitchImpl(_prevState: SoloPitchFormState, formData: FormData): Promise<SoloPitchFormState> {
   const user = await requireUser();
   // RN-4c: Logik in lib/solo-pitch.ts, gemeinsam mit der App-Route.
   const result = await createSoloPitchForUser(user.id, formData);
@@ -47,7 +48,7 @@ export async function postSoloPitch(_prevState: SoloPitchFormState, formData: Fo
 export type UpdateSoloPitchFormState = { errors?: Record<string, string[]>; success?: boolean } | undefined;
 
 /** Owner-only edit of a solo pitch's caption + CTA link — never the video file itself (re-upload is a new post). */
-export async function updateSoloPitch(
+async function updateSoloPitchImpl(
   _prevState: UpdateSoloPitchFormState,
   formData: FormData,
 ): Promise<UpdateSoloPitchFormState> {
@@ -76,7 +77,7 @@ export async function updateSoloPitch(
 export type DeleteSoloPitchState = { error?: string } | undefined;
 
 /** Owner-only self-service delete — separate from the admin moderation removal path (moderation.ts), which needs no ownership check. */
-export async function deleteSoloPitch(_prevState: DeleteSoloPitchState, formData: FormData): Promise<DeleteSoloPitchState> {
+async function deleteSoloPitchImpl(_prevState: DeleteSoloPitchState, formData: FormData): Promise<DeleteSoloPitchState> {
   const user = await requireUser();
   const soloPitchId = formData.get("soloPitchId");
   if (typeof soloPitchId !== "string" || !soloPitchId) {
@@ -89,4 +90,15 @@ export async function deleteSoloPitch(_prevState: DeleteSoloPitchState, formData
   }
   refresh();
   return undefined;
+}
+
+// Luca 12.11.: Ergebnisse in der Sprache der Person (siehe lib/lang.ts).
+export async function postSoloPitch(...args: Parameters<typeof postSoloPitchImpl>) {
+  return localizeResult(await postSoloPitchImpl(...args));
+}
+export async function updateSoloPitch(...args: Parameters<typeof updateSoloPitchImpl>) {
+  return localizeResult(await updateSoloPitchImpl(...args));
+}
+export async function deleteSoloPitch(...args: Parameters<typeof deleteSoloPitchImpl>) {
+  return localizeResult(await deleteSoloPitchImpl(...args));
 }

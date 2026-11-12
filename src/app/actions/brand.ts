@@ -1,5 +1,6 @@
 "use server";
 
+import { localizeResult } from "@/lib/lang";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { requireUser } from "@/lib/session";
@@ -23,7 +24,7 @@ function readBrandForm(formData: FormData): BrandInput {
   };
 }
 
-export async function createBrand(_prevState: BrandFormState, formData: FormData): Promise<BrandFormState> {
+async function createBrandImpl(_prevState: BrandFormState, formData: FormData): Promise<BrandFormState> {
   const user = await requireUser();
   // Wie in der App: Unternehmen geben an, wo man sie findet (Creator freiwillig).
   // Nur hier statt in brand-manage.ts, damit ältere App-Versionen ohne diesen Schritt weiter Marken anlegen können.
@@ -42,10 +43,18 @@ export async function createBrand(_prevState: BrandFormState, formData: FormData
   redirect(`/brands/${result.slug}`);
 }
 
-export async function updateBrand(_prevState: UpdateBrandFormState, formData: FormData): Promise<UpdateBrandFormState> {
+async function updateBrandImpl(_prevState: UpdateBrandFormState, formData: FormData): Promise<UpdateBrandFormState> {
   const user = await requireUser();
   const result = await updateBrandForUser(user.id, readBrandForm(formData));
   if (!result.ok) return { errors: result.errors };
   refresh();
   return { success: true };
+}
+
+// Luca 12.11.: Ergebnisse in der Sprache der Person (siehe lib/lang.ts).
+export async function createBrand(...args: Parameters<typeof createBrandImpl>) {
+  return localizeResult(await createBrandImpl(...args));
+}
+export async function updateBrand(...args: Parameters<typeof updateBrandImpl>) {
+  return localizeResult(await updateBrandImpl(...args));
 }

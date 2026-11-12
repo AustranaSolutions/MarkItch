@@ -1,5 +1,7 @@
 // Luca 25.10.: Blockieren im Web — gleiche Schnittstelle wie die App (/api/mobile/blocks, Login per Cookie).
 
+import type { Translate } from "@/lib/i18n";
+
 export type BlockTarget = { brandId: string } | { userId: string };
 
 export async function setBlocked(target: BlockTarget, blocked: boolean): Promise<void> {
@@ -15,9 +17,12 @@ export async function setBlocked(target: BlockTarget, blocked: boolean): Promise
 }
 
 /** Bestätigen wie in der App (moderation-menu.ts), dann blockieren und Seite neu laden (Feeds filtern serverseitig). */
-export async function confirmAndBlock(target: BlockTarget, name: string): Promise<boolean> {
+export async function confirmAndBlock(target: BlockTarget, name: string, t: Translate): Promise<boolean> {
   const ok = window.confirm(
-    `${name} blockieren?\n\nDu siehst dann keine Videos, Duelle, Reaktionen und Meinungen mehr von ${name}. Freigeben kannst du jederzeit in den Einstellungen unter „Blockierte Konten“.`,
+    t(
+      `${name} blockieren?\n\nDu siehst dann keine Videos, Duelle, Reaktionen und Meinungen mehr von ${name}. Freigeben kannst du jederzeit in den Einstellungen unter „Blockierte Konten“.`,
+      `Block ${name}?\n\nYou won’t see any more videos, duels, reactions or comments from ${name}. You can unblock them anytime in the settings under “Blocked accounts”.`,
+    ),
   );
   if (!ok) return false;
   try {
@@ -25,7 +30,7 @@ export async function confirmAndBlock(target: BlockTarget, name: string): Promis
     window.location.reload();
     return true;
   } catch (err) {
-    window.alert(err instanceof Error ? err.message : "Hat nicht geklappt.");
+    window.alert(err instanceof Error ? err.message : t("Hat nicht geklappt.", "That didn’t work."));
     return false;
   }
 }

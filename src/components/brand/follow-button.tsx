@@ -3,8 +3,10 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { toggleFollow, type FollowFormState } from "@/app/actions/follow";
+import { useT } from "@/components/i18n/lang-provider";
 
 function ToggleButton({ following, large }: { following: boolean; large: boolean }) {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button
@@ -19,7 +21,7 @@ function ToggleButton({ following, large }: { following: boolean; large: boolean
             : "bg-orange-600 text-white hover:bg-orange-500")
       }
     >
-      {pending ? "…" : following ? "Folgt ✓" : "Folgen"}
+      {pending ? "…" : following ? t("Folgt ✓", "Following ✓") : t("Folgen", "Follow")}
     </button>
   );
 }

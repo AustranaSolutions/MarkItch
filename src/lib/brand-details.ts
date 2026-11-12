@@ -1,5 +1,6 @@
 import type { brands } from "@/db/schema";
 import { withHttps } from "@/lib/cta-link";
+import type { Lang } from "@/lib/i18n";
 
 // Luca 24.10.: neues Profil — „Button im Profil“, Standort und Info-Blatt.
 // Client-sicher (keine DB), damit Web und Server dieselben Listen nutzen.
@@ -19,6 +20,22 @@ export const PROFILE_BUTTON_LABELS: Record<ProfileButtonType, string> = {
   music: "Meine Musik",
   none: "Kein Button",
 };
+
+const PROFILE_BUTTON_LABELS_EN: Record<ProfileButtonType, string> = {
+  booking: "Book now",
+  call: "Call",
+  reserve: "Reserve",
+  inquiry: "Send inquiry",
+  shop: "Shop now",
+  app: "Get the app",
+  website: "Website",
+  music: "My music",
+  none: "No button",
+};
+
+export function profileButtonLabel(type: ProfileButtonType, lang: Lang = "de"): string {
+  return (lang === "en" ? PROFILE_BUTTON_LABELS_EN : PROFILE_BUTTON_LABELS)[type];
+}
 
 /** Woher der Button sein Ziel nimmt: eigener Link, Telefon-, E-Mail- oder Website-Feld. */
 export function profileButtonSource(type: ProfileButtonType): "link" | "phone" | "email" | "website" | null {
@@ -202,8 +219,30 @@ const CATEGORY_LABELS: Record<string, string> = {
   Education: "Wissen & Bildung",
 };
 
-export function categoryLabel(category: string): string {
-  return CATEGORY_LABELS[category] ?? category;
+const CATEGORY_LABELS_EN: Record<string, string> = {
+  Gastronomy: "Restaurants & Bars",
+  Salon: "Hair & Beauty Salon",
+  Craft: "Crafts & Trades",
+  Gym: "Gym",
+  Food: "Food & Drink",
+  Fashion: "Fashion",
+  Beauty: "Beauty & Care",
+  Tech: "Tech",
+  Automotive: "Automotive & Mobility",
+  Gaming: "Gaming",
+  "Local Business": "Local Business",
+  Startup: "Startup",
+  Other: "Other",
+  Comedy: "Comedy & Entertainment",
+  Fitness: "Fitness & Sports",
+  Lifestyle: "Lifestyle",
+  Music: "Music",
+  Travel: "Travel",
+  Education: "Education",
+};
+
+export function categoryLabel(category: string, lang: Lang = "de"): string {
+  return (lang === "en" ? CATEGORY_LABELS_EN : CATEGORY_LABELS)[category] ?? category;
 }
 
 type ButtonSource = {
@@ -215,7 +254,7 @@ type ButtonSource = {
 };
 
 /** Der eine Button im Profil — nur, wenn sein Ziel auch ausgefüllt ist. */
-export function profileButtonOf(brand: ButtonSource): { type: ProfileButtonType; label: string; target: string } | null {
+export function profileButtonOf(brand: ButtonSource, lang: Lang = "de"): { type: ProfileButtonType; label: string; target: string } | null {
   const type = parseProfileButtonType(brand.profileButtonType);
   if (!type) return null;
   const source = profileButtonSource(type);
@@ -229,7 +268,7 @@ export function profileButtonOf(brand: ButtonSource): { type: ProfileButtonType;
           : source === "link"
             ? brand.profileButtonUrl
             : null;
-  return target ? { type, label: PROFILE_BUTTON_LABELS[type], target } : null;
+  return target ? { type, label: profileButtonLabel(type, lang), target } : null;
 }
 
 /** Was das Info-Fenster (⋯ → Info) zeigt. */
@@ -244,7 +283,7 @@ export type PublicBrandDetails = {
 };
 
 /** Luca 24.10.: alles, was der neue Profilkopf (Web) braucht — aus der Marken-Zeile. */
-export function profileHeaderOf(brand: typeof brands.$inferSelect, accentColor: string) {
+export function profileHeaderOf(brand: typeof brands.$inferSelect, accentColor: string, lang: Lang = "de") {
   return {
     brand: {
       name: brand.name,
@@ -255,7 +294,7 @@ export function profileHeaderOf(brand: typeof brands.$inferSelect, accentColor: 
       introVideoUrl: brand.videoUrl,
       verified: brand.verifiedAt !== null,
       kind: brand.kind,
-      categoryLabel: categoryLabel(brand.category),
+      categoryLabel: categoryLabel(brand.category, lang),
       locationType: brand.locationType,
       locationLabel: publicLocationLabel(brand.locationType, brand.locationLabel),
     },
@@ -268,6 +307,6 @@ export function profileHeaderOf(brand: typeof brands.$inferSelect, accentColor: 
       openingHours: brand.openingHours,
       imprint: brand.imprint,
     } satisfies PublicBrandDetails,
-    button: profileButtonOf(brand),
+    button: profileButtonOf(brand, lang),
   };
 }

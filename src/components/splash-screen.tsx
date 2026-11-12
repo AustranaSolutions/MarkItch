@@ -1,3 +1,4 @@
+import { getT } from "@/lib/lang";
 /**
  * Shown once per real app open — mounted inside RootLayout, which the App
  * Router keeps mounted across client-side navigations (Link clicks), so
@@ -7,7 +8,8 @@
  * Luca 07.10.: reines CSS (`.splash-screen` in globals.css) statt Timer im
  * Browser — so verschwindet er auch dann, wenn JavaScript nicht startet.
  */
-export function SplashScreen() {
+export async function SplashScreen() {
+  const t = await getT();
   return (
     <div
       aria-hidden
@@ -16,7 +18,7 @@ export function SplashScreen() {
       <div className="text-4xl font-black tracking-tight text-white">
         Mark<span className="text-orange-500">Itch</span>
       </div>
-      <p className="mt-2 text-sm text-zinc-500">Werbung wird zum Entertainment.</p>
+      <p className="mt-2 text-sm text-zinc-500">{t("Werbung wird zum Entertainment.", "Advertising becomes entertainment.")}</p>
     </div>
   );
 }

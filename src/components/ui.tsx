@@ -2,6 +2,7 @@
 
 import { useFormStatus } from "react-dom";
 import type { ReactNode, ChangeEvent } from "react";
+import { useT } from "@/components/i18n/lang-provider";
 
 export function AuthCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
@@ -81,9 +82,10 @@ export function FormSuccess({ message }: { message?: string }) {
 // eine Warnung, damit es sich sichtbar von den rein beschreibenden Badges
 // daneben abhebt.
 export function AdLabel() {
+  const t = useT();
   return (
     <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-medium text-amber-300">
-      Anzeige
+      {t("Anzeige", "Ad")}
     </span>
   );
 }
@@ -92,9 +94,10 @@ export function AdLabel() {
 // beim Upload als KI-generiert/-manipuliert markiert wurde (siehe
 // AiContentCheckbox), sonst nichts.
 export function AiContentLabel() {
+  const t = useT();
   return (
     <span className="rounded-full border border-sky-400/40 bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-sky-300">
-      KI-generiert
+      {t("KI-generiert", "AI-generated")}
     </span>
   );
 }

@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { Flag, X } from "lucide-react";
 import type { ReportTargetType } from "@/lib/moderation";
 import { confirmAndBlock, type BlockTarget } from "@/lib/block-client";
+import { useT } from "@/components/i18n/lang-provider";
+import { langOf, reportReasonLabel } from "@/lib/i18n";
 
 const REPORT_REASONS = [
   "Unangemessener Inhalt",
@@ -34,6 +36,7 @@ export function ReportButton({
   /** Luca 25.10.: wie in der App — im selben Blatt „<Name> blockieren“. Eigene Konten nicht übergeben. */
   blockOptions?: { name: string; target: BlockTarget }[];
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -68,13 +71,13 @@ export function ReportButton({
   return (
     <>
       {variant === "icon" ? (
-        <button onClick={openSheet} className="pointer-events-auto flex flex-col items-center gap-1 text-white" aria-label="Melden">
+        <button onClick={openSheet} className="pointer-events-auto flex flex-col items-center gap-1 text-white" aria-label={t("Melden", "Report")}>
           <Flag size={28} />
-          <span className="text-xs font-medium">Melden</span>
+          <span className="text-xs font-medium">{t("Melden", "Report")}</span>
         </button>
       ) : (
         <button onClick={openSheet} className="text-xs text-zinc-500 hover:text-zinc-300">
-          Melden
+          {t("Melden", "Report")}
         </button>
       )}
 
@@ -92,20 +95,20 @@ export function ReportButton({
           >
             {status === "sent" ? (
               <div className="py-6 text-center">
-                <p className="text-sm font-semibold text-white">Danke für deine Meldung.</p>
-                <p className="mt-1 text-xs text-zinc-400">Wir schauen uns das an.</p>
+                <p className="text-sm font-semibold text-white">{t("Danke für deine Meldung.", "Thanks for your report.")}</p>
+                <p className="mt-1 text-xs text-zinc-400">{t("Wir schauen uns das an.", "We’ll look into it.")}</p>
                 <button
                   onClick={() => setOpen(false)}
                   className="mt-4 rounded-full bg-zinc-800 px-4 py-2 text-sm text-white"
                 >
-                  Schließen
+                  {t("Schließen", "Close")}
                 </button>
               </div>
             ) : (
               <>
                 <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-white">Inhalt melden</h2>
-                  <button onClick={() => setOpen(false)} aria-label="Schließen" className="text-zinc-500 hover:text-white">
+                  <h2 className="text-sm font-semibold text-white">{t("Inhalt melden", "Report content")}</h2>
+                  <button onClick={() => setOpen(false)} aria-label={t("Schließen", "Close")} className="text-zinc-500 hover:text-white">
                     <X size={18} />
                   </button>
                 </div>
@@ -118,7 +121,7 @@ export function ReportButton({
                         reason === r ? "border-orange-500 text-white" : "border-zinc-800 text-zinc-300"
                       }`}
                     >
-                      {r}
+                      {reportReasonLabel(r, langOf(t))}
                     </button>
                   ))}
                 </div>
@@ -126,20 +129,20 @@ export function ReportButton({
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   maxLength={500}
-                  placeholder="Optional: mehr Details"
+                  placeholder={t("Optional: mehr Details", "Optional: more details")}
                   rows={2}
                   className="mt-3 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-orange-500"
                 />
-                {status === "error" && <p className="mt-2 text-xs text-red-400">Melden fehlgeschlagen — versuch es nochmal.</p>}
+                {status === "error" && <p className="mt-2 text-xs text-red-400">{t("Melden fehlgeschlagen — versuch es nochmal.", "Report failed — please try again.")}</p>}
                 {blockOptions.length > 0 && (
                   <div className="mt-3 space-y-1.5 border-t border-zinc-800 pt-3">
                     {blockOptions.map((option) => (
                       <button
                         key={option.name}
-                        onClick={() => confirmAndBlock(option.target, option.name)}
+                        onClick={() => confirmAndBlock(option.target, option.name, t)}
                         className="w-full rounded-lg border border-red-500/40 px-3 py-2 text-left text-sm text-red-400"
                       >
-                        {option.name} blockieren
+                        {t(`${option.name} blockieren`, `Block ${option.name}`)}
                       </button>
                     ))}
                   </div>
@@ -149,7 +152,7 @@ export function ReportButton({
                   disabled={!reason || status === "sending"}
                   className="mt-3 w-full rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                 >
-                  {status === "sending" ? "…" : "Melden"}
+                  {status === "sending" ? "…" : t("Melden", "Report")}
                 </button>
               </>
             )}

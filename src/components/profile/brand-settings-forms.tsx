@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Ban, ImagePlus, Trash2 } from "lucide-react";
 import { BUTTON_ICONS } from "@/components/profile/brand-profile-header";
 import { VideoPickerInput } from "@/components/video-picker-input";
-import { PROFILE_BUTTON_LABELS, PROFILE_BUTTON_TYPES, type LocationType, type ProfileButtonType } from "@/lib/brand-details";
+import { PROFILE_BUTTON_TYPES, profileButtonLabel, type LocationType, type ProfileButtonType } from "@/lib/brand-details";
+import { useT } from "@/components/i18n/lang-provider";
+import { type Translate, langOf } from "@/lib/i18n";
 
 // Luca 25.10.: Website = App. Gleiche drei Einstellungen wie in der App
 // (settings/appearance, contact, info) über dieselbe Schnittstelle
@@ -13,18 +15,19 @@ import { PROFILE_BUTTON_LABELS, PROFILE_BUTTON_TYPES, type LocationType, type Pr
 
 type FieldErrors = Record<string, string[]>;
 
-async function saveDetails(form: FormData): Promise<{ ok: true } | { error: string; fieldErrors: FieldErrors }> {
+async function saveDetails(form: FormData, t: Translate): Promise<{ ok: true } | { error: string; fieldErrors: FieldErrors }> {
   try {
     const res = await fetch("/api/mobile/brand/details", { method: "PATCH", body: form });
     if (res.ok) return { ok: true };
     const data = (await res.json().catch(() => ({}))) as { error?: string; fieldErrors?: FieldErrors };
-    return { error: data.error ?? "Speichern fehlgeschlagen.", fieldErrors: data.fieldErrors ?? {} };
+    return { error: data.error ?? t("Speichern fehlgeschlagen.", "Saving failed."), fieldErrors: data.fieldErrors ?? {} };
   } catch {
-    return { error: "Keine Verbindung — bitte nochmal versuchen.", fieldErrors: {} };
+    return { error: t("Keine Verbindung — bitte nochmal versuchen.", "No connection — please try again."), fieldErrors: {} };
   }
 }
 
 function useSaveAndBack() {
+  const t = useT();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +36,7 @@ function useSaveAndBack() {
     setSaving(true);
     setError(null);
     setFieldErrors({});
-    const result = await saveDetails(form);
+    const result = await saveDetails(form, t);
     if ("ok" in result) {
       router.push("/profile/settings");
       router.refresh();
@@ -93,13 +96,14 @@ const Hint = ({ children }: { children: ReactNode }) => <p className="mb-4 text-
 const Section = ({ children }: { children: ReactNode }) => <h2 className="mb-2 mt-6 text-base font-bold text-white first:mt-0">{children}</h2>;
 
 function SaveButton({ saving, disabled = false }: { saving: boolean; disabled?: boolean }) {
+  const t = useT();
   return (
     <button
       type="submit"
       disabled={saving || disabled}
       className="mt-2 w-full rounded-full bg-orange-600 py-3 text-sm font-bold text-white hover:bg-orange-500 disabled:opacity-40"
     >
-      {saving ? "Wird gespeichert…" : "Speichern"}
+      {saving ? t("Wird gespeichert…", "Saving…") : t("Speichern", "Save")}
     </button>
   );
 }
@@ -110,6 +114,7 @@ const FormMessage = ({ message }: { message: string | null }) =>
 // ——— Banner & Vorstellung ———
 
 export function AppearanceForm({ bannerUrl, introVideoUrl }: { bannerUrl: string | null; introVideoUrl: string | null }) {
+  const t = useT();
   const { saving, error, fieldErrors, save } = useSaveAndBack();
   // null = unverändert, "remove" = entfernen, sonst das neue Bild / Video.
   const [bannerDraft, setBannerDraft] = useState<File | "remove" | null>(null);
@@ -125,7 +130,7 @@ export function AppearanceForm({ bannerUrl, introVideoUrl }: { bannerUrl: string
   const pickBanner = (file: File | undefined) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert("Das Banner darf maximal 5 MB groß sein.");
+      alert(t("Das Banner darf maximal 5 MB groß sein.", "The banner can be at most 5 MB."));
       return;
     }
     if (bannerPreview) URL.revokeObjectURL(bannerPreview);
@@ -148,7 +153,7 @@ export function AppearanceForm({ bannerUrl, introVideoUrl }: { bannerUrl: string
       }}
     >
       <Section>Banner</Section>
-      <Hint>Das breite Bild oben im Profil, hinter deinem Logo. Ohne Banner zeigt dein Profil einen Farbverlauf. Querformat 2:1.</Hint>
+      <Hint>{t("Das breite Bild oben im Profil, hinter deinem Logo. Ohne Banner zeigt dein Profil einen Farbverlauf. Querformat 2:1.", "The wide image at the top of your profile, behind your logo. Without a banner your profile shows a gradient. Landscape 2:1.")}</Hint>
       <label className="relative block aspect-[2/1] cursor-pointer overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
         {shownBanner ? (
           // eslint-disable-next-line @next/next/no-img-element -- Vorschau einer lokalen Datei bzw. eigenes Upload
@@ -156,7 +161,7 @@ export function AppearanceForm({ bannerUrl, introVideoUrl }: { bannerUrl: string
         ) : (
           <span className="flex h-full flex-col items-center justify-center gap-1 text-xs text-zinc-500">
             <ImagePlus size={22} />
-            Bild wählen (Querformat)
+            {t("Bild wählen (Querformat)", "Choose image (landscape)")}
           </span>
         )}
         <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => pickBanner(e.target.files?.[0])} />
@@ -175,22 +180,24 @@ export function AppearanceForm({ bannerUrl, introVideoUrl }: { bannerUrl: string
           }}
           className="mt-2 flex items-center gap-1 text-sm text-zinc-400 hover:text-white"
         >
-          <Trash2 size={14} /> Entfernen
+          <Trash2 size={14} /> {t("Entfernen", "Remove")}
         </button>
       ) : null}
 
       <div className="my-6 h-px bg-zinc-800" />
 
-      <Section>Vorstellungsvideo</Section>
+      <Section>{t("Vorstellungsvideo", "Intro video")}</Section>
       <Hint>
-        Stell dich kurz vor: wer ihr seid, was ihr macht und wo man euch findet — ideal 20 bis 60 Sekunden. Es erscheint als oranger Ring um dein
-        Profilbild; antippen spielt es ab. Als Text darunter steht deine Beschreibung.
+        {t(
+          "Stell dich kurz vor: wer ihr seid, was ihr macht und wo man euch findet — ideal 20 bis 60 Sekunden. Es erscheint als oranger Ring um dein Profilbild; antippen spielt es ab. Als Text darunter steht deine Beschreibung.",
+          "Introduce yourself briefly: who you are, what you do and where to find you — ideally 20 to 60 seconds. It shows as an orange ring around your profile picture; tapping plays it. Your description appears as text below.",
+        )}
       </Hint>
       {shownIntro ? (
         <div className="mb-3 flex items-center gap-4 text-sm">
-          <span className="flex-1 text-white">{introDraft ? "Neues Video gewählt" : "Aktuell hinterlegt"}</span>
+          <span className="flex-1 text-white">{introDraft ? t("Neues Video gewählt", "New video selected") : t("Aktuell hinterlegt", "Currently set")}</span>
           <a href={shownIntro} target="_blank" rel="noreferrer" className="font-bold text-orange-500 hover:underline">
-            Ansehen
+            {t("Ansehen", "View")}
           </a>
           <button
             type="button"
@@ -200,7 +207,7 @@ export function AppearanceForm({ bannerUrl, introVideoUrl }: { bannerUrl: string
             }}
             className="flex items-center gap-1 text-zinc-400 hover:text-white"
           >
-            <Trash2 size={14} /> Entfernen
+            <Trash2 size={14} /> {t("Entfernen", "Remove")}
           </button>
         </div>
       ) : null}
@@ -230,17 +237,17 @@ export function AppearanceForm({ bannerUrl, introVideoUrl }: { bannerUrl: string
 // ——— Kontakt & Standort ———
 
 /** Was der gewählte Button als Ziel braucht — wie in der App (settings/contact.tsx). */
-const LINK_HINTS: Partial<Record<ProfileButtonType, { label: string; placeholder: string }>> = {
-  booking: { label: "Link zur Terminbuchung", placeholder: "z. B. meinsalon.at/termin" },
-  reserve: { label: "Link zum Reservieren oder zur Speisekarte", placeholder: "z. B. meinlokal.at/reservieren" },
-  shop: { label: "Link zum Shop", placeholder: "z. B. meinshop.at" },
-  app: { label: "Link zur App (App Store)", placeholder: "z. B. apps.apple.com/…" },
-  music: { label: "Link zu deiner Musik", placeholder: "YouTube, Spotify, SoundCloud …" },
-};
+const LINK_HINTS = (t: Translate): Partial<Record<ProfileButtonType, { label: string; placeholder: string }>> => ({
+  booking: { label: t("Link zur Terminbuchung", "Booking link"), placeholder: t("z. B. meinsalon.at/termin", "e.g. mysalon.com/booking") },
+  reserve: { label: t("Link zum Reservieren oder zur Speisekarte", "Link to reservations or the menu"), placeholder: t("z. B. meinlokal.at/reservieren", "e.g. myrestaurant.com/reserve") },
+  shop: { label: t("Link zum Shop", "Shop link"), placeholder: t("z. B. meinshop.at", "e.g. myshop.com") },
+  app: { label: t("Link zur App (App Store)", "App link (App Store)"), placeholder: t("z. B. apps.apple.com/…", "e.g. apps.apple.com/…") },
+  music: { label: t("Link zu deiner Musik", "Link to your music"), placeholder: "YouTube, Spotify, SoundCloud …" },
+});
 
-const LOCATION_OPTIONS: [LocationType, string][] = [
-  ["address", "Mit Adresse"],
-  ["area", "Einsatzgebiet"],
+const LOCATION_OPTIONS = (t: Translate): [LocationType, string][] => [
+  ["address", t("Mit Adresse", "With address")],
+  ["area", t("Einsatzgebiet", "Service area")],
   ["online", "Online"],
 ];
 
@@ -257,6 +264,7 @@ export type ContactInitial = {
 };
 
 export function ContactForm({ initial }: { initial: ContactInitial }) {
+  const t = useT();
   const { saving, error, fieldErrors, save } = useSaveAndBack();
   const [type, setType] = useState(initial.buttonType);
   const [link, setLink] = useState(initial.buttonUrl);
@@ -267,7 +275,7 @@ export function ContactForm({ initial }: { initial: ContactInitial }) {
   const [locationLabel, setLocationLabel] = useState(initial.locationLabel);
   const [address, setAddress] = useState(initial.address);
 
-  const linkHint = LINK_HINTS[type];
+  const linkHint = LINK_HINTS(t)[type];
   const missingTarget =
     (type === "call" && !phone.trim()) ||
     (type === "inquiry" && !email.trim()) ||
@@ -293,8 +301,8 @@ export function ContactForm({ initial }: { initial: ContactInitial }) {
         save(form);
       }}
     >
-      <Section>Button im Profil</Section>
-      <Hint>Steht neben „Folgen“. Wähle, was deine Kund:innen am ehesten tun sollen.</Hint>
+      <Section>{t("Button im Profil", "Profile button")}</Section>
+      <Hint>{t("Steht neben „Folgen“. Wähle, was deine Kund:innen am ehesten tun sollen.", "Appears next to “Follow”. Choose what your customers should most likely do.")}</Hint>
       <div className="mb-4 grid grid-cols-2 gap-2" role="radiogroup">
         {PROFILE_BUTTON_TYPES.map((key) => {
           const Icon = BUTTON_ICONS[key] ?? Ban;
@@ -309,7 +317,7 @@ export function ContactForm({ initial }: { initial: ContactInitial }) {
               className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm text-white ${on ? "border-orange-500 bg-orange-500/10" : "border-zinc-800 bg-zinc-950 hover:border-zinc-600"}`}
             >
               <Icon size={15} className={on ? "text-orange-500" : ""} />
-              {PROFILE_BUTTON_LABELS[key]}
+              {profileButtonLabel(key, langOf(t))}
             </button>
           );
         })}
@@ -317,16 +325,16 @@ export function ContactForm({ initial }: { initial: ContactInitial }) {
       {linkHint ? (
         <TextInput label={linkHint.label} value={link} onChange={setLink} placeholder={linkHint.placeholder} type="url" errors={fieldErrors.profileButtonUrl} />
       ) : null}
-      {missingTarget ? <p className="mb-4 text-xs text-orange-400">Ohne diesen Eintrag wird der Button noch nicht angezeigt.</p> : null}
+      {missingTarget ? <p className="mb-4 text-xs text-orange-400">{t("Ohne diesen Eintrag wird der Button noch nicht angezeigt.", "Without this entry the button won’t be shown yet.")}</p> : null}
 
-      <Section>Kontakt</Section>
-      <TextInput label="Telefonnummer" value={phone} onChange={setPhone} type="tel" placeholder="z. B. 0316 123 456" errors={fieldErrors.phone} />
-      <TextInput label="E-Mail für Anfragen" value={email} onChange={setEmail} type="email" errors={fieldErrors.contactEmail} />
+      <Section>{t("Kontakt", "Contact")}</Section>
+      <TextInput label={t("Telefonnummer", "Phone number")} value={phone} onChange={setPhone} type="tel" placeholder={t("z. B. 0316 123 456", "e.g. +43 316 123 456")} errors={fieldErrors.phone} />
+      <TextInput label={t("E-Mail für Anfragen", "Email for inquiries")} value={email} onChange={setEmail} type="email" errors={fieldErrors.contactEmail} />
       <TextInput label="Website" value={website} onChange={setWebsite} type="url" errors={fieldErrors.website} />
 
-      <Section>Standort</Section>
+      <Section>{t("Standort", "Location")}</Section>
       <div className="mb-4 flex rounded-full border border-zinc-800 p-1">
-        {LOCATION_OPTIONS.map(([key, label]) => (
+        {LOCATION_OPTIONS(t).map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -344,16 +352,16 @@ export function ContactForm({ initial }: { initial: ContactInitial }) {
       ))}
       {locationType === "address" ? (
         <>
-          <TextInput label="Ort im Profil" value={locationLabel} onChange={setLocationLabel} placeholder="z. B. Graz-Eggenberg" maxLength={60} errors={fieldErrors.locationLabel} />
-          <TextInput label="Adresse" value={address} onChange={setAddress} placeholder="Straße, PLZ Ort" maxLength={200} errors={fieldErrors.address} />
-          <Hint>Im Profil steht nur der Ort. Die genaue Adresse sieht man unter ⋯ → Info, mit Link zur Karte.</Hint>
+          <TextInput label={t("Ort im Profil", "Location on profile")} value={locationLabel} onChange={setLocationLabel} placeholder={t("z. B. Graz-Eggenberg", "e.g. Graz-Eggenberg")} maxLength={60} errors={fieldErrors.locationLabel} />
+          <TextInput label={t("Adresse", "Address")} value={address} onChange={setAddress} placeholder={t("Straße, PLZ Ort", "Street, postcode, city")} maxLength={200} errors={fieldErrors.address} />
+          <Hint>{t("Im Profil steht nur der Ort. Die genaue Adresse sieht man unter ⋯ → Info, mit Link zur Karte.", "Your profile only shows the location. The exact address is under ⋯ → Info, with a link to the map.")}</Hint>
         </>
       ) : locationType === "area" ? (
-        <TextInput label="Einsatzgebiet" value={locationLabel} onChange={setLocationLabel} placeholder="z. B. Graz und Umgebung" maxLength={60} errors={fieldErrors.locationLabel} />
+        <TextInput label={t("Einsatzgebiet", "Service area")} value={locationLabel} onChange={setLocationLabel} placeholder={t("z. B. Graz und Umgebung", "e.g. Graz and surroundings")} maxLength={60} errors={fieldErrors.locationLabel} />
       ) : locationType === "online" ? (
-        <Hint>Im Profil steht „Online“ — ideal für Apps, Onlineshops und Dienste ohne Laden.</Hint>
+        <Hint>{t("Im Profil steht „Online“ — ideal für Apps, Onlineshops und Dienste ohne Laden.", "Your profile shows “Online” — ideal for apps, online shops and services without a store.")}</Hint>
       ) : (
-        <Hint>{initial.creator ? "Freiwillig — eine Wohnadresse brauchst du nie anzugeben." : "Damit Kund:innen sehen, wo sie dich finden."}</Hint>
+        <Hint>{initial.creator ? t("Freiwillig — eine Wohnadresse brauchst du nie anzugeben.", "Optional — you never need to give a home address.") : t("Damit Kund:innen sehen, wo sie dich finden.", "So customers can see where to find you.")}</Hint>
       )}
 
       <FormMessage message={error} />
@@ -365,6 +373,7 @@ export function ContactForm({ initial }: { initial: ContactInitial }) {
 // ——— Info & Impressum ———
 
 export function InfoForm({ creator, initial }: { creator: boolean; initial: { description: string; openingHours: string; imprint: string } }) {
+  const t = useT();
   const { saving, error, fieldErrors, save } = useSaveAndBack();
   const [description, setDescription] = useState(initial.description);
   const [openingHours, setOpeningHours] = useState(initial.openingHours);
@@ -384,38 +393,40 @@ export function InfoForm({ creator, initial }: { creator: boolean; initial: { de
       }}
     >
       <TextInput
-        label="Beschreibung"
+        label={t("Beschreibung", "Description")}
         value={description}
         onChange={setDescription}
         multiline
         maxLength={500}
-        placeholder={creator ? "Worum geht es bei dir?" : "Was macht ihr, was macht euch besonders?"}
+        placeholder={creator ? t("Worum geht es bei dir?", "What are you about?") : t("Was macht ihr, was macht euch besonders?", "What do you do, what makes you special?")}
         errors={fieldErrors.description}
       />
-      <Hint>Steht unter ⋯ → Info und als Text im Vorstellungsvideo.</Hint>
+      <Hint>{t("Steht unter ⋯ → Info und als Text im Vorstellungsvideo.", "Appears under ⋯ → Info and as text in the intro video.")}</Hint>
       {creator ? null : (
         <TextInput
-          label="Öffnungszeiten (freiwillig)"
+          label={t("Öffnungszeiten (freiwillig)", "Opening hours (optional)")}
           value={openingHours}
           onChange={setOpeningHours}
           multiline
           maxLength={300}
-          placeholder="z. B. Mo–Fr 7:30–17:00, Sa 8–12"
+          placeholder={t("z. B. Mo–Fr 7:30–17:00, Sa 8–12", "e.g. Mon–Fri 7:30–17:00, Sat 8–12")}
           errors={fieldErrors.openingHours}
         />
       )}
       <TextInput
-        label={creator ? "Impressum (falls du gewerblich postest)" : "Impressum"}
+        label={creator ? t("Impressum (falls du gewerblich postest)", "Legal notice (if you post commercially)") : t("Impressum", "Legal notice")}
         value={imprint}
         onChange={setImprint}
         multiline
         maxLength={1500}
-        placeholder={"Firmenname, Rechtsform\nAnschrift\nUID / Firmenbuchnummer\nKontakt"}
+        placeholder={t("Firmenname, Rechtsform\nAnschrift\nUID / Firmenbuchnummer\nKontakt", "Company name, legal form\nAddress\nVAT ID / company register number\nContact")}
         errors={fieldErrors.imprint}
       />
       <Hint>
-        Unternehmen in Österreich müssen auch auf Social-Media-Profilen ihre Firmenangaben zeigen (§ 25 MedienG, § 5 ECG). Hier kannst du sie
-        hinterlegen.
+        {t(
+          "Unternehmen in Österreich müssen auch auf Social-Media-Profilen ihre Firmenangaben zeigen (§ 25 MedienG, § 5 ECG). Hier kannst du sie hinterlegen.",
+          "Businesses in Austria must show their company details on social media profiles too (§ 25 MedienG, § 5 ECG). You can add them here.",
+        )}
       </Hint>
       <FormMessage message={error} />
       <SaveButton saving={saving} />

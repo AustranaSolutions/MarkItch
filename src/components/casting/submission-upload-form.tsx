@@ -7,8 +7,10 @@ import { VideoPickerInput } from "@/components/video-picker-input";
 import { CtaLinkFields } from "@/components/pitches/cta-link-fields";
 import { AudioRightsCheckbox } from "@/components/pitches/audio-rights-checkbox";
 import { AiContentCheckbox } from "@/components/pitches/ai-content-checkbox";
+import { useT } from "@/components/i18n/lang-provider";
 
 export function SubmissionUploadForm({ castingId }: { castingId: string }) {
+  const t = useT();
   const [state, action] = useActionState<SubmitCastingFormState, FormData>(submitCastingEntry, undefined);
   const [clientError, setClientError] = useState<string | null>(null);
   const [videoUploading, setVideoUploading] = useState(false);
@@ -22,12 +24,12 @@ export function SubmissionUploadForm({ castingId }: { castingId: string }) {
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     if (videoUploading) {
       e.preventDefault();
-      setClientError("Video wird noch hochgeladen — kurz warten.");
+      setClientError(t("Video wird noch hochgeladen — kurz warten.", "The video is still uploading — please wait a moment."));
       return;
     }
     if (!videoUploaded) {
       e.preventDefault();
-      setClientError("Bitte zuerst ein Video auswählen.");
+      setClientError(t("Bitte zuerst ein Video auswählen.", "Please choose a video first."));
       return;
     }
     setClientError(null);
@@ -45,7 +47,7 @@ export function SubmissionUploadForm({ castingId }: { castingId: string }) {
         }}
       />
       <label htmlFor="casting-description" className="mb-1 block text-sm font-medium text-zinc-300">
-        Beschreibung
+        {t("Beschreibung", "Description")}
       </label>
       <textarea
         id="casting-description"
@@ -54,13 +56,13 @@ export function SubmissionUploadForm({ castingId }: { castingId: string }) {
         onChange={(e) => setDescription(e.target.value)}
         rows={3}
         maxLength={300}
-        placeholder="Worum geht's in diesem Video?"
+        placeholder={t("Worum geht's in diesem Video?", "What’s this video about?")}
         className="mb-3 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-orange-500"
       />
       <CtaLinkFields ctaLabel={ctaLabel} ctaUrl={ctaUrl} onCtaLabelChange={setCtaLabel} onCtaUrlChange={setCtaUrl} />
       <AudioRightsCheckbox />
       <AiContentCheckbox />
-      <SubmitButton>Video einreichen</SubmitButton>
+      <SubmitButton>{t("Video einreichen", "Submit video")}</SubmitButton>
     </form>
   );
 }

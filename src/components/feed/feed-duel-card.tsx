@@ -25,6 +25,8 @@ import { FastForwardBadge, isInEdgeZone, useEdgeFastForward } from "@/components
 import { SeekBar } from "@/components/feed/seek-bar";
 import { useVideoTrim } from "@/lib/use-video-trim";
 import { useVideoMusic } from "@/lib/use-video-music";
+import { useT } from "@/components/i18n/lang-provider";
+import { type Translate } from "@/lib/i18n";
 
 // Phase 39: both sides of a duel are now always mounted side by side (the
 // Phase 38 sliding carousel) instead of only the active one — the inactive
@@ -38,23 +40,24 @@ function showFirstFrame(video: HTMLVideoElement) {
   else video.addEventListener("loadedmetadata", () => (video.currentTime = 0.1), { once: true });
 }
 
-function timeLeftLabel(iso: string): string {
+function timeLeftLabel(iso: string, t: Translate): string {
   const hoursLeft = Math.max(0, (new Date(iso).getTime() - Date.now()) / (60 * 60 * 1000));
-  if (hoursLeft >= 24) return `${Math.ceil(hoursLeft / 24)} Tage`;
+  if (hoursLeft >= 24) return t(`${Math.ceil(hoursLeft / 24)} Tage`, `${Math.ceil(hoursLeft / 24)} days`);
   return `${Math.max(1, Math.ceil(hoursLeft))}h`;
 }
 
-function outcomeLabel(sideIndex: 0 | 1, tally: FeedDuel["tally"]): { label: string; won: boolean } | null {
+function outcomeLabel(sideIndex: 0 | 1, tally: FeedDuel["tally"], t: Translate): { label: string; won: boolean } | null {
   if (tally.total === 0) return null;
-  if (tally.brandAVotes === tally.brandBVotes) return { label: "Unentschieden", won: false };
+  if (tally.brandAVotes === tally.brandBVotes) return { label: t("Unentschieden", "Tie"), won: false };
   const won = (sideIndex === 0 && tally.brandAVotes > tally.brandBVotes) || (sideIndex === 1 && tally.brandBVotes > tally.brandAVotes);
-  return { label: won ? "Gewonnen" : "Verloren", won };
+  return { label: won ? t("Gewonnen", "Won") : t("Verloren", "Lost"), won };
 }
 
 function ResultLine({ sideIndex, tally, prefix }: { sideIndex: 0 | 1; tally: FeedDuel["tally"]; prefix?: React.ReactNode }) {
+  const t = useT();
   const sideVotes = sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes;
   const pct = tally.total === 0 ? 0 : Math.round((sideVotes / tally.total) * 100);
-  const outcome = outcomeLabel(sideIndex, tally);
+  const outcome = outcomeLabel(sideIndex, tally, t);
   return (
     <p className="flex items-center gap-1 text-xs text-zinc-300">
       {prefix && <span className="text-zinc-500">{prefix} </span>}
@@ -64,7 +67,7 @@ function ResultLine({ sideIndex, tally, prefix }: { sideIndex: 0 | 1; tally: Fee
           {outcome.label} ·
         </span>
       )}
-      {pct}% ({tally.total} {tally.total === 1 ? "Stimme" : "Stimmen"})
+      {pct}% ({tally.total} {tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")})
     </p>
   );
 }
@@ -94,37 +97,38 @@ function VoteState({
   onVote: () => void;
   voting: boolean;
 }) {
+  const t = useT();
   const { tally, officialTally, isFinished, viewerVotedBrandId, viewerOwnsThisBattle, votingEndsAt } = duel;
   const side = duel.sides[sideIndex];
 
   if (viewerOwnsThisBattle) {
-    return <p className="text-xs text-zinc-400">Das ist dein eigener Pitch</p>;
+    return <p className="text-xs text-zinc-400">{t("Das ist dein eigener Pitch", "This is your own pitch")}</p>;
   }
 
   if (!isLoggedIn) {
     return (
       <div className="space-y-1">
-        {tally.total > 0 && <p className="text-xs text-zinc-500">{tally.total} {tally.total === 1 ? "Stimme" : "Stimmen"} bisher</p>}
+        {tally.total > 0 && <p className="text-xs text-zinc-500">{tally.total} {tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")} {t("bisher", "so far")}</p>}
         <a
           href="/login"
           onClick={() => trackAnalyticsEvent(side.brandId, "login_required", { battleId: duel.battleId })}
           className="text-xs text-orange-400 hover:underline"
         >
-          Anmelden, um abzustimmen
+          {t("Anmelden, um abzustimmen", "Log in to vote")}
         </a>
       </div>
     );
   }
 
   const hasDiverged = isFinished && officialTally && tally.total !== officialTally.total;
-  const officialResult = isFinished && officialTally ? <ResultLine sideIndex={sideIndex} tally={officialTally} prefix="Ergebnis:" /> : null;
+  const officialResult = isFinished && officialTally ? <ResultLine sideIndex={sideIndex} tally={officialTally} prefix={t("Ergebnis:", "Result:")} /> : null;
   const liveDrift = hasDiverged ? (
     <ResultLine
       sideIndex={sideIndex}
       tally={tally}
       prefix={
         <span className="inline-flex items-center gap-1">
-          <RefreshCw size={11} /> Aktuell:
+          <RefreshCw size={11} /> {t("Aktuell:", "Now:")}
         </span>
       }
     />
@@ -135,11 +139,11 @@ function VoteState({
     return (
       <div className="space-y-1">
         <p className="text-xs text-orange-400">
-          {votedForThis ? "✓ Du hast für diese Seite gestimmt" : "✓ Du hast für die Gegenseite gestimmt"}
+          {votedForThis ? t("✓ Du hast für diese Seite gestimmt", "✓ You voted for this side") : t("✓ Du hast für die Gegenseite gestimmt", "✓ You voted for the other side")}
         </p>
         {officialResult ?? (
           <p className="text-xs text-zinc-500">
-            {tally.total} {tally.total === 1 ? "Stimme" : "Stimmen"} bisher — wer führt, bleibt geheim bis Fristende.
+            {t(`${tally.total} ${tally.total === 1 ? "Stimme" : "Stimmen"} bisher — wer führt, bleibt geheim bis Fristende.`, `${tally.total} ${tally.total === 1 ? "vote" : "votes"} so far — who’s leading stays secret until the deadline.`)}
           </p>
         )}
         {liveDrift}
@@ -156,7 +160,7 @@ function VoteState({
     <div className="space-y-1">
       {officialResult}
       {liveDrift}
-      {isFinished && <p className="text-xs text-zinc-500">Die Frist ist zwar um, du kannst aber trotzdem noch abstimmen:</p>}
+      {isFinished && <p className="text-xs text-zinc-500">{t("Die Frist ist zwar um, du kannst aber trotzdem noch abstimmen:", "The deadline has passed, but you can still vote:")}</p>}
       <div className="flex items-center gap-2">
         <button
           onClick={onVote}
@@ -165,16 +169,16 @@ function VoteState({
         >
           {voting ? "…" : (
             <>
-              <Trophy size={14} /> Für {side.brandName} stimmen
+              <Trophy size={14} /> {t(`Für ${side.brandName} stimmen`, `Vote for ${side.brandName}`)}
             </>
           )}
         </button>
         {!isFinished && votingEndsAt && (
-          <span className="text-[11px] text-zinc-500">Noch {timeLeftLabel(votingEndsAt)}</span>
+          <span className="text-[11px] text-zinc-500">{t("Noch", "")} {timeLeftLabel(votingEndsAt, t)}{t("", " left")}</span>
         )}
       </div>
       {!isFinished && tally.total > 0 && (
-        <p className="text-[11px] text-zinc-500">{tally.total} {tally.total === 1 ? "Stimme" : "Stimmen"} bisher</p>
+        <p className="text-[11px] text-zinc-500">{tally.total} {tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")} {t("bisher", "so far")}</p>
       )}
     </div>
   );
@@ -202,6 +206,7 @@ export function FeedDuelCard({
   /** Phase 43: tells FeedClient this card is the one on screen now, so it can keep only nearby cards' videos mounted. */
   onActive?: () => void;
 }) {
+  const t = useT();
   // Luca 24.10.: aus einem Profil geöffnet → dessen Video zuerst und links,
   // der Gegner rechts. Nur die Anzeige dreht sich; sideIndex bleibt 0 = A,
   // 1 = B (Stimmen, Ergebnis, Melden). pos = Platz im Streifen (0 links).
@@ -321,7 +326,7 @@ export function FeedDuelCard({
     onShare(duel);
     trackAnalyticsEvent(duel.sides[0].brandId, "share");
     trackAnalyticsEvent(duel.sides[1].brandId, "share");
-    setShareLabel("Link kopiert!");
+    setShareLabel(t("Link kopiert!", "Link copied!"));
     setTimeout(() => setShareLabel(null), 1800);
   }
 
@@ -505,7 +510,7 @@ export function FeedDuelCard({
           </span>
           <button
             onClick={onToggleMute}
-            aria-label={muted ? "Ton an" : "Ton aus"}
+            aria-label={muted ? t("Ton an", "Unmute") : t("Ton aus", "Mute")}
             className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white"
           >
             {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -561,7 +566,7 @@ export function FeedDuelCard({
           unten links/rechts sind Info-Text bzw. Action-Leiste belegt. */}
       <button
         onClick={() => setUiHidden((h) => !h)}
-        aria-label={uiHidden ? "Bedienelemente einblenden" : "Bedienelemente ausblenden"}
+        aria-label={uiHidden ? t("Bedienelemente einblenden", "Show controls") : t("Bedienelemente ausblenden", "Hide controls")}
         className="pointer-events-auto absolute left-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/70"
         style={{ top: "calc(env(safe-area-inset-top) + 56px)" }}
       >
@@ -587,7 +592,7 @@ export function FeedDuelCard({
             <FollowButton key={side.brandId} brandId={side.brandId} isFollowing={side.viewerFollowsBrand} />
           )}
           {duel.isFinished && (
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">Beendet</span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">{t("Beendet", "Ended")}</span>
           )}
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-400">
             <Eye size={11} /> {duel.viewCount}
@@ -634,7 +639,7 @@ export function FeedDuelCard({
 
         <button onClick={handleShare} className="pointer-events-auto flex flex-col items-center gap-1 text-white">
           <Share2 size={26} />
-          <span className="text-xs font-medium">{shareLabel ? "Kopiert" : "Teilen"}</span>
+          <span className="text-xs font-medium">{shareLabel ? t("Kopiert", "Copied") : t("Teilen", "Share")}</span>
         </button>
 
         <ReportButton

@@ -1,20 +1,12 @@
 "use client";
 
+import { shortTimeAgo } from "@/lib/i18n";
 import Link from "next/link";
 import { useActionState } from "react";
 import { postComment, type CommentFormState } from "@/app/actions/comment";
 import { FormError, SubmitButton } from "@/components/ui";
 import type { CommentWithAuthor } from "@/lib/comment";
-
-function timeAgo(date: Date): string {
-  const minutes = Math.floor((Date.now() - date.getTime()) / (60 * 1000));
-  if (minutes < 1) return "gerade eben";
-  if (minutes < 60) return `vor ${minutes}min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `vor ${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `vor ${days}d`;
-}
+import { useT } from "@/components/i18n/lang-provider";
 
 export function CommentSection({
   battleId,
@@ -25,12 +17,13 @@ export function CommentSection({
   comments: CommentWithAuthor[];
   isLoggedIn: boolean;
 }) {
+  const t = useT();
   const [state, action] = useActionState<CommentFormState, FormData>(postComment, undefined);
 
   return (
     <div className="mx-auto mt-8 w-full max-w-[380px]">
       <h2 className="mb-3 text-sm font-semibold tracking-wide text-zinc-400">
-        KOMMENTARE {comments.length > 0 && `(${comments.length})`}
+        {t("KOMMENTARE", "COMMENTS")} {comments.length > 0 && `(${comments.length})`}
       </h2>
 
       {isLoggedIn ? (
@@ -45,25 +38,25 @@ export function CommentSection({
             name="content"
             required
             maxLength={500}
-            placeholder="Was denkst du?"
+            placeholder={t("Was denkst du?", "What do you think?")}
             rows={2}
             className="w-full resize-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-orange-500"
           />
           <div className="mt-2">
-            <SubmitButton>Kommentieren</SubmitButton>
+            <SubmitButton>{t("Kommentieren", "Comment")}</SubmitButton>
           </div>
         </form>
       ) : (
         <p className="mb-4 text-sm text-zinc-500">
           <a href="/login" className="text-orange-500 hover:underline">
-            Anmelden
+            {t("Anmelden", "Log in")}
           </a>
-          , um zu kommentieren.
+          {t(", um zu kommentieren.", ", to comment.")}
         </p>
       )}
 
       {comments.length === 0 ? (
-        <p className="text-sm text-zinc-600">Noch keine Meinungen — sag als Erste:r, was du denkst.</p>
+        <p className="text-sm text-zinc-600">{t("Noch keine Meinungen — sag als Erste:r, was du denkst.", "No comments yet — be the first to say what you think.")}</p>
       ) : (
         <ul className="space-y-3">
           {comments.map((c) => (
@@ -75,7 +68,7 @@ export function CommentSection({
                     >
                       {c.authorName}
                     </Link>
-                <span className="text-xs text-zinc-600">{timeAgo(c.createdAt)}</span>
+                <span className="text-xs text-zinc-600">{shortTimeAgo(c.createdAt, t)}</span>
               </div>
               <p className="mt-1 text-sm text-zinc-300">{c.content}</p>
             </li>

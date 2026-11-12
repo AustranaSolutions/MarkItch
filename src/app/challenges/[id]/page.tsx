@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getOptionalUser } from "@/lib/session";
 import { getChallengeDetails } from "@/lib/creator-challenge";
 import { SoloPitchUploadForm } from "@/components/pitches/solo-pitch-upload-form";
+import { getT } from "@/lib/lang";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
  * Rangliste sind die Likes, nach Monatsende die Top 3.
  */
 export default async function ChallengePage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const viewer = await getOptionalUser();
   const details = await getChallengeDetails(id, viewer?.id ?? null).catch(() => null);
@@ -39,7 +41,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
           {brand.name}
         </Link>
         <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
-          {details.periodLabel} · {stage === "running" ? "läuft" : stage === "upcoming" ? "startet bald" : "beendet"}
+          {details.periodLabel} · {stage === "running" ? t("läuft", "live") : stage === "upcoming" ? t("startet bald", "starting soon") : t("beendet", "ended")}
         </span>
       </div>
       <p className="mb-6 text-sm text-zinc-300">{details.challenge.prompt}</p>
@@ -51,7 +53,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
       )}
 
       {entries.length === 0 ? (
-        <p className="mb-6 text-sm text-zinc-500">Noch keine Einreichungen.</p>
+        <p className="mb-6 text-sm text-zinc-500">{t("Noch keine Einreichungen.", "No submissions yet.")}</p>
       ) : (
         <ol className="mb-6 space-y-2">
           {entries.map((e, i) => (
@@ -74,18 +76,18 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
 
       {details.canSubmit && !details.viewerHasBrand && (
         <p className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">
-          Mitmachen geht in der MarkItch-App: Challenge öffnen und auf „Mitmachen“ tippen.
+          {t("Mitmachen geht in der MarkItch-App: Challenge öffnen und auf „Mitmachen“ tippen.", "You can join in the MarkItch app: open the challenge and tap “Join”.")}
         </p>
       )}
       {details.canSubmit && details.viewerHasBrand && (
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-          <h2 className="mb-3 text-sm font-semibold text-white">Mitmachen</h2>
+          <h2 className="mb-3 text-sm font-semibold text-white">{t("Mitmachen", "Join")}</h2>
           <SoloPitchUploadForm challengeId={details.challenge.id} />
         </div>
       )}
       {details.isOwner && (
         <p className="mt-6 text-center text-xs text-zinc-500">
-          Deine Challenge — Creator reichen hier ein, die Rangliste ergibt sich aus den Likes im Feed.
+          {t("Deine Challenge — Creator reichen hier ein, die Rangliste ergibt sich aus den Likes im Feed.", "Your challenge — creators submit here, the ranking comes from likes in the feed.")}
         </p>
       )}
     </div>

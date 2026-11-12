@@ -6,6 +6,7 @@ import { Camera, Check, FolderOpen, ImageIcon, Scissors } from "lucide-react";
 import { TrimEditor, saveTrim, type TrimValue } from "@/components/trim-editor";
 import { ThumbnailEditor, uploadThumbnail } from "@/components/thumbnail-editor";
 import { ALLOWED_VIDEO_TYPES, MAX_VIDEO_BYTES, MAX_VIDEO_SECONDS, type VideoUploadFolder } from "@/lib/video-constants";
+import { useT } from "@/components/i18n/lang-provider";
 
 type UploadState = "idle" | "uploading" | "done" | "error";
 
@@ -57,6 +58,7 @@ export function VideoPickerInput({
   /** Luca 25.10.: Titelbild fürs Profil wählen (wie in der App) — nicht beim Vorstellungsvideo. */
   withThumbnail?: boolean;
 }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<UploadState>("idle");
@@ -76,13 +78,13 @@ export function VideoPickerInput({
   const getPreview = useCallback(() => previewRef.current, []);
   useVideoTrim(getPreview, trim);
   const persistTrim = (videoUrl: string, value: TrimValue | null) => {
-    saveTrim(videoUrl, value).catch((err) => setThumbnailError(err instanceof Error ? err.message : "Kürzen fehlgeschlagen."));
+    saveTrim(videoUrl, value, t).catch((err) => setThumbnailError(err instanceof Error ? err.message : t("Kürzen fehlgeschlagen.", "Trimming failed.")));
   };
   const uploadedRef = useRef<string | null>(null);
 
   const saveThumbnail = (videoUrl: string, image: Blob) => {
     setThumbnailError(null);
-    uploadThumbnail(videoUrl, image).catch((err) => setThumbnailError(err instanceof Error ? err.message : "Titelbild fehlgeschlagen."));
+    uploadThumbnail(videoUrl, image, t).catch((err) => setThumbnailError(err instanceof Error ? err.message : t("Titelbild fehlgeschlagen.", "Cover failed.")));
   };
 
   useEffect(() => {
@@ -128,19 +130,19 @@ export function VideoPickerInput({
 
     if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
       setStatus("error");
-      setError("Erlaubt: MP4, WEBM oder MOV.");
+      setError(t("Erlaubt: MP4, WEBM oder MOV.", "Allowed: MP4, WEBM or MOV."));
       return;
     }
     if (file.size > MAX_VIDEO_BYTES) {
       setStatus("error");
-      setError("Das Video ist zu groß — es geht bis zu 1 Minute.");
+      setError(t("Das Video ist zu groß — es geht bis zu 1 Minute.", "The video is too large — up to 1 minute is allowed."));
       return;
     }
     // Luca 02.11.: max. 1 Minute — Länge aus den Metadaten lesen, bevor hochgeladen wird.
     const seconds = await videoDuration(file);
     if (seconds !== null && seconds > MAX_VIDEO_SECONDS + 2) {
       setStatus("error");
-      setError("Das Video ist zu lang — es geht bis zu 1 Minute. Bitte vorher kürzen (z. B. in der Fotos-App).");
+      setError(t("Das Video ist zu lang — es geht bis zu 1 Minute. Bitte vorher kürzen (z. B. in der Fotos-App).", "The video is too long — up to 1 minute is allowed. Please trim it first (e.g. in the Photos app)."));
       return;
     }
 
@@ -152,14 +154,14 @@ export function VideoPickerInput({
         body: JSON.stringify({ folder, contentType: file.type }),
       });
       const prepared = await prepareRes.json();
-      if (!prepareRes.ok) throw new Error(prepared.error ?? "Upload fehlgeschlagen.");
+      if (!prepareRes.ok) throw new Error(prepared.error ?? t("Upload fehlgeschlagen.", "Upload failed."));
 
       const putRes = await fetch(prepared.uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type },
         body: file,
       });
-      if (!putRes.ok) throw new Error("Upload fehlgeschlagen.");
+      if (!putRes.ok) throw new Error(t("Upload fehlgeschlagen.", "Upload failed."));
 
       setUploadedUrl(prepared.publicUrl);
       uploadedRef.current = prepared.publicUrl;
@@ -168,7 +170,7 @@ export function VideoPickerInput({
       setStatus("done");
     } catch (err) {
       setStatus("error");
-      setError(err instanceof Error ? err.message : "Upload fehlgeschlagen.");
+      setError(err instanceof Error ? err.message : t("Upload fehlgeschlagen.", "Upload failed."));
     }
   }
 
@@ -191,7 +193,7 @@ export function VideoPickerInput({
           />
           {status === "uploading" && (
             <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/60">
-              <p className="rounded-full bg-black/70 px-3 py-1.5 text-sm text-white">Wird hochgeladen…</p>
+              <p className="rounded-full bg-black/70 px-3 py-1.5 text-sm text-white">{t("Wird hochgeladen…", "Uploading…")}</p>
             </div>
           )}
         </div>
@@ -208,11 +210,11 @@ export function VideoPickerInput({
             </span>
           )}
           <span className="flex-1 text-sm text-zinc-300">
-            Titelbild fürs Profil
-            <span className="block text-xs text-zinc-500">{thumbnail ? "Gewählt" : "Sonst das erste Bild des Videos"}</span>
+            {t("Titelbild fürs Profil", "Cover for your profile")}
+            <span className="block text-xs text-zinc-500">{thumbnail ? t("Gewählt", "Selected") : t("Sonst das erste Bild des Videos", "Otherwise the first frame of the video")}</span>
           </span>
           <button type="button" onClick={() => setThumbnailOpen(true)} className="text-sm font-bold text-orange-500 hover:underline">
-            {thumbnail ? "Ändern" : "Wählen"}
+            {thumbnail ? t("Ändern", "Change") : t("Wählen", "Choose")}
           </button>
         </div>
       )}
@@ -222,13 +224,13 @@ export function VideoPickerInput({
             <Scissors size={16} />
           </span>
           <span className="flex-1 text-sm text-zinc-300">
-            Video kürzen
+            {t("Video kürzen", "Trim video")}
             <span className="block text-xs text-zinc-500">
-              {trim ? `${(trim.startMs / 1000).toFixed(1)} s bis ${trim.endMs ? `${(trim.endMs / 1000).toFixed(1)} s` : "Ende"}` : "Ganzes Video"}
+              {trim ? `${(trim.startMs / 1000).toFixed(1)} s ${t("bis", "to")} ${trim.endMs ? `${(trim.endMs / 1000).toFixed(1)} s` : t("Ende", "end")}` : t("Ganzes Video", "Full video")}
             </span>
           </span>
           <button type="button" onClick={() => setTrimOpen(true)} className="text-sm font-bold text-orange-500 hover:underline">
-            {trim ? "Ändern" : "Kürzen"}
+            {trim ? t("Ändern", "Change") : t("Kürzen", "Trim")}
           </button>
         </div>
       )}
@@ -266,20 +268,20 @@ export function VideoPickerInput({
           onClick={() => open(true)}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-orange-400 hover:text-orange-400"
         >
-          <Camera size={16} /> {previewUrl ? "Neu filmen" : "Jetzt filmen"}
+          <Camera size={16} /> {previewUrl ? t("Neu filmen", "Record again") : t("Jetzt filmen", "Record now")}
         </button>
         <button
           type="button"
           onClick={() => open(false)}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-orange-400 hover:text-orange-400"
         >
-          <FolderOpen size={16} /> {previewUrl ? "Anderes Video" : "Datei wählen"}
+          <FolderOpen size={16} /> {previewUrl ? t("Anderes Video", "Different video") : t("Datei wählen", "Choose file")}
         </button>
       </div>
-      {!previewUrl && <p className="mt-1.5 text-xs text-zinc-500">Keine Datei ausgewählt</p>}
+      {!previewUrl && <p className="mt-1.5 text-xs text-zinc-500">{t("Keine Datei ausgewählt", "No file selected")}</p>}
       {status === "done" && (
         <p className="mt-1.5 inline-flex items-center gap-1 text-xs text-green-500">
-          <Check size={13} /> Hochgeladen
+          <Check size={13} /> {t("Hochgeladen", "Uploaded")}
         </p>
       )}
       {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}

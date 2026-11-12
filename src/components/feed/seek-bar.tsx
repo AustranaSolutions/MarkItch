@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { trimRange, type Trim } from "@/lib/use-video-trim";
+import { useT } from "@/components/i18n/lang-provider";
 
 // Luca 25.10.: Website = App (MarkItch-mobile components/feed/seek-bar.tsx) —
 // Spulleiste unten auf jeder Video-Karte: antippen springt, ziehen spult.
@@ -13,6 +14,7 @@ function formatTime(seconds: number): string {
 }
 
 export function SeekBar({ getVideo, active, trim }: { getVideo: () => HTMLVideoElement | null; active: boolean; /** Gekürzt: Leiste zeigt nur den Ausschnitt. */ trim?: Trim }) {
+  const t = useT();
   const barRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -54,7 +56,7 @@ export function SeekBar({ getVideo, active, trim }: { getVideo: () => HTMLVideoE
       aria-valuemin={0}
       aria-valuemax={Math.round(duration)}
       aria-valuenow={Math.round(shown * duration)}
-      aria-valuetext={`${formatTime(shown * duration)} von ${formatTime(duration)}`}
+      aria-valuetext={t(`${formatTime(shown * duration)} von ${formatTime(duration)}`, `${formatTime(shown * duration)} of ${formatTime(duration)}`)}
       className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex h-6 cursor-pointer touch-none items-end"
       // Eigene Geste: Karten-Tipp (Pause) und Duell-Wischen nicht auslösen.
       onClick={(e) => e.stopPropagation()}

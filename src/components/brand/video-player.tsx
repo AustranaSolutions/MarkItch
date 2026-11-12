@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useT } from "@/components/i18n/lang-provider";
 
 // Phase 30: no native `controls` — that gave every video the browser's own
 // OS-level media bar (a fullscreen-expand icon, AirPlay, a scrubber), which
@@ -9,6 +10,7 @@ import { useRef, useState } from "react";
 // all. Same tap-to-toggle pattern as the feed cards and
 // SoloPitchDetailOverlay.
 export function VideoPlayer({ src, className = "" }: { src: string; className?: string }) {
+  const t = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -30,7 +32,7 @@ export function VideoPlayer({ src, className = "" }: { src: string; className?: 
       {!playing && (
         <button
           onClick={toggle}
-          aria-label="Abspielen"
+          aria-label={t("Abspielen", "Play")}
           className="absolute inset-0 flex items-center justify-center bg-black/10"
         >
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/50 text-3xl text-white">

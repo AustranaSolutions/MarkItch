@@ -4,13 +4,10 @@ import { useActionState, useState } from "react";
 import { updateBrand, type UpdateBrandFormState } from "@/app/actions/brand";
 import { Field, FormError, FormSuccess, SubmitButton } from "@/components/ui";
 import { BrandCategories, BrandCountries } from "@/lib/validation";
+import { useT } from "@/components/i18n/lang-provider";
+import { categoryLabel } from "@/lib/brand-details";
+import { countryLabel, langOf } from "@/lib/i18n";
 
-const COUNTRY_LABELS: Record<(typeof BrandCountries)[number], string> = {
-  AT: "Österreich",
-  DE: "Deutschland",
-  CH: "Schweiz",
-  Other: "Andere",
-};
 
 /**
  * Phase 43: the brand itself (name/description/category/website/logo) had
@@ -32,6 +29,7 @@ export function EditBrandForm({
   initialCountry: string;
   initialWebsite: string;
 }) {
+  const t = useT();
   const [state, action] = useActionState<UpdateBrandFormState, FormData>(updateBrand, undefined);
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
@@ -42,18 +40,18 @@ export function EditBrandForm({
   return (
     <form action={action}>
       <FormError message={state?.errors?._form?.[0]} />
-      {state?.success && <FormSuccess message="Gespeichert." />}
+      {state?.success && <FormSuccess message={t("Gespeichert.", "Saved.")} />}
 
       {logoUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary source
         <img src={logoUrl} alt={name} className="mb-4 h-16 w-16 rounded-xl object-cover" />
       )}
 
-      <Field label="Markenname" name="name" errors={state?.errors?.name} value={name} onChange={setName} />
+      <Field label={t("Markenname", "Brand name")} name="name" errors={state?.errors?.name} value={name} onChange={setName} />
 
       <div className="mb-4">
         <label htmlFor="description" className="mb-1 block text-sm font-medium text-zinc-300">
-          Beschreibung (optional)
+          {t("Beschreibung (optional)", "Description (optional)")}
         </label>
         <textarea
           id="description"
@@ -73,7 +71,7 @@ export function EditBrandForm({
       <div className="mb-4 grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="category" className="mb-1 block text-sm font-medium text-zinc-300">
-            Kategorie
+            {t("Kategorie", "Category")}
           </label>
           <select
             id="category"
@@ -85,7 +83,7 @@ export function EditBrandForm({
           >
             {BrandCategories.map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {categoryLabel(cat, langOf(t))}
               </option>
             ))}
           </select>
@@ -98,7 +96,7 @@ export function EditBrandForm({
 
         <div>
           <label htmlFor="country" className="mb-1 block text-sm font-medium text-zinc-300">
-            Land
+            {t("Land", "Country")}
           </label>
           <select
             id="country"
@@ -110,7 +108,7 @@ export function EditBrandForm({
           >
             {BrandCountries.map((c) => (
               <option key={c} value={c}>
-                {COUNTRY_LABELS[c]}
+                {countryLabel(c, t)}
               </option>
             ))}
           </select>
@@ -134,7 +132,7 @@ export function EditBrandForm({
 
       <div className="mb-6">
         <label htmlFor="logo" className="mb-1 block text-sm font-medium text-zinc-300">
-          Logo ändern (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)
+          {t("Logo ändern (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)", "Change logo (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)")}
         </label>
         <input
           id="logo"
@@ -150,7 +148,7 @@ export function EditBrandForm({
         ))}
       </div>
 
-      <SubmitButton>Speichern</SubmitButton>
+      <SubmitButton>{t("Speichern", "Save")}</SubmitButton>
     </form>
   );
 }
