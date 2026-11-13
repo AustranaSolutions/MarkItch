@@ -60,7 +60,7 @@ function outcomeLabel(sideIndex: 0 | 1, tally: FeedDuel["tally"], t: Translate):
 function ResultPill({ sideIndex, tally }: { sideIndex: 0 | 1; tally: FeedDuel["tally"] }) {
   const t = useT();
   const outcome = outcomeLabel(sideIndex, tally, t);
-  if (!outcome) return <span className="text-[11px] text-zinc-400">{t("Beendet — ohne Stimmen", "Ended — no votes")}</span>;
+  if (!outcome) return null;
   const sideVotes = sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes;
   const pct = Math.round((sideVotes / tally.total) * 100);
   if (outcome.won) {
@@ -95,7 +95,7 @@ function VoteState({
   // Restzeit + Stimmen bisher (nie, wer führt — Blind-Abstimmen).
   const liveInfo = [
     votingEndsAt ? t(`noch ${timeLeftLabel(votingEndsAt, t)}`, `${timeLeftLabel(votingEndsAt, t)} left`) : null,
-    tally.total > 0 ? votes(tally.total) : null,
+    votes(tally.total),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -110,7 +110,9 @@ function VoteState({
     return (
       <div className="flex flex-wrap items-center gap-2">
         <ResultPill sideIndex={sideIndex} tally={result} />
-        {driftPct !== null && <span className="text-[11px] text-zinc-400">{t(`aktuell ${driftPct} %`, `now ${driftPct}%`)}</span>}
+        <span className="text-[11px] text-zinc-300">
+          {[t("Beendet", "Ended"), votes(result.total), driftPct !== null ? t(`aktuell ${driftPct} %`, `now ${driftPct}%`) : null].filter(Boolean).join(" · ")}
+        </span>
         {canStillVote && (
           <button onClick={onVote} disabled={voting} className="text-xs text-orange-400 hover:underline">
             {voting ? "…" : t("Noch abstimmen", "Vote anyway")}
@@ -573,9 +575,24 @@ export function FeedDuelCard({
       {!uiHidden && (
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 pb-4 pr-20">
         <div className="pointer-events-auto mb-2 flex items-center gap-2">
-          <Link href={`/brands/${side.brandSlug}`} className="text-sm font-bold text-white hover:underline">
-            {side.brandName}
-          </Link>
+          {/* Luca 13.11. (3): „A vs. B“ in einer Zeile, aktuelle Seite fett (→ Profil), andere Seite antippen = wechseln. */}
+          {(flipped ? ([1, 0] as const) : ([0, 1] as const)).map((i, pos) => {
+            const s2 = duel.sides[i];
+            return (
+              <span key={s2.brandId} className="inline-flex items-center gap-1.5">
+                {pos === 1 && <span className="text-xs text-orange-300">vs.</span>}
+                {i === sideIndex ? (
+                  <Link href={`/brands/${s2.brandSlug}`} className="text-sm font-bold text-white hover:underline">
+                    {s2.brandName}
+                  </Link>
+                ) : (
+                  <button onClick={() => switchSide(i)} className="text-sm text-white/65 hover:text-white">
+                    {s2.brandName}
+                  </button>
+                )}
+              </span>
+            );
+          })}
           {/* Luca 13.11. (2): „Folgen“ nur, solange man noch nicht folgt; kein „Beendet“-Schild. */}
           {!side.viewerOwnsThisBrand && isLoggedIn && !side.viewerFollowsBrand && (
             <FollowButton key={side.brandId} brandId={side.brandId} isFollowing={false} />
@@ -584,17 +601,18 @@ export function FeedDuelCard({
             <Eye size={11} /> {compactNumber(duel.viewCount, langOf(t))}
           </span>
         </div>
-        <p className="mb-2 truncate text-xs text-zinc-300">
-          vs. {duel.sides[sideIndex === 0 ? 1 : 0].brandName}
-          {duel.category ? ` · ${duelCategoryLabel(duel.category, langOf(t))}` : ""}
-        </p>
+        {duel.category && (
+          <p className="mb-2 text-xs text-zinc-300">
+            {t("Aufgabe", "Task")}: {duelCategoryLabel(duel.category, langOf(t))}
+          </p>
+        )}
         {side.ctaUrl && side.ctaLabel && (
           <a
             href={side.ctaUrl}
             target="_blank"
             rel="noreferrer noopener"
             onClick={() => trackAnalyticsEvent(side.brandId, "cta_click", { battleId: duel.battleId })}
-            className="pointer-events-auto mb-2 inline-flex max-w-full items-center gap-1 truncate rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white hover:bg-white/25"
+            className="pointer-events-auto mb-2 inline-flex max-w-full items-center gap-1 truncate rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-orange-500"
           >
             {side.ctaLabel} →
           </a>
