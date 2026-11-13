@@ -1,5 +1,6 @@
 "use client";
 
+import { toggleCleanScreen, useCleanScreen } from "@/lib/clean-screen";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -20,13 +21,13 @@ import { FollowButton } from "@/components/brand/follow-button";
 import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { FeedDuel } from "@/lib/feed";
-import { trackAnalyticsEvent } from "@/lib/analytics-client";
+import { trackAnalyticsEvent, VIEW_AFTER_MS } from "@/lib/analytics-client";
 import { FastForwardBadge, isInEdgeZone, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
-import { useVideoTrim } from "@/lib/use-video-trim";
+import { useVideoTrim, useWatchedToEnd } from "@/lib/use-video-trim";
 import { useVideoMusic } from "@/lib/use-video-music";
 import { useT } from "@/components/i18n/lang-provider";
-import { type Translate } from "@/lib/i18n";
+import { type Translate, langOf, socialCount } from "@/lib/i18n";
 
 // Phase 39: both sides of a duel are now always mounted side by side (the
 // Phase 38 sliding carousel) instead of only the active one — the inactive
@@ -72,6 +73,38 @@ function ResultLine({ sideIndex, tally, prefix }: { sideIndex: 0 | 1; tally: Fee
   );
 }
 
+/**
+ * Luca 13.11.: offizielles Ergebnis nach Fristende, deutlich — Sieger in Gold
+ * („Duell-Sieger · Gewonnen 63 %“), Gegenseite gedämpft. Sehen alle, auch die
+ * beiden Marken selbst und Gäste (wie in der App).
+ */
+function OfficialResult({ sideIndex, tally }: { sideIndex: 0 | 1; tally: FeedDuel["tally"] }) {
+  const t = useT();
+  const outcome = outcomeLabel(sideIndex, tally, t);
+  if (!outcome) return <p className="text-xs text-zinc-500">{t("Beendet — es wurde nicht abgestimmt.", "Ended — nobody voted.")}</p>;
+  const sideVotes = sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes;
+  const pct = Math.round((sideVotes / tally.total) * 100);
+  const tie = tally.brandAVotes === tally.brandBVotes;
+  const votes = `${tally.total} ${tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")}`;
+  return (
+    <div className="space-y-1">
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold ${
+          outcome.won ? "bg-[#f5c542] text-[#2a1d00]" : tie ? "bg-white/20 text-white" : "bg-white/10 text-white"
+        }`}
+      >
+        {outcome.won && <Trophy size={14} />}
+        {outcome.won
+          ? t(`Duell-Sieger · Gewonnen ${pct} %`, `Duel winner · Won ${pct}%`)
+          : tie
+            ? t(`Unentschieden · ${pct} %`, `Tie · ${pct}%`)
+            : t(`Verloren · ${pct} %`, `Lost · ${pct}%`)}
+      </span>
+      <p className="text-[11px] text-zinc-500">{t(`Ergebnis aus ${votes}`, `Result from ${votes}`)}</p>
+    </div>
+  );
+}
+
 // Phase 12: two things were lost when the Feed replaced the old battle-
 // detail page as the only place to actually vote, both restored here:
 //   1. Before a Pitch is finished, the split never shows — only the running
@@ -102,13 +135,15 @@ function VoteState({
   const side = duel.sides[sideIndex];
 
   if (viewerOwnsThisBattle) {
+    if (isFinished && officialTally) return <OfficialResult sideIndex={sideIndex} tally={officialTally} />;
     return <p className="text-xs text-zinc-400">{t("Das ist dein eigener Pitch", "This is your own pitch")}</p>;
   }
 
   if (!isLoggedIn) {
     return (
       <div className="space-y-1">
-        {tally.total > 0 && <p className="text-xs text-zinc-500">{tally.total} {tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")} {t("bisher", "so far")}</p>}
+        {isFinished && officialTally && <OfficialResult sideIndex={sideIndex} tally={officialTally} />}
+        {!isFinished && tally.total > 0 && <p className="text-xs text-zinc-500">{tally.total} {tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")} {t("bisher", "so far")}</p>}
         <a
           href="/login"
           onClick={() => trackAnalyticsEvent(side.brandId, "login_required", { battleId: duel.battleId })}
@@ -121,7 +156,7 @@ function VoteState({
   }
 
   const hasDiverged = isFinished && officialTally && tally.total !== officialTally.total;
-  const officialResult = isFinished && officialTally ? <ResultLine sideIndex={sideIndex} tally={officialTally} prefix={t("Ergebnis:", "Result:")} /> : null;
+  const officialResult = isFinished && officialTally ? <OfficialResult sideIndex={sideIndex} tally={officialTally} /> : null;
   const liveDrift = hasDiverged ? (
     <ResultLine
       sideIndex={sideIndex}
@@ -236,7 +271,7 @@ export function FeedDuelCard({
   // Zoomen". Ein echtes Pinch-Zoom-Gesture würde mit dem bestehenden
   // Seiten-Swipe/Tap-Pause kollidieren — ein kleiner, dezenter Knopf erreicht
   // dasselbe Ergebnis (kompletter leerer Bildschirm) ohne dieses Risiko.
-  const [uiHidden, setUiHidden] = useState(false);
+  const uiHidden = useCleanScreen();
 
   useEffect(() => {
     return () => {
@@ -301,10 +336,14 @@ export function FeedDuelCard({
   // Phase 16: a "view" is this side's video actually playing on screen —
   // once per side per card, not per re-render (flipping back and forth
   // shouldn't inflate the count).
+  // Luca 13.11.: erst nach VIEW_AFTER_MS ununterbrochen im Bild.
   useEffect(() => {
     if (!inView || trackedViewSides.current.has(sideIndex)) return;
-    trackedViewSides.current.add(sideIndex);
-    trackAnalyticsEvent(duel.sides[sideIndex].brandId, "view", { battleId: duel.battleId });
+    const timer = setTimeout(() => {
+      trackedViewSides.current.add(sideIndex);
+      trackAnalyticsEvent(duel.sides[sideIndex].brandId, "view", { battleId: duel.battleId });
+    }, VIEW_AFTER_MS);
+    return () => clearTimeout(timer);
   }, [inView, sideIndex, duel.sides, duel.battleId]);
 
   useEffect(() => {
@@ -345,6 +384,13 @@ export function FeedDuelCard({
   const getVideo = useCallback(() => videoRefs.current[sideIndex], [sideIndex]);
   // Luca 25.10.: gekürzte Videos spielen nur den Ausschnitt.
   useVideoTrim(getVideo, side.trim);
+  const trackedCompleteSides = useRef(new Set<number>());
+  const handleWatchedToEnd = useCallback(() => {
+    if (trackedCompleteSides.current.has(sideIndex)) return;
+    trackedCompleteSides.current.add(sideIndex);
+    trackAnalyticsEvent(duel.sides[sideIndex].brandId, "complete", { battleId: duel.battleId });
+  }, [sideIndex, duel.sides, duel.battleId]);
+  useWatchedToEnd(getVideo, side.trim, handleWatchedToEnd);
   useVideoMusic(getVideo, side.music);
   const edge = useEdgeFastForward(() => videoRefs.current[sideIndex]);
 
@@ -565,7 +611,7 @@ export function FeedDuelCard({
           die globale Glocke und (in anderen Kontexten) ein Schließen-Button,
           unten links/rechts sind Info-Text bzw. Action-Leiste belegt. */}
       <button
-        onClick={() => setUiHidden((h) => !h)}
+        onClick={toggleCleanScreen}
         aria-label={uiHidden ? t("Bedienelemente einblenden", "Show controls") : t("Bedienelemente ausblenden", "Hide controls")}
         className="pointer-events-auto absolute left-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/70"
         style={{ top: "calc(env(safe-area-inset-top) + 56px)" }}
@@ -629,12 +675,12 @@ export function FeedDuelCard({
           aria-label="Like"
         >
           <Heart size={30} className={side.viewerLiked ? "fill-red-500 text-red-500" : ""} />
-          <span className="text-xs font-medium">{side.likeCount}</span>
+          {socialCount(side.likeCount, langOf(t)) ? <span className="text-xs font-medium">{socialCount(side.likeCount, langOf(t))}</span> : null}
         </button>
 
         <button onClick={() => onOpenComments(duel.battleId)} className="pointer-events-auto flex flex-col items-center gap-1 text-white">
           <MessageCircle size={28} />
-          <span className="text-xs font-medium">{duel.commentCount}</span>
+          {socialCount(duel.commentCount, langOf(t)) ? <span className="text-xs font-medium">{socialCount(duel.commentCount, langOf(t))}</span> : null}
         </button>
 
         <button onClick={handleShare} className="pointer-events-auto flex flex-col items-center gap-1 text-white">

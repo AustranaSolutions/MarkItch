@@ -17,7 +17,8 @@ import { apiError } from "@/lib/api-error";
  * analytics-client.ts) statt eines einzelnen Events — eine Validierungs-Query
  * für alle beteiligten Marken zusammen, ein Insert für alle Events zusammen.
  */
-const VALID_KINDS: AnalyticsEventKind[] = ["view", "share", "cta_click", "vote_click", "login_required"];
+// Luca 13.11.: "complete" = bis (90 %) zum Ende angesehen — Grundlage fürs Feed-Ranking.
+const VALID_KINDS: AnalyticsEventKind[] = ["view", "share", "cta_click", "vote_click", "login_required", "complete"];
 
 function parseEvent(raw: unknown): AnalyticsEventInput | null {
   if (!raw || typeof raw !== "object") return null;

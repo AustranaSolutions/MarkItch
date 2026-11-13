@@ -1,5 +1,6 @@
 "use client";
 
+import { TileViews } from "@/components/profile/tile-views";
 import { useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { StandaloneDuelFeed } from "@/components/profile/standalone-duel-feed";
@@ -80,6 +81,7 @@ export function DuelGrid({
                   VS
                 </span>
                 {!duel.isFinished && <span className="absolute left-2 top-2 h-2 w-2 rounded-full bg-orange-500" />}
+                <TileViews count={duel.viewCount} className="right-2" />
               </button>
               {own && (
                 <button

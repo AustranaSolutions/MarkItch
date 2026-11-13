@@ -1,7 +1,7 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { battles, brands, notifications, type NewNotification } from "@/db/schema";
+import { battles, brandMembers, brands, notifications, type NewNotification } from "@/db/schema";
 import { getFollowerUserIds } from "@/lib/follow";
 import { getReminderUserIds } from "@/lib/reminder";
 import { VOTING_WINDOW_MS } from "@/lib/battle-format";
@@ -92,13 +92,27 @@ async function notifyFollowersOfLiveBattle(battleId: string, brandAId: string, b
   const brandAName = brandARows[0]?.name ?? "Eine Marke";
   const brandBName = brandBRows[0]?.name ?? "eine Marke";
 
-  const [brandAFollowers, brandBFollowers, reminderUserIds] = await Promise.all([
+  const [brandAFollowersAll, brandBFollowersAll, reminderUserIds, members] = await Promise.all([
     getFollowerUserIds(brandAId),
     getFollowerUserIds(brandBId),
     getReminderUserIds(battleId),
+    db.select({ userId: brandMembers.userId, brandId: brandMembers.brandId }).from(brandMembers).where(inArray(brandMembers.brandId, [brandAId, brandBId])),
   ]);
+  // Luca 13.11.: die beiden Marken selbst bekommen eine eigene Nachricht (nicht „jetzt abstimmen“).
+  const memberIds = new Set(members.map((m) => m.userId));
+  const brandAFollowers = brandAFollowersAll.filter((id) => !memberIds.has(id));
+  const brandBFollowers = brandBFollowersAll.filter((id) => !memberIds.has(id));
 
   const rows: NewNotification[] = [
+    ...members.map((m) => {
+      const opponent = m.brandId === brandAId ? brandBName : brandAName;
+      return {
+        userId: m.userId,
+        message: `🚀 Dein Pitch gegen ${opponent} ist online — teile das Duell in deiner Story, um dir die ersten Stimmen zu sichern!`,
+        messageEn: `🚀 Your pitch against ${opponent} is live — share the duel in your story to lock in the first votes!`,
+        battleId,
+      };
+    }),
     ...brandAFollowers.map((userId) => ({
       userId,
       message: `🎤 Pitch live: ${brandAName} vs. ${brandBName} — jetzt abstimmen!`,
@@ -116,7 +130,7 @@ async function notifyFollowersOfLiveBattle(battleId: string, brandAId: string, b
   // Phase 10: anyone who set a reminder on this specific Pitch (from the
   // "kommt bald" list, /pitches) also gets notified the moment it goes
   // live — but not twice if they're already covered by a follow above.
-  const alreadyNotified = new Set([...brandAFollowers, ...brandBFollowers]);
+  const alreadyNotified = new Set([...brandAFollowers, ...brandBFollowers, ...memberIds]);
   for (const userId of reminderUserIds) {
     if (alreadyNotified.has(userId)) continue;
     rows.push({

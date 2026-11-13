@@ -5,6 +5,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { useVideoTrim, type Trim } from "@/lib/use-video-trim";
 import { useT } from "@/components/i18n/lang-provider";
+import { langOf, socialCount } from "@/lib/i18n";
 
 export type ViewerReactionTile = {
   id: string;
@@ -19,7 +20,6 @@ export type ViewerReactionTile = {
   trim?: Trim;
 };
 
-const number = (n: number) => n.toLocaleString("de-DE");
 
 /** Luca 02.11.: Reaktions-Kacheln im Zuschauer-Profil; Antippen spielt die Reaktion (wie in der App), mit „Original ansehen“. */
 export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReactionTile[]; own: boolean }) {
@@ -46,7 +46,7 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
                 <span className="block truncate text-xs font-semibold text-white">
                   {r.soloPitchId ? t("Auf", "To") : "Challenge"} {r.originalBrandName}
                 </span>
-                <span className="block text-[11px] text-zinc-300">♥ {number(r.likeCount)}</span>
+                {socialCount(r.likeCount, langOf(t)) ? <span className="block text-[11px] text-zinc-300">♥ {socialCount(r.likeCount, langOf(t))}</span> : null}
               </span>
             </button>
           </li>

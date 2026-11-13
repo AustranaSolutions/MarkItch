@@ -1,5 +1,6 @@
 "use client";
 
+import { TileViews } from "@/components/profile/tile-views";
 import { useState } from "react";
 import { StandaloneSoloPitchFeed } from "@/components/profile/standalone-solo-pitch-feed";
 import type { FeedSoloPitch } from "@/lib/feed";
@@ -45,7 +46,7 @@ export function SoloPitchGrid({
           <li key={pitch.soloPitchId}>
             <button
               onClick={() => setOpenIndex(index)}
-              className="block w-full"
+              className="relative block w-full"
             >
               {/* Luca 24.10.: eigenes Titelbild, sonst das erste Bild des Videos. */}
               {pitch.thumbnailUrl ? (
@@ -67,6 +68,7 @@ export function SoloPitchGrid({
                   className="aspect-[9/16] w-full rounded-lg bg-black object-cover"
                 />
               )}
+              <TileViews count={pitch.viewCount} />
             </button>
           </li>
         ))}

@@ -1,11 +1,14 @@
 import Link from "next/link";
 import type { TrendingSoloPitch } from "@/lib/feed";
+import { getLang } from "@/lib/lang";
+import { socialCount } from "@/lib/i18n";
 
 // Phase 28: Explore-style row (Instagram convention) — each tile deep-links
 // into the main Feed already scrolled to that exact Solo-Pitch (the /?pitch=
 // mechanism page.tsx already supports for share links/notifications).
-export function TrendingStrip({ pitches }: { pitches: TrendingSoloPitch[] }) {
+export async function TrendingStrip({ pitches }: { pitches: TrendingSoloPitch[] }) {
   if (pitches.length === 0) return null;
+  const lang = await getLang();
 
   return (
     <div className="mb-6">
@@ -20,7 +23,7 @@ export function TrendingStrip({ pitches }: { pitches: TrendingSoloPitch[] }) {
             <video src={p.videoUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-1.5">
               <p className="truncate text-[10px] font-semibold text-white">{p.brandName}</p>
-              <p className="text-[9px] text-zinc-300">🤍 {p.likeCount}</p>
+              {socialCount(p.likeCount, lang) ? <p className="text-[9px] text-zinc-300">🤍 {socialCount(p.likeCount, lang)}</p> : null}
             </div>
           </Link>
         ))}

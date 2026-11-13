@@ -84,3 +84,18 @@ export function countryLabel(code: string, t: Translate): string {
 
 /** Sprache eines Übersetzers — für Hilfsfunktionen, die eine Lang erwarten. */
 export const langOf = (t: Translate): Lang => (t("de", "en") === "en" ? "en" : "de");
+
+/** Luca 13.11.: Likes/Meinungen erst ab 10 als Zahl, darunter nur das Symbol (App: socialCount in lib/i18n.ts). */
+export const VISIBLE_COUNT_MIN = 10;
+
+export function socialCount(n: number, lang: Lang): string | null {
+  return n >= VISIBLE_COUNT_MIN ? n.toLocaleString(localeOf(lang)) : null;
+}
+
+/** Kurz für Kacheln: 950, 1,2K, 3,4 Mio. (en: 1.2K, 3.4M) — wie in der App. */
+export function compactNumber(n: number, lang: Lang): string {
+  if (n < 1000) return String(n);
+  const [value, suffix] = n < 1_000_000 ? [n / 1000, "K"] : [n / 1_000_000, lang === "en" ? "M" : " Mio."];
+  const rounded = value >= 100 ? Math.round(value) : Math.round(value * 10) / 10;
+  return `${rounded.toLocaleString(localeOf(lang))}${suffix}`;
+}

@@ -13,6 +13,7 @@ import { useVideoTrim } from "@/lib/use-video-trim";
 import { useVideoMusic } from "@/lib/use-video-music";
 import { ReactionOwnerMenu } from "@/components/pitches/reaction-owner-menu";
 import { useT } from "@/components/i18n/lang-provider";
+import { langOf, socialCount } from "@/lib/i18n";
 
 /**
  * Phase 34: one reaction, full-screen — same visual language as
@@ -233,12 +234,12 @@ export function ReactionFeedCard({
           aria-label="Like"
         >
           <Heart size={30} className={reaction.viewerLiked ? "fill-red-500 text-red-500" : ""} />
-          <span className="text-xs font-medium">{reaction.likeCount}</span>
+          {socialCount(reaction.likeCount, langOf(t)) ? <span className="text-xs font-medium">{socialCount(reaction.likeCount, langOf(t))}</span> : null}
         </button>
 
         <button onClick={() => onOpenComments(reaction.id)} className="pointer-events-auto flex flex-col items-center gap-1 text-white">
           <MessageCircle size={28} />
-          <span className="text-xs font-medium">{reaction.commentCount}</span>
+          {socialCount(reaction.commentCount, langOf(t)) ? <span className="text-xs font-medium">{socialCount(reaction.commentCount, langOf(t))}</span> : null}
         </button>
 
         {canReply && (

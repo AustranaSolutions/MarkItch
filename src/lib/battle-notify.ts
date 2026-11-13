@@ -146,8 +146,8 @@ export async function finalizeAndNotifyBattle(battleId: string): Promise<void> {
         ? { de: `Dein Duell gegen ${other} ist beendet: Unentschieden (${total} Stimmen).`, en: `Your duel against ${other} has ended: it’s a tie (${total} votes).` }
         : ownVotes > otherVotes
           ? {
-              de: `🏆 Du hast dein Duell gegen ${other} gewonnen — mit ${pct(ownVotes)} % von ${total} Stimmen!`,
-              en: `🏆 You won your duel against ${other} — with ${pct(ownVotes)}% of ${total} votes!`,
+              de: `🏆 Du hast dein Duell gegen ${other} gewonnen — mit ${pct(ownVotes)} % von ${total} Stimmen! Teile dein Ergebnis in deiner Story.`,
+              en: `🏆 You won your duel against ${other} — with ${pct(ownVotes)}% of ${total} votes! Share your result in your story.`,
             }
           : {
               de: `Dein Duell gegen ${other} ist beendet: ${pct(ownVotes)} % von ${total} Stimmen für dich. Nächstes Mal!`,

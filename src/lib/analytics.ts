@@ -13,7 +13,7 @@ import { getSoloPitchesForBrand } from "@/lib/solo-pitch";
 // — für den Vote-Funnel aus dem BETA-Plan (§3.G). Der eigentliche
 // abgeschlossene Vote braucht kein eigenes Event, die `votes`-Tabelle ist
 // dafür schon die Ground Truth.
-export type AnalyticsEventKind = "view" | "share" | "cta_click" | "vote_click" | "login_required";
+export type AnalyticsEventKind = "view" | "share" | "cta_click" | "vote_click" | "login_required" | "complete";
 
 export type VisitorEventKind = "session_start" | "register_started";
 

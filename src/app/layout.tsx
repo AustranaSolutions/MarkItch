@@ -5,6 +5,7 @@ import { getOptionalUser } from "@/lib/session";
 import { getUnreadNotificationCount } from "@/lib/notification";
 import { BottomNav } from "@/components/nav/bottom-nav";
 import { NotificationBellButton } from "@/components/nav/notification-bell-button";
+import { HideOnCleanScreen } from "@/components/nav/hide-on-clean-screen";
 import { SplashScreen } from "@/components/splash-screen";
 import { SessionBoot } from "@/components/analytics/session-boot";
 import { ConsentBanner } from "@/components/analytics/consent-banner";
@@ -70,10 +71,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           {user ? <TermsNotice userId={user.id} /> : null}
           {user ? <NameNotice userId={user.id} /> : null}
           {children}
-          <NotificationBellButton
-            isLoggedIn={Boolean(user)}
-            unreadCount={unreadCount}
-          />
+          <HideOnCleanScreen>
+            <NotificationBellButton
+              isLoggedIn={Boolean(user)}
+              unreadCount={unreadCount}
+            />
+          </HideOnCleanScreen>
           <BottomNav isLoggedIn={Boolean(user)} />
         </LangProvider>
       </body>

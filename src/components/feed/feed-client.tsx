@@ -1,5 +1,6 @@
 "use client";
 
+import { useCleanScreen } from "@/lib/clean-screen";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedDuel, FeedItemWithReactions, FeedSoloPitch } from "@/lib/feed";
@@ -51,6 +52,7 @@ export function FeedClient({
   resetScroll?: boolean;
 }) {
   const t = useT();
+  const cleanScreen = useCleanScreen();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("foryou");
   const [items, setItems] = useState<FeedItemWithReactions[]>(initialItems);
@@ -388,8 +390,8 @@ export function FeedClient({
     // aggressively cropped on a wide, short window. Below this width
     // (any real phone) it's a no-op, full bleed as before.
     <div className="relative mx-auto h-[calc(100dvh-var(--bottom-nav-h))] w-full max-w-[480px] overflow-hidden bg-black md:border-x md:border-zinc-900">
-      {/* Tabs */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center gap-6 pt-[calc(env(safe-area-inset-top)+14px)]">
+      {/* Tabs — Luca 13.11.: bei „Bildschirm frei“ (Auge) ausgeblendet. */}
+      <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center gap-6 pt-[calc(env(safe-area-inset-top)+14px)] ${cleanScreen ? "hidden" : ""}`}>
         {(
           [
             ["foryou", "Feed"],

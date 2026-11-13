@@ -54,7 +54,7 @@ export function getOrCreateAnonId(): string {
 
 type QueuedEvent = {
   brandId: string;
-  kind: "view" | "share" | "cta_click" | "vote_click" | "login_required";
+  kind: "view" | "share" | "cta_click" | "vote_click" | "login_required" | "complete";
   soloPitchId?: string;
   battleId?: string;
   anonId: string;
@@ -102,7 +102,7 @@ if (typeof document !== "undefined") {
 /** Fire-and-forget content-event tracking — never blocks or throws into the caller. Batched, siehe oben. */
 export function trackAnalyticsEvent(
   brandId: string,
-  kind: "view" | "share" | "cta_click" | "vote_click" | "login_required",
+  kind: "view" | "share" | "cta_click" | "vote_click" | "login_required" | "complete",
   target?: { soloPitchId?: string; battleId?: string },
 ) {
   queue.push({ brandId, kind, anonId: getOrCreateAnonId(), ...target });
@@ -118,6 +118,9 @@ export function trackAnalyticsEvent(
 }
 
 /** Fire-and-forget visitor-/account-level event tracking (session start, registration funnel). */
+/** Luca 13.11.: ein Aufruf zählt erst nach 4 Sekunden im Bild (App: VIEW_AFTER_MS). */
+export const VIEW_AFTER_MS = 4000;
+
 export function trackVisitorEvent(kind: "session_start" | "register_started", ref?: string | null) {
   fetch("/api/analytics/visit", {
     method: "POST",

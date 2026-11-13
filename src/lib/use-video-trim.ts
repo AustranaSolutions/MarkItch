@@ -41,3 +41,27 @@ export function useVideoTrim(getVideo: () => HTMLVideoElement | null, trim: Trim
     };
   }, [getVideo, startMs, endMs]);
 }
+
+/**
+ * Luca 13.11.: meldet einmal pro Video, sobald 90 % des (ggf. gekürzten)
+ * Videos gelaufen sind — „bis zum Ende angesehen“ (wie in der App).
+ */
+export function useWatchedToEnd(getVideo: () => HTMLVideoElement | null, trim: Trim, onWatched: () => void) {
+  const startMs = trim?.startMs ?? 0;
+  const endMs = trim?.endMs ?? null;
+  useEffect(() => {
+    const video = getVideo();
+    if (!video) return;
+    let done = false;
+    const onTime = () => {
+      if (done || video.paused || !Number.isFinite(video.duration) || video.duration <= 0) return;
+      const { start, end } = trimRange({ startMs, endMs }, video.duration);
+      if (video.currentTime - start >= (end - start) * 0.9) {
+        done = true;
+        onWatched();
+      }
+    };
+    video.addEventListener("timeupdate", onTime);
+    return () => video.removeEventListener("timeupdate", onTime);
+  }, [getVideo, startMs, endMs, onWatched]);
+}

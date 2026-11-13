@@ -1,5 +1,6 @@
 "use client";
 
+import { toggleCleanScreen, useCleanScreen } from "@/lib/clean-screen";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Heart, MessageCircle, Repeat2, Rocket, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
@@ -10,13 +11,14 @@ import { ReportButton } from "@/components/moderation/report-button";
 import { SoloPitchOwnerMenuButton } from "@/components/pitches/solo-pitch-owner-menu-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { FeedSoloPitch } from "@/lib/feed";
-import { trackAnalyticsEvent } from "@/lib/analytics-client";
+import { trackAnalyticsEvent, VIEW_AFTER_MS } from "@/lib/analytics-client";
 import { BOOST_ENABLED } from "@/lib/feature-flags";
 import { FastForwardBadge, useEdgeFastForward } from "@/components/feed/edge-fast-forward";
 import { SeekBar } from "@/components/feed/seek-bar";
-import { useVideoTrim } from "@/lib/use-video-trim";
+import { useVideoTrim, useWatchedToEnd } from "@/lib/use-video-trim";
 import { useVideoMusic } from "@/lib/use-video-music";
 import { useT } from "@/components/i18n/lang-provider";
+import { langOf, socialCount } from "@/lib/i18n";
 
 export function FeedSoloPitchCard({
   pitch,
@@ -65,7 +67,7 @@ export function FeedSoloPitchCard({
   const lastTapAt = useRef(0);
   const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Phase 48: siehe feed-duel-card.tsx — derselbe "Screen leer machen"-Knopf.
-  const [uiHidden, setUiHidden] = useState(false);
+  const uiHidden = useCleanScreen();
 
   useEffect(() => {
     return () => {
@@ -86,10 +88,14 @@ export function FeedSoloPitchCard({
     return () => observer.disconnect();
   }, []);
 
+  // Luca 13.11.: Aufruf erst nach VIEW_AFTER_MS ununterbrochen im Bild.
   useEffect(() => {
     if (!inView || trackedView.current) return;
-    trackedView.current = true;
-    trackAnalyticsEvent(pitch.brandId, "view", { soloPitchId: pitch.soloPitchId });
+    const timer = setTimeout(() => {
+      trackedView.current = true;
+      trackAnalyticsEvent(pitch.brandId, "view", { soloPitchId: pitch.soloPitchId });
+    }, VIEW_AFTER_MS);
+    return () => clearTimeout(timer);
   }, [inView, pitch.brandId, pitch.soloPitchId]);
 
   useEffect(() => {
@@ -122,6 +128,13 @@ export function FeedSoloPitchCard({
   const getVideo = useCallback(() => videoRef.current, []);
   // Luca 25.10.: gekürzte Videos spielen nur den Ausschnitt.
   useVideoTrim(getVideo, pitch.trim);
+  const trackedComplete = useRef(false);
+  const handleWatchedToEnd = useCallback(() => {
+    if (trackedComplete.current) return;
+    trackedComplete.current = true;
+    trackAnalyticsEvent(pitch.brandId, "complete", { soloPitchId: pitch.soloPitchId });
+  }, [pitch.brandId, pitch.soloPitchId]);
+  useWatchedToEnd(getVideo, pitch.trim, handleWatchedToEnd);
   useVideoMusic(getVideo, pitch.music);
   const edge = useEdgeFastForward(() => videoRef.current);
   const skipTap = useRef(false);
@@ -230,7 +243,7 @@ export function FeedSoloPitchCard({
           Ecken: oben rechts drängen sich Glocke/Schließen-Button, unten
           links/rechts sind Info-Text bzw. Action-Leiste belegt). */}
       <button
-        onClick={() => setUiHidden((h) => !h)}
+        onClick={toggleCleanScreen}
         aria-label={uiHidden ? t("Bedienelemente einblenden", "Show controls") : t("Bedienelemente ausblenden", "Hide controls")}
         className="pointer-events-auto absolute left-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/70"
         style={{ top: "calc(env(safe-area-inset-top) + 56px)" }}
@@ -296,12 +309,12 @@ export function FeedSoloPitchCard({
           aria-label="Like"
         >
           <Heart size={30} className={pitch.viewerLiked ? "fill-red-500 text-red-500" : ""} />
-          <span className="text-xs font-medium">{pitch.likeCount}</span>
+          {socialCount(pitch.likeCount, langOf(t)) ? <span className="text-xs font-medium">{socialCount(pitch.likeCount, langOf(t))}</span> : null}
         </button>
 
         <button onClick={() => onOpenComments(pitch.soloPitchId)} className="pointer-events-auto flex flex-col items-center gap-1 text-white">
           <MessageCircle size={28} />
-          <span className="text-xs font-medium">{pitch.commentCount}</span>
+          {socialCount(pitch.commentCount, langOf(t)) ? <span className="text-xs font-medium">{socialCount(pitch.commentCount, langOf(t))}</span> : null}
         </button>
 
         <button onClick={() => onOpenReactions(pitch.soloPitchId)} className="pointer-events-auto flex flex-col items-center gap-1 text-white">
