@@ -1,9 +1,9 @@
 import "server-only";
 import { randomUUID } from "crypto";
-import { mkdir, open as openFile, writeFile } from "fs/promises";
+import { mkdir, open as openFile, stat, writeFile } from "fs/promises";
 import path from "path";
-import { VIDEO_EXTENSION_BY_MIME_TYPE, type VideoUploadFolder } from "@/lib/video-constants";
-import { r2Enabled, r2PresignedPut, r2PublicPrefix, r2PublicUrl, r2Put } from "@/lib/r2";
+import { MAX_VIDEO_BYTES, VIDEO_EXTENSION_BY_MIME_TYPE, type VideoUploadFolder } from "@/lib/video-constants";
+import { r2Delete, r2Enabled, r2PresignedPut, r2PublicPrefix, r2PublicUrl, r2Put } from "@/lib/r2";
 
 // Local disk in dev (zero setup), Supabase Storage in prod once configured.
 // Vercel's filesystem is ephemeral/read-only outside /tmp, so the local
@@ -134,7 +134,7 @@ export function isOwnVideoUrl(url: string, folder: VideoUploadFolder, userId: st
  * WebM beginnt mit 1A 45 DF A3. Fängt z. B. eine als .mp4 hochgeladene
  * HTML-Datei ab.
  */
-async function readFirstBytes(url: string): Promise<Buffer | null> {
+async function readFirstBytes(url: string): Promise<{ bytes: Buffer; size: number | null } | null> {
   if (url.startsWith("/uploads/")) {
     const filePath = path.join(process.cwd(), "public", decodeURIComponent(url));
     const handle = await openFile(filePath, "r").catch(() => null);
@@ -142,14 +142,25 @@ async function readFirstBytes(url: string): Promise<Buffer | null> {
     try {
       const buffer = Buffer.alloc(16);
       const { bytesRead } = await handle.read(buffer, 0, 16, 0);
-      return buffer.subarray(0, bytesRead);
+      const size = (await stat(filePath).catch(() => null))?.size ?? null;
+      return { bytes: buffer.subarray(0, bytesRead), size };
     } finally {
       await handle.close();
     }
   }
   const res = await fetch(url, { headers: { Range: "bytes=0-15" } }).catch(() => null);
   if (!res || !res.ok) return null;
-  return Buffer.from(await res.arrayBuffer()).subarray(0, 16);
+  // „bytes 0-15/123456“ → Gesamtgröße der Datei.
+  const total = res.headers.get("content-range")?.split("/")[1];
+  const size = total && /^\d+$/.test(total) ? Number(total) : null;
+  return { bytes: Buffer.from(await res.arrayBuffer()).subarray(0, 16), size };
+}
+
+/** Luca 13.11.: zu große Uploads sofort wieder löschen (der Upload-Link selbst kennt kein Größenlimit). */
+async function deleteUploadedVideo(url: string): Promise<void> {
+  if (r2Enabled && url.startsWith(r2PublicPrefix())) {
+    await r2Delete(url.slice(r2PublicPrefix().length)).catch(() => {});
+  }
 }
 
 const MP4_BOX_TYPES = new Set(["ftyp", "moov", "mdat", "wide", "free", "skip", "pnot"]);
@@ -169,9 +180,13 @@ export async function readVideoUrlField(
   const raw = formData.get(fieldName);
   if (typeof raw !== "string" || !raw) return { error: "Bitte ein Video auswählen." };
   if (!isOwnVideoUrl(raw, folder, userId)) return { error: "Ungültige Video-URL." };
-  const bytes = await readFirstBytes(raw);
-  if (!bytes) return { error: "Das Video wurde nicht gefunden — bitte nochmal hochladen." };
-  if (!looksLikeVideo(bytes)) return { error: "Die Datei ist kein gültiges Video." };
+  const head = await readFirstBytes(raw);
+  if (!head) return { error: "Das Video wurde nicht gefunden — bitte nochmal hochladen." };
+  if (!looksLikeVideo(head.bytes)) return { error: "Die Datei ist kein gültiges Video." };
+  if (head.size !== null && head.size > MAX_VIDEO_BYTES) {
+    await deleteUploadedVideo(raw);
+    return { error: "Das Video ist zu groß (höchstens 100 MB)." };
+  }
   return { videoUrl: raw };
 }
 

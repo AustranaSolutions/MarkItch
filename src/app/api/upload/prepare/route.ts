@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
   // Audit 04.10. (H5): jede Adresse kann eine Datei im Speicher hinterlassen.
   const { allowed } = await checkRateLimit("upload-prepare", viewer.id);
   if (!allowed) return await apiError({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+  const daily = await checkRateLimit("upload-prepare-day", viewer.id);
+  if (!daily.allowed) return await apiError({ error: "Tageslimit für Uploads erreicht — morgen geht es weiter." }, { status: 429 });
 
   try {
     const target = await createVideoUploadTarget(folder as VideoUploadFolder, contentType, viewer.id);

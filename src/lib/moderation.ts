@@ -79,6 +79,26 @@ export async function requireAdminUser() {
   return user;
 }
 
+async function reportTargetExists(targetType: ReportTargetType, targetId: string): Promise<boolean> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId)) return false;
+  const table =
+    targetType === "solo_pitch"
+      ? soloPitches
+      : targetType === "reaction"
+        ? reactions
+        : targetType === "comment"
+          ? comments
+          : targetType === "casting_submission"
+            ? castingSubmissions
+            : targetType === "creator_submission"
+              ? creatorSubmissions
+              : targetType === "brand"
+                ? brands
+                : battles;
+  const [row] = await db.select({ id: table.id }).from(table).where(eq(table.id, targetId)).limit(1);
+  return Boolean(row);
+}
+
 export async function submitReport(input: {
   reporterUserId: string;
   targetType: ReportTargetType;
@@ -93,6 +113,10 @@ export async function submitReport(input: {
     return { ok: false, error: "Bitte wähle einen Grund." };
   }
   const note = input.note?.trim().slice(0, MAX_NOTE_LENGTH) || null;
+  // Luca 13.11.: nur Meldungen zu Inhalten, die es gibt — keine Einträge zu erfundenen IDs.
+  if (!(await reportTargetExists(input.targetType, input.targetId))) {
+    return { ok: false, error: "Dieser Inhalt existiert nicht mehr." };
+  }
 
   await db.insert(reports).values({
     reporterUserId: input.reporterUserId,

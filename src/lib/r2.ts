@@ -44,10 +44,10 @@ export function r2PublicPrefix(): string {
   return `${PUBLIC_URL}/`;
 }
 
-/** Signierte Adresse, an die App/Browser die Datei direkt per PUT schicken (1 Stunde gültig). */
+/** Signierte Adresse, an die App/Browser die Datei direkt per PUT schicken (Luca 13.11.: 15 Minuten gültig — der Upload startet sofort nach dem Anfordern). */
 export async function r2PresignedPut(key: string): Promise<string> {
   const url = new URL(objectUrl(key));
-  url.searchParams.set("X-Amz-Expires", "3600");
+  url.searchParams.set("X-Amz-Expires", "900");
   const signed = await r2().sign(url.toString(), { method: "PUT", aws: { signQuery: true } });
   return signed.url;
 }

@@ -6,6 +6,9 @@ import type { Lang } from "@/lib/i18n";
 // Neue Meldung → hier ergänzen.
 
 const EXACT: Record<string, string> = {
+  "Tageslimit für Uploads erreicht — morgen geht es weiter.": "Daily upload limit reached — you can continue tomorrow.",
+  "Das Video ist zu groß (höchstens 100 MB).": "The video is too large (100 MB max).",
+  "Dieser Inhalt existiert nicht mehr.": "This content no longer exists.",
   "Abstimmen ist erst möglich, wenn beide Videos da sind.": "Voting opens once both videos are in.",
   "Account nicht gefunden.": "Account not found.",
   "Account wurde erstellt, aber der automatische Login ist fehlgeschlagen. Bitte melde dich manuell an.":
