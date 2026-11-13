@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { toggleFollow, type FollowFormState } from "@/app/actions/follow";
+import { UserCheck, UserPlus } from "lucide-react";
 import { useT } from "@/components/i18n/lang-provider";
 
 function ToggleButton({ following, large }: { following: boolean; large: boolean }) {
@@ -47,6 +48,48 @@ export function FollowButton({ brandId, isFollowing, large = false }: { brandId:
       <input type="hidden" name="brandId" value={brandId} />
       <ToggleButton following={following} large={large} />
       {state?.error && <p className="mt-2 text-sm text-red-400">{state.error}</p>}
+    </form>
+  );
+}
+
+/**
+ * Luca 13.11.: Folgen in der rechten Leiste über dem Herz (wie in der App):
+ * Person+ „Folgen“ bzw. orangener Haken „Folgt“ — der Text unten bleibt ruhig.
+ */
+export function RailFollowButton({ brandId, isFollowing, isLoggedIn }: { brandId: string; isFollowing: boolean; isLoggedIn: boolean }) {
+  const t = useT();
+  const [state, action, isPending] = useActionState<FollowFormState, FormData>(toggleFollow, undefined);
+  const [following, setFollowing] = useState(isFollowing);
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (wasPending.current && !isPending && !state?.error) setFollowing((f) => !f);
+    wasPending.current = isPending;
+  }, [isPending, state]);
+
+  const inner = (
+    <>
+      {following ? <UserCheck size={28} className="text-orange-400" /> : <UserPlus size={28} />}
+      <span className="text-xs font-medium">{following ? t("Folgt", "Following") : t("Folgen", "Follow")}</span>
+    </>
+  );
+  if (!isLoggedIn) {
+    return (
+      <a href="/login" className="pointer-events-auto flex flex-col items-center gap-1 text-white">
+        {inner}
+      </a>
+    );
+  }
+  return (
+    <form action={action} className="pointer-events-auto">
+      <input type="hidden" name="brandId" value={brandId} />
+      <button
+        type="submit"
+        disabled={isPending}
+        aria-label={following ? t("Nicht mehr folgen", "Unfollow") : t("Folgen", "Follow")}
+        className="flex flex-col items-center gap-1 text-white disabled:opacity-60"
+      >
+        {inner}
+      </button>
     </form>
   );
 }

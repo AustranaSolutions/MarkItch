@@ -16,7 +16,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { FollowButton } from "@/components/brand/follow-button";
+import { RailFollowButton } from "@/components/brand/follow-button";
 import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { FeedDuel } from "@/lib/feed";
@@ -593,10 +593,6 @@ export function FeedDuelCard({
               </span>
             );
           })}
-          {/* Luca 13.11. (2): „Folgen“ nur, solange man noch nicht folgt; kein „Beendet“-Schild. */}
-          {!side.viewerOwnsThisBrand && isLoggedIn && !side.viewerFollowsBrand && (
-            <FollowButton key={side.brandId} brandId={side.brandId} isFollowing={false} />
-          )}
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-400">
             <Eye size={11} /> {compactNumber(duel.viewCount, langOf(t))}
           </span>
@@ -631,6 +627,10 @@ export function FeedDuelCard({
           corner — same small edge margin as the text block on the left. */}
       {!uiHidden && (
       <div className="pointer-events-none absolute bottom-4 right-3 flex flex-col items-center gap-5">
+        {/* key=brandId — sonst behält der Knopf beim Seitenwechsel den Stand der anderen Seite. */}
+        {!side.viewerOwnsThisBrand && (
+          <RailFollowButton key={side.brandId} brandId={side.brandId} isFollowing={side.viewerFollowsBrand} isLoggedIn={isLoggedIn} />
+        )}
         <button
           onClick={() => (isLoggedIn ? onToggleLike(duel, sideIndex) : (window.location.href = "/login"))}
           className="pointer-events-auto flex flex-col items-center gap-1 text-white"

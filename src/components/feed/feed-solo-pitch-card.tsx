@@ -4,7 +4,7 @@ import { toggleCleanScreen, useCleanScreen, useResetCleanScreenWhenActive } from
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Heart, MessageCircle, Repeat2, Rocket, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
-import { FollowButton } from "@/components/brand/follow-button";
+import { RailFollowButton } from "@/components/brand/follow-button";
 import { PitchChallengeButton } from "@/components/pitches/pitch-challenge-button";
 import { BoostButton } from "@/components/pitches/boost-button";
 import { ReportButton } from "@/components/moderation/report-button";
@@ -258,9 +258,6 @@ export function FeedSoloPitchCard({
           <Link href={`/brands/${pitch.brandSlug}`} className="text-sm font-bold text-white hover:underline">
             {pitch.brandName}
           </Link>
-          {!pitch.viewerOwnsThisBrand && isLoggedIn && (
-            <FollowButton brandId={pitch.brandId} isFollowing={pitch.viewerFollowsBrand} />
-          )}
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-400">
             <Eye size={11} /> {pitch.viewCount}
           </span>
@@ -304,6 +301,9 @@ export function FeedSoloPitchCard({
           being swallowed by empty space between icons. */}
       {!uiHidden && (
       <div className="pointer-events-none absolute bottom-4 right-3 flex flex-col items-center gap-5">
+        {!pitch.viewerOwnsThisBrand && (
+          <RailFollowButton brandId={pitch.brandId} isFollowing={pitch.viewerFollowsBrand} isLoggedIn={isLoggedIn} />
+        )}
         <button
           onClick={() => (isLoggedIn ? onToggleLike(pitch) : (window.location.href = "/login"))}
           className="pointer-events-auto flex flex-col items-center gap-1 text-white"
