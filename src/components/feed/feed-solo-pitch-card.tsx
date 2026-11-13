@@ -1,6 +1,6 @@
 "use client";
 
-import { toggleCleanScreen, useCleanScreen } from "@/lib/clean-screen";
+import { toggleCleanScreen, useCleanScreen, useResetCleanScreenWhenActive } from "@/lib/clean-screen";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Heart, MessageCircle, Repeat2, Rocket, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
@@ -68,6 +68,7 @@ export function FeedSoloPitchCard({
   const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Phase 48: siehe feed-duel-card.tsx — derselbe "Screen leer machen"-Knopf.
   const uiHidden = useCleanScreen();
+  useResetCleanScreenWhenActive(inView);
 
   useEffect(() => {
     return () => {

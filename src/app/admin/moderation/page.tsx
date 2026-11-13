@@ -53,6 +53,16 @@ export default async function ModerationPage() {
                 </div>
                 <p className="mb-1 text-sm text-orange-400">{r.reason}</p>
                 {r.note && <p className="mb-2 text-sm text-zinc-300">„{r.note}“</p>}
+                {/* Luca 13.11.: genau der gemeldete Inhalt, direkt hier abspielbar. */}
+                {r.targetVideoUrl && (
+                  <video
+                    src={r.targetVideoUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="mt-2 aspect-[9/16] max-h-[60vh] rounded-lg bg-black"
+                  />
+                )}
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <form action={resolveReportAction}>

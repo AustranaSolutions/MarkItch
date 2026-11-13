@@ -1,6 +1,6 @@
 "use client";
 
-import { toggleCleanScreen, useCleanScreen } from "@/lib/clean-screen";
+import { toggleCleanScreen, useCleanScreen, useResetCleanScreenWhenActive } from "@/lib/clean-screen";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -11,7 +11,6 @@ import {
   Heart,
   MessageCircle,
   Play,
-  RefreshCw,
   Share2,
   Trophy,
   Volume2,
@@ -27,7 +26,7 @@ import { SeekBar } from "@/components/feed/seek-bar";
 import { useVideoTrim, useWatchedToEnd } from "@/lib/use-video-trim";
 import { useVideoMusic } from "@/lib/use-video-music";
 import { useT } from "@/components/i18n/lang-provider";
-import { type Translate, langOf, socialCount } from "@/lib/i18n";
+import { type Translate, langOf, socialCount, compactNumber, duelCategoryLabel } from "@/lib/i18n";
 
 // Phase 39: both sides of a duel are now always mounted side by side (the
 // Phase 38 sliding carousel) instead of only the active one — the inactive
@@ -54,69 +53,27 @@ function outcomeLabel(sideIndex: 0 | 1, tally: FeedDuel["tally"], t: Translate):
   return { label: won ? t("Gewonnen", "Won") : t("Verloren", "Lost"), won };
 }
 
-function ResultLine({ sideIndex, tally, prefix }: { sideIndex: 0 | 1; tally: FeedDuel["tally"]; prefix?: React.ReactNode }) {
-  const t = useT();
-  const sideVotes = sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes;
-  const pct = tally.total === 0 ? 0 : Math.round((sideVotes / tally.total) * 100);
-  const outcome = outcomeLabel(sideIndex, tally, t);
-  return (
-    <p className="flex items-center gap-1 text-xs text-zinc-300">
-      {prefix && <span className="text-zinc-500">{prefix} </span>}
-      {outcome && (
-        <span className="inline-flex items-center gap-1 font-semibold text-orange-400">
-          {outcome.won && <Trophy size={12} />}
-          {outcome.label} ·
-        </span>
-      )}
-      {pct}% ({tally.total} {tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")})
-    </p>
-  );
-}
-
 /**
- * Luca 13.11.: offizielles Ergebnis nach Fristende, deutlich — Sieger in Gold
- * („Duell-Sieger · Gewonnen 63 %“), Gegenseite gedämpft. Sehen alle, auch die
- * beiden Marken selbst und Gäste (wie in der App).
+ * Luca 13.11. (2): aufgeräumt wie in der App — pro Zustand ein Element plus
+ * höchstens eine kleine graue Zeile. Sieger in Gold, sonst ruhig.
  */
-function OfficialResult({ sideIndex, tally }: { sideIndex: 0 | 1; tally: FeedDuel["tally"] }) {
+function ResultPill({ sideIndex, tally }: { sideIndex: 0 | 1; tally: FeedDuel["tally"] }) {
   const t = useT();
   const outcome = outcomeLabel(sideIndex, tally, t);
-  if (!outcome) return <p className="text-xs text-zinc-500">{t("Beendet — es wurde nicht abgestimmt.", "Ended — nobody voted.")}</p>;
+  if (!outcome) return <span className="text-[11px] text-zinc-400">{t("Beendet — ohne Stimmen", "Ended — no votes")}</span>;
   const sideVotes = sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes;
   const pct = Math.round((sideVotes / tally.total) * 100);
-  const tie = tally.brandAVotes === tally.brandBVotes;
-  const votes = `${tally.total} ${tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")}`;
-  return (
-    <div className="space-y-1">
-      <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold ${
-          outcome.won ? "bg-[#f5c542] text-[#2a1d00]" : tie ? "bg-white/20 text-white" : "bg-white/10 text-white"
-        }`}
-      >
-        {outcome.won && <Trophy size={14} />}
-        {outcome.won
-          ? t(`Duell-Sieger · Gewonnen ${pct} %`, `Duel winner · Won ${pct}%`)
-          : tie
-            ? t(`Unentschieden · ${pct} %`, `Tie · ${pct}%`)
-            : t(`Verloren · ${pct} %`, `Lost · ${pct}%`)}
+  if (outcome.won) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-[#f5c542] px-2.5 py-0.5 text-xs font-bold text-[#2a1d00]">
+        <Trophy size={12} /> {t(`Gewonnen · ${pct} %`, `Won · ${pct}%`)}
       </span>
-      <p className="text-[11px] text-zinc-500">{t(`Ergebnis aus ${votes}`, `Result from ${votes}`)}</p>
-    </div>
-  );
+    );
+  }
+  const tie = tally.brandAVotes === tally.brandBVotes;
+  return <span className="text-xs text-zinc-300">{tie ? t(`Unentschieden · ${pct} %`, `Tie · ${pct}%`) : t(`Verloren · ${pct} %`, `Lost · ${pct}%`)}</span>;
 }
 
-// Phase 12: two things were lost when the Feed replaced the old battle-
-// detail page as the only place to actually vote, both restored here:
-//   1. Before a Pitch is finished, the split never shows — only the running
-//      total ("340 Stimmen bisher") — same "don't create a bandwagon effect"
-//      reasoning as Phase 7's VotePanel, which this component has fully
-//      replaced (that component and its now-orphaned server action were
-//      removed in this phase).
-//   2. Voting doesn't actually stop once a Pitch is "finished" — the
-//      official result freezes at votingEndsAt (`officialTally`), but anyone
-//      who hasn't voted yet can still vote afterwards, and `tally` (the
-//      live, ever-growing count) is shown alongside the frozen one whenever
-//      they've diverged — that's the whole point of not cutting voting off.
 function VoteState({
   duel,
   sideIndex,
@@ -133,70 +90,56 @@ function VoteState({
   const t = useT();
   const { tally, officialTally, isFinished, viewerVotedBrandId, viewerOwnsThisBattle, votingEndsAt } = duel;
   const side = duel.sides[sideIndex];
+  const other = duel.sides[sideIndex === 0 ? 1 : 0];
+  const votes = (n: number) => `${n} ${n === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")}`;
+  // Restzeit + Stimmen bisher (nie, wer führt — Blind-Abstimmen).
+  const liveInfo = [
+    votingEndsAt ? t(`noch ${timeLeftLabel(votingEndsAt, t)}`, `${timeLeftLabel(votingEndsAt, t)} left`) : null,
+    tally.total > 0 ? votes(tally.total) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-  if (viewerOwnsThisBattle) {
-    if (isFinished && officialTally) return <OfficialResult sideIndex={sideIndex} tally={officialTally} />;
-    return <p className="text-xs text-zinc-400">{t("Das ist dein eigener Pitch", "This is your own pitch")}</p>;
-  }
-
-  if (!isLoggedIn) {
+  if (isFinished) {
+    const result = officialTally ?? tally;
+    const driftPct =
+      officialTally && tally.total !== officialTally.total && tally.total > 0
+        ? Math.round(((sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes) / tally.total) * 100)
+        : null;
+    const canStillVote = isLoggedIn && !viewerOwnsThisBattle && !viewerVotedBrandId;
     return (
-      <div className="space-y-1">
-        {isFinished && officialTally && <OfficialResult sideIndex={sideIndex} tally={officialTally} />}
-        {!isFinished && tally.total > 0 && <p className="text-xs text-zinc-500">{tally.total} {tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")} {t("bisher", "so far")}</p>}
-        <a
-          href="/login"
-          onClick={() => trackAnalyticsEvent(side.brandId, "login_required", { battleId: duel.battleId })}
-          className="text-xs text-orange-400 hover:underline"
-        >
-          {t("Anmelden, um abzustimmen", "Log in to vote")}
-        </a>
+      <div className="flex flex-wrap items-center gap-2">
+        <ResultPill sideIndex={sideIndex} tally={result} />
+        {driftPct !== null && <span className="text-[11px] text-zinc-400">{t(`aktuell ${driftPct} %`, `now ${driftPct}%`)}</span>}
+        {canStillVote && (
+          <button onClick={onVote} disabled={voting} className="text-xs text-orange-400 hover:underline">
+            {voting ? "…" : t("Noch abstimmen", "Vote anyway")}
+          </button>
+        )}
       </div>
     );
   }
 
-  const hasDiverged = isFinished && officialTally && tally.total !== officialTally.total;
-  const officialResult = isFinished && officialTally ? <OfficialResult sideIndex={sideIndex} tally={officialTally} /> : null;
-  const liveDrift = hasDiverged ? (
-    <ResultLine
-      sideIndex={sideIndex}
-      tally={tally}
-      prefix={
-        <span className="inline-flex items-center gap-1">
-          <RefreshCw size={11} /> {t("Aktuell:", "Now:")}
-        </span>
-      }
-    />
-  ) : null;
+  if (viewerOwnsThisBattle) {
+    return (
+      <p className="text-[11px] text-zinc-300">
+        {[side.viewerOwnsThisBrand ? t("Dein Video", "Your video") : t("Dein Gegner", "Your opponent"), liveInfo].filter(Boolean).join(" · ")}
+      </p>
+    );
+  }
 
   if (viewerVotedBrandId) {
     const votedForThis = viewerVotedBrandId === side.brandId;
     return (
-      <div className="space-y-1">
-        <p className="text-xs text-orange-400">
-          {votedForThis ? t("✓ Du hast für diese Seite gestimmt", "✓ You voted for this side") : t("✓ Du hast für die Gegenseite gestimmt", "✓ You voted for the other side")}
-        </p>
-        {officialResult ?? (
-          <p className="text-xs text-zinc-500">
-            {t(`${tally.total} ${tally.total === 1 ? "Stimme" : "Stimmen"} bisher — wer führt, bleibt geheim bis Fristende.`, `${tally.total} ${tally.total === 1 ? "vote" : "votes"} so far — who’s leading stays secret until the deadline.`)}
-          </p>
-        )}
-        {liveDrift}
-      </div>
+      <p className="text-[11px] text-zinc-300">
+        {[votedForThis ? t("✓ Abgestimmt", "✓ Voted") : t(`✓ Für ${other.brandName} gestimmt`, `✓ Voted for ${other.brandName}`), liveInfo].filter(Boolean).join(" · ")}
+      </p>
     );
   }
 
-  // Phase 48: Luca — "ein Drittel vom Bildschirm voll mit Dingen". Die
-  // Erklärung ("wer führt, bleibt geheim bis...") war eine eigene Zeile für
-  // sich, obwohl sie neben dem Button Platz gehabt hätte — jetzt ein
-  // einziges kompaktes Häppchen direkt neben dem Stimmen-Button statt einer
-  // zusätzlichen Zeile darunter.
   return (
-    <div className="space-y-1">
-      {officialResult}
-      {liveDrift}
-      {isFinished && <p className="text-xs text-zinc-500">{t("Die Frist ist zwar um, du kannst aber trotzdem noch abstimmen:", "The deadline has passed, but you can still vote:")}</p>}
-      <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      {isLoggedIn ? (
         <button
           onClick={onVote}
           disabled={voting}
@@ -208,13 +151,16 @@ function VoteState({
             </>
           )}
         </button>
-        {!isFinished && votingEndsAt && (
-          <span className="text-[11px] text-zinc-500">{t("Noch", "")} {timeLeftLabel(votingEndsAt, t)}{t("", " left")}</span>
-        )}
-      </div>
-      {!isFinished && tally.total > 0 && (
-        <p className="text-[11px] text-zinc-500">{tally.total} {tally.total === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")} {t("bisher", "so far")}</p>
+      ) : (
+        <a
+          href="/login"
+          onClick={() => trackAnalyticsEvent(side.brandId, "login_required", { battleId: duel.battleId })}
+          className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-orange-500"
+        >
+          <Trophy size={14} /> {t(`Für ${side.brandName} stimmen`, `Vote for ${side.brandName}`)}
+        </a>
       )}
+      {liveInfo && <span className="text-[11px] text-zinc-300">{liveInfo}</span>}
     </div>
   );
 }
@@ -272,6 +218,7 @@ export function FeedDuelCard({
   // Seiten-Swipe/Tap-Pause kollidieren — ein kleiner, dezenter Knopf erreicht
   // dasselbe Ergebnis (kompletter leerer Bildschirm) ohne dieses Risiko.
   const uiHidden = useCleanScreen();
+  useResetCleanScreenWhenActive(inView);
 
   useEffect(() => {
     return () => {
@@ -629,28 +576,25 @@ export function FeedDuelCard({
           <Link href={`/brands/${side.brandSlug}`} className="text-sm font-bold text-white hover:underline">
             {side.brandName}
           </Link>
-          {!side.viewerOwnsThisBrand && isLoggedIn && (
-            // Phase 48: key={brandId} — ohne das behält der Button beim
-            // Swipe zur anderen Duell-Seite seinen alten "folge ich"-Zustand
-            // (React tauscht sonst nur die Props, das Bauteil bleibt
-            // dasselbe), Luca: "steht dass ich beiden folge, obwohl ich nur
-            // einem folge". Der key erzwingt einen frischen Mount pro Seite.
-            <FollowButton key={side.brandId} brandId={side.brandId} isFollowing={side.viewerFollowsBrand} />
-          )}
-          {duel.isFinished && (
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">{t("Beendet", "Ended")}</span>
+          {/* Luca 13.11. (2): „Folgen“ nur, solange man noch nicht folgt; kein „Beendet“-Schild. */}
+          {!side.viewerOwnsThisBrand && isLoggedIn && !side.viewerFollowsBrand && (
+            <FollowButton key={side.brandId} brandId={side.brandId} isFollowing={false} />
           )}
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-400">
-            <Eye size={11} /> {duel.viewCount}
+            <Eye size={11} /> {compactNumber(duel.viewCount, langOf(t))}
           </span>
         </div>
+        <p className="mb-2 truncate text-xs text-zinc-300">
+          vs. {duel.sides[sideIndex === 0 ? 1 : 0].brandName}
+          {duel.category ? ` · ${duelCategoryLabel(duel.category, langOf(t))}` : ""}
+        </p>
         {side.ctaUrl && side.ctaLabel && (
           <a
             href={side.ctaUrl}
             target="_blank"
             rel="noreferrer noopener"
             onClick={() => trackAnalyticsEvent(side.brandId, "cta_click", { battleId: duel.battleId })}
-            className="pointer-events-auto mb-2 inline-flex items-center gap-1 rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-orange-500"
+            className="pointer-events-auto mb-2 inline-flex max-w-full items-center gap-1 truncate rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white hover:bg-white/25"
           >
             {side.ctaLabel} →
           </a>

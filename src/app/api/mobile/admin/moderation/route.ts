@@ -39,6 +39,7 @@ export async function GET() {
       reporterEmail: r.reporterEmail,
       targetLabel: r.targetLabel,
       targetHref: r.targetHref,
+      targetVideoUrl: r.targetVideoUrl,
       targetOwners: r.targetOwners,
       removable: REMOVABLE_TYPES.has(r.targetType),
     })),

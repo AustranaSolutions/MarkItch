@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 // Luca 13.11.: Auge = „Bildschirm frei“ für den ganzen Feed (wie in der App,
 // lib/clean-screen.ts) — auch „Feed / Folge ich“ und die Glocke verschwinden.
@@ -19,6 +19,15 @@ function subscribe(listener: () => void) {
 export function toggleCleanScreen() {
   hidden = !hidden;
   listeners.forEach((l) => l());
+}
+
+/** Luca 13.11. (2): gilt nur fürs aktuelle Video — wird eine Karte aktiv, ist alles wieder da. */
+export function useResetCleanScreenWhenActive(active: boolean) {
+  useEffect(() => {
+    if (!active || !hidden) return;
+    hidden = false;
+    listeners.forEach((l) => l());
+  }, [active]);
 }
 
 export function useCleanScreen(): boolean {

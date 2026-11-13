@@ -185,20 +185,25 @@ async function getBrandOwners(brandId: string): Promise<ReportedOwner[]> {
   return rows;
 }
 
-type ResolvedTarget = { label: string; href: string | null; owners: ReportedOwner[] };
+/**
+ * Luca 13.11.: Moderation soll genau den gemeldeten Inhalt zeigen — `videoUrl`
+ * spielt die App/Website direkt ab, `href` öffnet ihn an seiner Stelle
+ * (Video bzw. Duell im Vollbild statt nur das Profil).
+ */
+type ResolvedTarget = { label: string; href: string | null; owners: ReportedOwner[]; videoUrl?: string | null };
 
 /** Looks up what a report actually points at, for the admin list — the content may already be gone. */
 async function resolveTarget(targetType: ReportTargetType, targetId: string): Promise<ResolvedTarget> {
   switch (targetType) {
     case "solo_pitch": {
       const [row] = await db
-        .select({ brandId: soloPitches.brandId, brandName: brands.name, brandSlug: brands.slug })
+        .select({ brandId: soloPitches.brandId, brandName: brands.name, brandSlug: brands.slug, videoUrl: soloPitches.videoUrl })
         .from(soloPitches)
         .innerJoin(brands, eq(soloPitches.brandId, brands.id))
         .where(eq(soloPitches.id, targetId))
         .limit(1);
       if (!row) return { label: "Solo-Pitch (bereits entfernt)", href: null, owners: [] };
-      return { label: `Solo-Pitch von ${row.brandName}`, href: `/brands/${row.brandSlug}`, owners: await getBrandOwners(row.brandId) };
+      return { label: `Video von ${row.brandName}`, href: `/?pitch=${targetId}`, videoUrl: row.videoUrl, owners: await getBrandOwners(row.brandId) };
     }
     case "reaction": {
       const [row] = await db
@@ -209,6 +214,7 @@ async function resolveTarget(targetType: ReportTargetType, targetId: string): Pr
           userId: users.id,
           userName: users.name,
           userEmail: users.email,
+          videoUrl: reactions.videoUrl,
         })
         .from(reactions)
         .leftJoin(brands, eq(reactions.brandId, brands.id))
@@ -217,12 +223,13 @@ async function resolveTarget(targetType: ReportTargetType, targetId: string): Pr
         .limit(1);
       if (!row) return { label: "Reaktion (bereits entfernt)", href: null, owners: [] };
       if (row.brandId) {
-        return { label: `Reaktion von ${row.brandName}`, href: `/brands/${row.brandSlug}`, owners: await getBrandOwners(row.brandId) };
+        return { label: `Reaktion von ${row.brandName}`, href: null, videoUrl: row.videoUrl, owners: await getBrandOwners(row.brandId) };
       }
       // Phase E: Community-Reaktion eines Zuschauer-Kontos.
       return {
         label: `Community-Reaktion von ${row.userName || row.userEmail?.split("@")[0] || "Zuschauer"}`,
         href: null,
+        videoUrl: row.videoUrl,
         owners: row.userId && row.userEmail ? [{ userId: row.userId, email: row.userEmail }] : [],
       };
     }
@@ -243,17 +250,29 @@ async function resolveTarget(targetType: ReportTargetType, targetId: string): Pr
     case "battle_a":
     case "battle_b": {
       const [row] = await db
-        .select({ brandAId: battles.brandAId, brandBId: battles.brandBId })
+        .select({
+          brandAId: battles.brandAId,
+          brandBId: battles.brandBId,
+          brandAVideoUrl: battles.brandAVideoUrl,
+          brandBVideoUrl: battles.brandBVideoUrl,
+          brandName: brands.name,
+        })
         .from(battles)
+        .innerJoin(brands, eq(brands.id, targetType === "battle_a" ? battles.brandAId : battles.brandBId))
         .where(eq(battles.id, targetId))
         .limit(1);
       if (!row) return { label: "Duell (bereits entfernt)", href: null, owners: [] };
       const brandId = targetType === "battle_a" ? row.brandAId : row.brandBId;
-      return { label: `Duell-Seite (/battles/${targetId})`, href: `/battles/${targetId}`, owners: await getBrandOwners(brandId) };
+      return {
+        label: `Duell-Video von ${row.brandName}`,
+        href: `/?battle=${targetId}&lead=${brandId}`,
+        videoUrl: targetType === "battle_a" ? row.brandAVideoUrl : row.brandBVideoUrl,
+        owners: await getBrandOwners(brandId),
+      };
     }
     case "casting_submission": {
       const [row] = await db
-        .select({ brandId: castingSubmissions.brandId, brandName: brands.name, brandSlug: brands.slug, castingId: castingSubmissions.castingId })
+        .select({ brandId: castingSubmissions.brandId, brandName: brands.name, brandSlug: brands.slug, castingId: castingSubmissions.castingId, videoUrl: castingSubmissions.videoUrl })
         .from(castingSubmissions)
         .innerJoin(brands, eq(castingSubmissions.brandId, brands.id))
         .where(eq(castingSubmissions.id, targetId))
@@ -262,12 +281,13 @@ async function resolveTarget(targetType: ReportTargetType, targetId: string): Pr
       return {
         label: `Casting-Einreichung von ${row.brandName}`,
         href: `/castings/${row.castingId}`,
+        videoUrl: row.videoUrl,
         owners: await getBrandOwners(row.brandId),
       };
     }
     case "creator_submission": {
       const [row] = await db
-        .select({ creatorBrandId: creatorSubmissions.creatorBrandId, brandName: brands.name, brandSlug: brands.slug })
+        .select({ creatorBrandId: creatorSubmissions.creatorBrandId, brandName: brands.name, brandSlug: brands.slug, videoUrl: creatorSubmissions.videoUrl })
         .from(creatorSubmissions)
         .innerJoin(brands, eq(creatorSubmissions.creatorBrandId, brands.id))
         .where(eq(creatorSubmissions.id, targetId))
@@ -275,7 +295,8 @@ async function resolveTarget(targetType: ReportTargetType, targetId: string): Pr
       if (!row) return { label: "Creator-Video (bereits entfernt)", href: null, owners: [] };
       return {
         label: `Creator-Video von ${row.brandName}`,
-        href: `/brands/${row.brandSlug}`,
+        href: null,
+        videoUrl: row.videoUrl,
         owners: await getBrandOwners(row.creatorBrandId),
       };
     }
@@ -297,6 +318,7 @@ export type ReportWithTarget = {
   reporterEmail: string;
   targetLabel: string;
   targetHref: string | null;
+  targetVideoUrl: string | null;
   targetOwners: ReportedOwner[];
 };
 
@@ -330,6 +352,7 @@ export async function getOpenReports(): Promise<ReportWithTarget[]> {
         reporterEmail: row.reporterEmail,
         targetLabel: target.label,
         targetHref: target.href,
+        targetVideoUrl: target.videoUrl ?? null,
         targetOwners: target.owners,
       };
     }),
