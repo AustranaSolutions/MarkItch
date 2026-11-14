@@ -63,6 +63,7 @@ async function updateSoloPitchImpl(
     description: formData.get("description"),
     ctaLabel: formData.get("ctaLabel"),
     ctaUrl: formData.get("ctaUrl"),
+    ctaCode: formData.get("ctaCode") ?? undefined,
     // Das Bearbeiten-Formular schickt das Kästchen immer mit (gesetzt = "on").
     containsAiContent: formData.get("containsAiContent") === "on",
   });

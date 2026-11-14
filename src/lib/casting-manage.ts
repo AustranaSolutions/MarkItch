@@ -96,6 +96,7 @@ export async function submitCastingEntryFor(user: { id: string }, formData: Form
       description: pitch.description,
       ctaLabel: pitch.ctaLabel,
       ctaUrl: pitch.ctaUrl,
+      ctaCode: pitch.ctaCode,
       containsAiContent: pitch.containsAiContent,
       paidPartnership: pitch.paidPartnership,
       soloPitchId: pitch.id,

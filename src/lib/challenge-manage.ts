@@ -58,7 +58,7 @@ function parseCategory(category: unknown): string | { error: string } {
  * Musikrechte, KI). Kein Video = wie bisher, Upload nach der Annahme.
  */
 type ChallengerVideo =
-  | { challengerVideoUrl: string; challengerCtaLabel: string; challengerCtaUrl: string; challengerContainsAiContent: boolean; challengerPaidPartnership: boolean }
+  | { challengerVideoUrl: string; challengerCtaLabel: string; challengerCtaUrl: string; challengerCtaCode: string | null; challengerContainsAiContent: boolean; challengerPaidPartnership: boolean }
   | Record<string, never>;
 
 async function parseChallengerVideo(
@@ -77,6 +77,7 @@ async function parseChallengerVideo(
     challengerVideoUrl: parsed.videoUrl,
     challengerCtaLabel: cta.ctaLabel,
     challengerCtaUrl: cta.ctaUrl,
+    challengerCtaCode: cta.ctaCode,
     challengerContainsAiContent: video.get("containsAiContent") === "on",
     challengerPaidPartnership: readPaidPartnership(video, brand),
   };
@@ -340,6 +341,7 @@ export async function respondToChallengeFor(
           // RN-7: Link + KI-Kennzeichnung des Pitches gehören mit ins Duell.
           brandBCtaLabel: pitch.ctaLabel,
           brandBCtaUrl: pitch.ctaUrl,
+          brandBCtaCode: pitch.ctaCode,
           brandBContainsAiContent: pitch.containsAiContent,
           brandBPaidPartnership: pitch.paidPartnership,
         };
@@ -352,6 +354,7 @@ export async function respondToChallengeFor(
           brandASubmittedAt: challenge.createdAt,
           brandACtaLabel: challenge.challengerCtaLabel,
           brandACtaUrl: challenge.challengerCtaUrl,
+          brandACtaCode: challenge.challengerCtaCode,
           brandAContainsAiContent: challenge.challengerContainsAiContent,
           brandAPaidPartnership: challenge.challengerPaidPartnership,
         }

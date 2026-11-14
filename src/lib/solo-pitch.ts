@@ -79,9 +79,10 @@ async function checkOwnSoloPitch(userId: string, soloPitchId: string): Promise<O
 export async function updateOwnSoloPitch(
   userId: string,
   soloPitchId: string,
-  input: { description: unknown; ctaLabel: unknown; ctaUrl: unknown; containsAiContent?: boolean; paidPartnership?: boolean },
+  // ctaCode fehlt bei älteren App-Versionen → Code bleibt unverändert.
+  input: { description: unknown; ctaLabel: unknown; ctaUrl: unknown; ctaCode?: unknown; containsAiContent?: boolean; paidPartnership?: boolean },
 ): Promise<
-  | { ok: true; description: string; ctaLabel: string; ctaUrl: string; containsAiContent?: boolean; paidPartnership?: boolean }
+  | { ok: true; description: string; ctaLabel: string; ctaUrl: string; ctaCode?: string | null; containsAiContent?: boolean; paidPartnership?: boolean }
   | { ok: false; errors: Record<string, string[]> }
 > {
   const owner = await checkOwnSoloPitch(userId, soloPitchId);
@@ -93,6 +94,8 @@ export async function updateOwnSoloPitch(
   const ctaForm = new FormData();
   ctaForm.set("ctaLabel", typeof input.ctaLabel === "string" ? input.ctaLabel : "");
   ctaForm.set("ctaUrl", typeof input.ctaUrl === "string" ? input.ctaUrl : "");
+  const codeGiven = input.ctaCode !== undefined;
+  if (codeGiven) ctaForm.set("ctaCode", typeof input.ctaCode === "string" ? input.ctaCode : "");
   const cta = validateCtaLink(ctaForm);
   if ("errors" in cta) return { ok: false, errors: cta.errors };
 
@@ -106,6 +109,7 @@ export async function updateOwnSoloPitch(
       description: description.description,
       ctaLabel: cta.ctaLabel,
       ctaUrl: cta.ctaUrl,
+      ...(codeGiven ? { ctaCode: cta.ctaCode } : {}),
       ...(input.containsAiContent === undefined ? {} : { containsAiContent: input.containsAiContent }),
       ...(paidPartnership === undefined ? {} : { paidPartnership }),
     })
@@ -115,6 +119,7 @@ export async function updateOwnSoloPitch(
     description: description.description,
     ctaLabel: cta.ctaLabel,
     ctaUrl: cta.ctaUrl,
+    ...(codeGiven ? { ctaCode: cta.ctaCode } : {}),
     ...(input.containsAiContent === undefined ? {} : { containsAiContent: input.containsAiContent }),
     ...(paidPartnership === undefined ? {} : { paidPartnership }),
   };
@@ -138,7 +143,7 @@ export async function createSoloPitchForUser(
   formData: FormData,
   // RN-7: Einreichung zu einer Creator-Challenge (Prüfung macht der Aufrufer).
   options: { creatorChallengeId?: string } = {},
-): Promise<{ ok: true; id: string; videoUrl: string; description: string; ctaLabel: string; ctaUrl: string; containsAiContent: boolean; paidPartnership: boolean } | { ok: false; errors: Record<string, string[]> }> {
+): Promise<{ ok: true; id: string; videoUrl: string; description: string; ctaLabel: string; ctaUrl: string; ctaCode: string | null; containsAiContent: boolean; paidPartnership: boolean } | { ok: false; errors: Record<string, string[]> }> {
   const myBrand = await getBrandForUser(userId);
   if (!myBrand) return { ok: false, errors: { _form: ["Du musst zuerst eine Marke erstellen."] } };
 
@@ -165,6 +170,7 @@ export async function createSoloPitchForUser(
       description: description.description,
       ctaLabel: cta.ctaLabel,
       ctaUrl: cta.ctaUrl,
+      ctaCode: cta.ctaCode,
       containsAiContent,
       paidPartnership,
       creatorChallengeId: options.creatorChallengeId ?? null,
@@ -177,6 +183,7 @@ export async function createSoloPitchForUser(
     description: description.description,
     ctaLabel: cta.ctaLabel,
     ctaUrl: cta.ctaUrl,
+    ctaCode: cta.ctaCode,
     containsAiContent,
     paidPartnership,
   };

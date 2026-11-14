@@ -159,6 +159,8 @@ const EXACT: Record<string, string> = {
   "Ungültige URL (z. B. https://example.com).": "Invalid URL (e.g. https://example.com).",
   "Ungültige Video-URL.": "Invalid video URL.",
   "Ungültiger Link (z. B. https://example.com).": "Invalid link (e.g. https://example.com).",
+  "Code: maximal 30 Zeichen.": "Code: 30 characters max.",
+  "Code: nur Buchstaben, Ziffern und - _ . % (keine Leerzeichen).": "Code: only letters, digits and - _ . % (no spaces).",
   "Upload konnte nicht vorbereitet werden.": "The upload couldn’t be prepared.",
   "Video fehlt.": "Video is missing.",
   "Zu viele Versuche — bitte warte etwas und versuch es dann erneut.": "Too many attempts — please wait a bit and try again.",

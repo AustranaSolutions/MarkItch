@@ -28,7 +28,7 @@ export default async function DatenschutzPage({ searchParams }: { searchParams: 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       <h1 className="mb-2 text-2xl font-bold text-white">Datenschutzerklärung</h1>
-      <p className="mb-6 text-xs text-zinc-600">Stand: 18. Oktober 2026 · gilt für die App MarkItch und www.markitch.com</p>
+      <p className="mb-6 text-xs text-zinc-600">Stand: 14. November 2026 · gilt für die App MarkItch und www.markitch.com</p>
 
       <Section title="Verantwortlicher">
         <p>
@@ -86,6 +86,11 @@ export default async function DatenschutzPage({ searchParams }: { searchParams: 
           Kooperation), Meinungen, Likes, Stimmen, Reaktionen, wem du folgst, wen du blockierst, was du meldest und
           deine Benachrichtigungen. Videos werden beim Hochladen auf deinem Gerät verkleinert; wir erzeugen daraus
           Vorschaubilder.
+        </p>
+        <p>
+          <B>Meine Codes:</B> Tippst du angemeldet auf den Link eines Videos mit Rabattcode, speichern wir Code, Link und
+          Video in deinem Konto, damit du sie später wiederfindest. Die Marke erfährt dadurch nicht, wer du bist. Du kannst
+          einzelne Codes jederzeit unter Einstellungen → Meine Codes löschen; mit dem Konto werden alle gelöscht.
         </p>
         <p>
           <B>Kamera, Mikrofon, Fotos (App):</B> nur wenn du selbst aufnimmst oder etwas auswählst, und nur nach deiner

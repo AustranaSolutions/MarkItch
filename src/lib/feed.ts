@@ -65,6 +65,8 @@ export type FeedDuelSide = {
   /** Phase 27: null for content posted before this existed — no fallback here (unlike the counter-flow's reused profile video), a video-upload's own CTA is the real thing. */
   ctaLabel: string | null;
   ctaUrl: string | null;
+  /** Luca 13.11.: Rabattcode zum Link — der Link-Knopf kopiert ihn. */
+  ctaCode: string | null;
   /** Phase 46: EU-AI-Act-Kennzeichnungspflicht. */
   containsAiContent: boolean;
   /** Luca 18.10.: "brand" | "creator". */
@@ -245,6 +247,7 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
     // (see counterWithVideo) is expected to actually need the fallback.
     const ctaLabels = [battle.brandACtaLabel, battle.brandBCtaLabel];
     const ctaUrls = [battle.brandACtaUrl ?? battle.brandA.website, battle.brandBCtaUrl ?? battle.brandB.website];
+    const ctaCodes = [battle.brandACtaCode, battle.brandBCtaCode];
     const aiContentFlags = [battle.brandAContainsAiContent, battle.brandBContainsAiContent];
     const paidFlags = [battle.brandAPaidPartnership, battle.brandBPaidPartnership];
     const sides = rawSides.map((brand, i): FeedDuelSide => {
@@ -265,6 +268,7 @@ async function enrichDuels(viewerId: string | null, eligible: BattleWithBrands[]
         viewerFollowsBrand: followedSet.has(brand.id),
         ctaLabel: ctaLabels[i] ?? (ctaUrls[i] ? "Zur Website" : null),
         ctaUrl: ctaUrls[i],
+        ctaCode: ctaCodes[i] ?? null,
         containsAiContent: aiContentFlags[i]!,
         brandKind: parseBrandKind(brand.kind),
         adLabel: showsAdLabel(brand.kind, paidFlags[i]!),
@@ -351,6 +355,8 @@ export type FeedSoloPitch = {
   /** Phase 27: null only for content posted before this existed. */
   ctaLabel: string | null;
   ctaUrl: string | null;
+  /** Luca 13.11.: Rabattcode zum Link — der Link-Knopf kopiert ihn. */
+  ctaCode: string | null;
   /** Phase 46: EU-AI-Act-Kennzeichnungspflicht. */
   containsAiContent: boolean;
   brandKind: BrandKind;
@@ -425,6 +431,7 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
     boosted: boostedIds.has(pitch.id),
     ctaLabel: pitch.ctaLabel,
     ctaUrl: pitch.ctaUrl,
+    ctaCode: pitch.ctaCode,
     containsAiContent: pitch.containsAiContent,
     brandKind: parseBrandKind(pitch.brand.kind),
     adLabel: showsAdLabel(pitch.brand.kind, pitch.paidPartnership),

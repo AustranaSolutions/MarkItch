@@ -16,6 +16,7 @@ export type DraftInput = {
   description?: unknown;
   ctaLabel?: unknown;
   ctaUrl?: unknown;
+  ctaCode?: unknown;
   containsAiContent?: unknown;
   paidPartnership?: unknown;
 };
@@ -26,6 +27,7 @@ export type DraftView = {
   description: string;
   ctaLabel: string;
   ctaUrl: string;
+  ctaCode: string;
   containsAiContent: boolean;
   paidPartnership: boolean;
   updatedAt: string;
@@ -38,6 +40,7 @@ function toView(d: PostDraft): DraftView {
     description: d.description ?? "",
     ctaLabel: d.ctaLabel ?? "",
     ctaUrl: d.ctaUrl ?? "",
+    ctaCode: d.ctaCode ?? "",
     containsAiContent: d.containsAiContent,
     paidPartnership: d.paidPartnership,
     updatedAt: d.updatedAt.toISOString(),
@@ -65,11 +68,12 @@ export async function saveDraft(userId: string, input: DraftInput): Promise<{ ok
     description: text(input.description, 500),
     ctaLabel: text(input.ctaLabel, 60),
     ctaUrl: text(input.ctaUrl, 500),
+    ctaCode: text(input.ctaCode, 30),
     containsAiContent: input.containsAiContent === true,
     paidPartnership: input.paidPartnership === true,
     updatedAt: new Date(),
   };
-  if (!values.videoUrl && !values.description && !values.ctaLabel && !values.ctaUrl) {
+  if (!values.videoUrl && !values.description && !values.ctaLabel && !values.ctaUrl && !values.ctaCode) {
     return { ok: false, error: "Ein leerer Entwurf wird nicht gespeichert." };
   }
 

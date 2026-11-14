@@ -19,6 +19,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     description: body?.description,
     ctaLabel: body?.ctaLabel,
     ctaUrl: body?.ctaUrl,
+    ctaCode: body?.ctaCode,
     containsAiContent: typeof body?.containsAiContent === "boolean" ? body.containsAiContent : undefined,
     paidPartnership: typeof body?.paidPartnership === "boolean" ? body.paidPartnership : undefined,
   });
@@ -30,6 +31,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     description: result.description,
     ctaLabel: result.ctaLabel,
     ctaUrl: result.ctaUrl,
+    ctaCode: result.ctaCode,
     containsAiContent: result.containsAiContent,
     paidPartnership: result.paidPartnership,
   });

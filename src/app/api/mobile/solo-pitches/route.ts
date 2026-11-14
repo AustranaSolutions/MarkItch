@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
   form.set("description", text(body.description));
   form.set("ctaLabel", text(body.ctaLabel));
   form.set("ctaUrl", text(body.ctaUrl));
+  form.set("ctaCode", text(body.ctaCode));
   if (body.audioRightsConfirmed === true) form.set("audioRightsConfirmed", "on");
   if (body.containsAiContent === true) form.set("containsAiContent", "on");
   if (body.paidPartnership === true) form.set("paidPartnership", "on");

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Heart, MessageCircle, Repeat2, Rocket, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
 import { RailFollowButton } from "@/components/brand/follow-button";
+import { CtaLink } from "@/components/feed/cta-link";
 import { PitchChallengeButton } from "@/components/pitches/pitch-challenge-button";
 import { BoostButton } from "@/components/pitches/boost-button";
 import { ReportButton } from "@/components/moderation/report-button";
@@ -269,15 +270,13 @@ export function FeedSoloPitchCard({
         </div>
         {pitch.description && <p className="mb-2 text-sm text-white/90">{pitch.description}</p>}
         {pitch.ctaUrl && pitch.ctaLabel && (
-          <a
-            href={pitch.ctaUrl}
-            target="_blank"
-            rel="noreferrer noopener"
+          <CtaLink
+            url={pitch.ctaUrl}
+            label={pitch.ctaLabel}
+            code={pitch.ctaCode}
+            target={{ targetType: "pitch", targetId: pitch.soloPitchId, brandId: pitch.brandId }}
             onClick={() => trackAnalyticsEvent(pitch.brandId, "cta_click", { soloPitchId: pitch.soloPitchId })}
-            className="pointer-events-auto mb-2 inline-flex items-center gap-1 rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-orange-500"
-          >
-            {pitch.ctaLabel} →
-          </a>
+          />
         )}
         {/* RN-7: Einreichung zu Creator-Challenge/Partner-Casting → Knopf dorthin (Luca 30.09.). */}
         {pitch.context && (

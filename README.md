@@ -11,6 +11,8 @@ gegeneinander an, und die Community stimmt ab. Austrana Solutions KG, Österreic
 
 - **Sprachen (12.11.):** API-Fehler über `apiError()` (`lib/api-error.ts`) in der Sprache aus `Accept-Language`, Übersetzungen in `lib/server-messages.ts` (neue Meldung dort ergänzen). Benachrichtigungen `notifyUsers(ids, { de, en }, link)`; Push nach Gerätesprache. Website: `getLang()`/`getT()` (`lib/lang.ts`, Cookie `markitch-lang` vor Browsersprache) in Server-Komponenten, `useT()` (`components/i18n/lang-provider.tsx`) in Client-Komponenten — sichtbare Texte immer als `t("Deutsch", "English")`. Server-Actions übersetzen ihre Fehler über `localizeResult()`. Englische Rechtstexte in `components/legal/en/` (bei Änderungen der deutschen mitziehen).
 
+- **Rabattcodes (13.11., Migration 0052):** Zu jedem Link unter einem Video gibt es optional einen Code (`cta_code`-Spalten, Prüfung `parseCtaCode` in `lib/cta-link.ts`). Der Link-Knopf (`components/feed/cta-link.tsx`) kopiert ihn und legt ihn angemeldet unter „Meine Codes“ ab (`saved_codes`, `lib/saved-codes.ts`, `/profile/settings/codes`, App-API `/api/mobile/saved-codes`). Code, Link und Video liest der Server selbst aus dem Video. Datenschutz (de+en) ergänzt.
+
 - **Phase W (Okt. 2026):** Die Website ist die Begleit-Seite zur App: ansehen, abstimmen, `/app` mit Download, Rechtstexte. Posten nur noch in der App (`/post` → `/app`, Schalter `APP_STORE_LIVE` in `src/lib/feature-flags.ts`).
 - **Web-App live**, alle Formate fertig:
   - Solo-Pitch, Duell (7 Tage Abstimmung, Ergebnis verdeckt), Reaktion,

@@ -186,6 +186,7 @@ export function SoloPitchOwnerMenuButton({
                   ctaUrl={ctaUrl}
                   onCtaLabelChange={setCtaLabel}
                   onCtaUrlChange={setCtaUrl}
+                  initialCtaCode={pitch.ctaCode ?? ""}
                 />
                 <div onChange={(e) => setContainsAiContent((e.target as HTMLInputElement).checked)}>
                   <AiContentCheckbox defaultChecked={pitch.containsAiContent} />

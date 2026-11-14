@@ -11,7 +11,21 @@ export function withHttps(input: string): string {
   return `https://${trimmed}`;
 }
 
-export type CtaLinkResult = { ctaLabel: string; ctaUrl: string } | { errors: Record<string, string[]> };
+const MAX_CODE_LENGTH = 30;
+
+/**
+ * Luca 13.11. (Phase 3): optionaler Rabattcode zum Link (z. B. HALLO10).
+ * Leer → null. Groß/klein bleibt wie getippt (manche Shops unterscheiden).
+ */
+export function parseCtaCode(raw: unknown): { code: string | null } | { error: string } {
+  const code = typeof raw === "string" ? raw.trim() : "";
+  if (!code) return { code: null };
+  if (code.length > MAX_CODE_LENGTH) return { error: `Code: maximal ${MAX_CODE_LENGTH} Zeichen.` };
+  if (!/^[\p{L}\p{N}_.%-]+$/u.test(code)) return { error: "Code: nur Buchstaben, Ziffern und - _ . % (keine Leerzeichen)." };
+  return { code };
+}
+
+export type CtaLinkResult = { ctaLabel: string; ctaUrl: string; ctaCode: string | null } | { errors: Record<string, string[]> };
 
 /**
  * Phase 27: shared by every fresh-video server action (Solo-Pitch, Duell-
@@ -44,6 +58,9 @@ export function validateCtaLink(formData: FormData): CtaLinkResult {
     }
   }
 
-  if (Object.keys(errors).length > 0) return { errors };
-  return { ctaLabel, ctaUrl };
+  const code = parseCtaCode(formData.get("ctaCode"));
+  if ("error" in code) errors.ctaCode = [code.error];
+
+  if (Object.keys(errors).length > 0 || "error" in code) return { errors };
+  return { ctaLabel, ctaUrl, ctaCode: code.code };
 }

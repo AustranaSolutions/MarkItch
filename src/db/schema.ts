@@ -185,6 +185,9 @@ export const challenges = pgTable(
     challengerVideoUrl: text("challenger_video_url"),
     challengerCtaLabel: text("challenger_cta_label"),
     challengerCtaUrl: text("challenger_cta_url"),
+    // Luca 13.11. (Phase 3): optionaler Rabattcode zum Link (z. B. HALLO10) —
+    // der Link-Knopf kopiert ihn beim Antippen. Gilt für alle *_cta_code-Spalten.
+    challengerCtaCode: text("challenger_cta_code"),
     challengerContainsAiContent: boolean("challenger_contains_ai_content").notNull().default(false),
     // Luca 18.10.: nur für Creator relevant — „bezahlte Kooperation / Werbung“ → Anzeige-Label.
     challengerPaidPartnership: boolean("challenger_paid_partnership").notNull().default(false),
@@ -270,6 +273,8 @@ export const battles = pgTable(
     brandACtaUrl: text("brand_a_cta_url"),
     brandBCtaLabel: text("brand_b_cta_label"),
     brandBCtaUrl: text("brand_b_cta_url"),
+    brandACtaCode: text("brand_a_cta_code"),
+    brandBCtaCode: text("brand_b_cta_code"),
     // Phase 46: siehe soloPitches.containsAiContent — per Seite, nicht pro
     // Duell, da jede Seite ihr Video unabhängig hochlädt.
     brandAContainsAiContent: boolean("brand_a_contains_ai_content").notNull().default(false),
@@ -544,6 +549,7 @@ export const soloPitches = pgTable("solo_pitches", {
   // Phase 27: Call-to-Action — see the matching comment on battles above.
   ctaLabel: text("cta_label"),
   ctaUrl: text("cta_url"),
+  ctaCode: text("cta_code"),
   // Phase 46: EU-AI-Act-Kennzeichnungspflicht (Rechtskonformitäts-Audit) —
   // ein Upload-Schalter, kein automatischer Scan. Default false statt
   // nullable, weil "keine Angabe" hier praktisch dasselbe bedeutet wie
@@ -761,6 +767,7 @@ export const castingSubmissions = pgTable(
     description: text("description"),
     ctaLabel: text("cta_label"),
     ctaUrl: text("cta_url"),
+    ctaCode: text("cta_code"),
     // Phase 46: siehe soloPitches.containsAiContent.
     containsAiContent: boolean("contains_ai_content").notNull().default(false),
     paidPartnership: boolean("paid_partnership").notNull().default(false),
@@ -851,6 +858,7 @@ export const creatorSubmissions = pgTable("creator_submissions", {
   description: text("description"),
   ctaLabel: text("cta_label"),
   ctaUrl: text("cta_url"),
+  ctaCode: text("cta_code"),
   // Phase 46: siehe soloPitches.containsAiContent.
   containsAiContent: boolean("contains_ai_content").notNull().default(false),
   paidPartnership: boolean("paid_partnership").notNull().default(false),
@@ -983,6 +991,7 @@ export const postDrafts = pgTable(
     description: text("description"),
     ctaLabel: text("cta_label"),
     ctaUrl: text("cta_url"),
+    ctaCode: text("cta_code"),
     containsAiContent: boolean("contains_ai_content").notNull().default(false),
     paidPartnership: boolean("paid_partnership").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -1019,3 +1028,34 @@ export const videoTrims = pgTable("video_trims", {
   endMs: integer("end_ms"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Luca 13.11. (Phase 3): „Meine Codes“ — wer auf den Link-Knopf eines Videos
+// mit Rabattcode tippt, findet den Code hier wieder (mit Link und Video).
+// Ein Eintrag pro Nutzer und Video-Seite; erneutes Antippen frischt ihn auf.
+// Nutzer kann Einträge einzeln löschen; Konto löschen räumt alles ab.
+export const savedCodes = pgTable(
+  "saved_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    ctaUrl: text("cta_url").notNull(),
+    ctaLabel: text("cta_label"),
+    videoUrl: text("video_url").notNull(),
+    // 'pitch' (Solo-Pitch) oder 'battle' (Duell-Seite der Marke brandId).
+    targetType: text("target_type").notNull(),
+    targetId: uuid("target_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("saved_codes_user_target_idx").on(t.userId, t.targetType, t.targetId, t.brandId),
+    index("saved_codes_user_created_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+export type SavedCode = typeof savedCodes.$inferSelect;

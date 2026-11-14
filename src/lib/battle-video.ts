@@ -72,6 +72,7 @@ export async function submitBattleVideoFor(
             brandASubmittedAt: now,
             brandACtaLabel: cta.ctaLabel,
             brandACtaUrl: cta.ctaUrl,
+            brandACtaCode: cta.ctaCode,
             brandAContainsAiContent: containsAiContent,
             brandAPaidPartnership: paidPartnership,
           }
@@ -80,6 +81,7 @@ export async function submitBattleVideoFor(
             brandBSubmittedAt: now,
             brandBCtaLabel: cta.ctaLabel,
             brandBCtaUrl: cta.ctaUrl,
+            brandBCtaCode: cta.ctaCode,
             brandBContainsAiContent: containsAiContent,
             brandBPaidPartnership: paidPartnership,
           },

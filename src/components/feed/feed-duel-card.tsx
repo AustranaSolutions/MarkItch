@@ -17,6 +17,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { RailFollowButton } from "@/components/brand/follow-button";
+import { CtaLink } from "@/components/feed/cta-link";
 import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { FeedDuel } from "@/lib/feed";
@@ -615,15 +616,13 @@ export function FeedDuelCard({
           </p>
         )}
         {side.ctaUrl && side.ctaLabel && (
-          <a
-            href={side.ctaUrl}
-            target="_blank"
-            rel="noreferrer noopener"
+          <CtaLink
+            url={side.ctaUrl}
+            label={side.ctaLabel}
+            code={side.ctaCode}
+            target={{ targetType: "battle", targetId: duel.battleId, brandId: side.brandId }}
             onClick={() => trackAnalyticsEvent(side.brandId, "cta_click", { battleId: duel.battleId })}
-            className="pointer-events-auto mb-2 inline-flex max-w-full items-center gap-1 truncate rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-orange-500"
-          >
-            {side.ctaLabel} →
-          </a>
+          />
         )}
         <div className="pointer-events-auto">
           <VoteState duel={duel} sideIndex={sideIndex} isLoggedIn={isLoggedIn} onVote={handleVote} voting={voting} />

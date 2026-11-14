@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Field } from "@/components/ui";
 import { useT } from "@/components/i18n/lang-provider";
 
@@ -18,14 +19,18 @@ export function CtaLinkFields({
   ctaUrl,
   onCtaLabelChange,
   onCtaUrlChange,
+  initialCtaCode = "",
 }: {
   errors?: Record<string, string[]>;
   ctaLabel?: string;
   ctaUrl?: string;
   onCtaLabelChange?: (value: string) => void;
   onCtaUrlChange?: (value: string) => void;
+  /** Luca 13.11. (Phase 3): optionaler Rabattcode — bleibt beim Fehlschlag stehen (eigener Zustand). */
+  initialCtaCode?: string;
 }) {
   const t = useT();
+  const [ctaCode, setCtaCode] = useState(initialCtaCode);
   return (
     <div className="mb-3 rounded-lg border border-zinc-800 p-3">
       <p className="mb-2 text-xs text-zinc-500">
@@ -42,6 +47,14 @@ export function CtaLinkFields({
         onChange={onCtaLabelChange}
       />
       <Field label="Link" name="ctaUrl" type="url" errors={errors?.ctaUrl} value={ctaUrl} onChange={onCtaUrlChange} />
+      <Field
+        label={t("Rabattcode (optional, z. B. HALLO10) — wird beim Antippen des Links kopiert", "Discount code (optional, e.g. HELLO10) — copied when the link is tapped")}
+        name="ctaCode"
+        required={false}
+        errors={errors?.ctaCode}
+        value={ctaCode}
+        onChange={setCtaCode}
+      />
     </div>
   );
 }

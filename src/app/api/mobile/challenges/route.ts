@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     video.set("videoUrl", body.videoUrl);
     video.set("ctaLabel", text(body.ctaLabel));
     video.set("ctaUrl", text(body.ctaUrl));
+    video.set("ctaCode", text(body.ctaCode));
     if (body.audioRightsConfirmed === true) video.set("audioRightsConfirmed", "on");
     if (body.containsAiContent === true) video.set("containsAiContent", "on");
     if (body.paidPartnership === true) video.set("paidPartnership", "on");

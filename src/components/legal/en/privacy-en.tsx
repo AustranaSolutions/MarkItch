@@ -9,7 +9,7 @@ export function PrivacyEn() {
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       <h1 className="mb-2 text-2xl font-bold text-white">Privacy Policy</h1>
-      <p className="mb-4 text-xs text-zinc-600">As of October 18, 2026 · applies to the MarkItch app and www.markitch.com</p>
+      <p className="mb-4 text-xs text-zinc-600">As of November 14, 2026 · applies to the MarkItch app and www.markitch.com</p>
       <TranslationNote germanHref="/datenschutz?lang=de" />
 
       <Section title="Controller">
@@ -66,6 +66,11 @@ export function PrivacyEn() {
           Videos you upload (with description, link and the information on music rights, AI content and paid
           partnership), comments, likes, votes, reactions, who you follow, who you block, what you report and your
           notifications. Videos are downsized on your device when uploading; we generate preview images from them.
+        </p>
+        <p>
+          <B>My codes:</B> If you tap the link of a video with a discount code while logged in, we save the code, link and
+          video in your account so you can find them later. The business doesn’t learn who you are from this. You can
+          delete individual codes at any time under Settings → My codes; all of them are deleted with your account.
         </p>
         <p>
           <B>Camera, microphone, photos (app):</B> only when you record or select something yourself, and only after you
