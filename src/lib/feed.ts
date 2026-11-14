@@ -15,6 +15,8 @@ import { finalizeAndNotifyBattle } from "@/lib/battle-notify";
 import { getAllSoloPitches, type SoloPitchWithBrand } from "@/lib/solo-pitch";
 import { getReactionCounts } from "@/lib/reaction";
 import { getActiveBoostedSoloPitchIds } from "@/lib/boost";
+import { rankFeed, type RankItem } from "@/lib/feed-ranking";
+import { BOOST_ENABLED } from "@/lib/feature-flags";
 import { getViewCountsForSoloPitches, getViewCountsForBattles } from "@/lib/analytics";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
 import { getBlockedIds } from "@/lib/block";
@@ -513,11 +515,10 @@ export async function getTrendingSoloPitches(limit = 12, viewerId: string | null
   }));
 }
 
-// Luca 25.10.: Solange es keine Boosts/Vorteile gibt, ist der Feed rein nach
-// Aktualität sortiert — neuester Beitrag oben, dann immer ältere. Duelle zählen
-// ab dem Zeitpunkt, an dem sie live gingen, Pitches/Reaktionen ab dem Posten.
-// Das frühere Trend-Ranking (Engagement, Folgen-Bonus, Boost-Fach, jede 3. Karte
-// ein Pitch) steht in der Git-Historie und kommt mit den Boosts zurück.
+// Luca 25.10.: Feed war rein nach Aktualität sortiert. Seit 13.11. (Phase 6)
+// gilt das Ranking aus lib/feed-ranking.ts (Punkte, persönlich, Test-Plätze für
+// neue Videos); „Folge ich“ bleibt chronologisch. Duelle zählen ab dem Zeitpunkt,
+// an dem sie live gingen, Pitches/Reaktionen ab dem Posten.
 /** Luca 23.10.: wie Instagram — direkt nach dem Posten oben, danach normal einsortiert. */
 const OWN_POST_PIN_MS = 15 * 60 * 1000;
 
@@ -586,11 +587,55 @@ async function forYouPlan(viewerId: string | null, withReactions: boolean): Prom
     (e.kind === "solo" ? e.pitch.brandId === viewerBrand?.id : viewerId !== null && e.row.reaction.userId === viewerId);
   const ownFresh = stream.filter(isOwnFresh).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const rest: PlanEntry[] = [...battles.map((battle): PlanEntry => ({ kind: "duel", battle })), ...stream.filter((e) => !isOwnFresh(e))];
-  rest.sort((a, b) => recencyOf(b) - recencyOf(a));
-  return [...ownFresh, ...rest];
+
+  // Luca 13.11. (Phase 6): Ranking statt rein chronologisch (lib/feed-ranking.ts).
+  // Fällt das Ranking aus (z. B. Datenbank langsam), bleibt es bei „neueste zuerst“.
+  const boostedIds = BOOST_ENABLED
+    ? await getActiveBoostedSoloPitchIds(rest.flatMap((e) => (e.kind === "solo" ? [e.pitch.id] : [])))
+    : new Set<string>();
+  const items: (RankItem & { entry: PlanEntry })[] = rest.map((entry) =>
+    entry.kind === "duel"
+      ? {
+          entry,
+          key: `battle:${entry.battle.id}`,
+          type: "battle",
+          id: entry.battle.id,
+          brandIds: [entry.battle.brandAId, entry.battle.brandBId],
+          speakerKeys: [entry.battle.brandAId, entry.battle.brandBId],
+          createdAt: activatedAtOf(entry.battle),
+        }
+      : entry.kind === "solo"
+        ? {
+            entry,
+            key: `pitch:${entry.pitch.id}`,
+            type: "pitch",
+            id: entry.pitch.id,
+            brandIds: [entry.pitch.brandId],
+            speakerKeys: [entry.pitch.brandId],
+            createdAt: entry.createdAt,
+            boosted: boostedIds.has(entry.pitch.id),
+          }
+        : {
+            entry,
+            key: `reaction:${entry.row.reaction.id}`,
+            type: "reaction",
+            id: entry.row.reaction.id,
+            brandIds: [entry.row.brandId],
+            speakerKeys: [`user:${entry.row.reaction.userId}`],
+            createdAt: entry.createdAt,
+          },
+  );
+  let ranked: PlanEntry[];
+  try {
+    ranked = (await timed("plan.ranking", () => rankFeed(viewerId, items))).map((i) => i.entry);
+  } catch (err) {
+    console.error("[feed] Ranking fehlgeschlagen, chronologisch weiter", err);
+    ranked = [...rest].sort((a, b) => recencyOf(b) - recencyOf(a));
+  }
+  return [...ownFresh, ...ranked];
 }
 
-/** "Feed" — every live/finished Duell plus every solo pitch, newest first (see recencyOf). */
+/** "Feed" — every live/finished Duell plus every solo pitch, ranked (lib/feed-ranking.ts). */
 export async function getForYouFeed(viewerId: string | null, offset = 0, limit = 6): Promise<FeedPage> {
   const plan = await forYouPlan(viewerId, false);
   const items = (await materializePage(viewerId, plan.slice(offset, offset + limit))) as FeedItem[];

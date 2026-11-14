@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { brands } from "@/db/schema";
+import { brands, seenContent } from "@/db/schema";
+import { getOptionalUser } from "@/lib/session";
 import { recordAnalyticsEvents, type AnalyticsEventInput, type AnalyticsEventKind } from "@/lib/analytics";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { apiError } from "@/lib/api-error";
@@ -59,5 +60,29 @@ export async function POST(request: NextRequest) {
   }
 
   await recordAnalyticsEvents(validEvents);
+
+  // Luca 13.11. (Phase 6): angemeldet → „schon gesehen“ fürs Feed-Ranking merken.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const seenMap = new Map<string, { targetType: string; targetId: string }>();
+  for (const e of validEvents) {
+    if (e.kind !== "view") continue;
+    const target = e.soloPitchId ? { targetType: "pitch", targetId: e.soloPitchId } : e.battleId ? { targetType: "battle", targetId: e.battleId } : null;
+    // Doppelte im selben Bündel würden ON CONFLICT zweimal treffen.
+    if (target && UUID_RE.test(target.targetId)) seenMap.set(`${target.targetType}:${target.targetId}`, target);
+  }
+  const seen = [...seenMap.values()];
+  if (seen.length > 0) {
+    const viewer = await getOptionalUser().catch(() => null);
+    if (viewer) {
+      await db
+        .insert(seenContent)
+        .values(seen.map((s) => ({ ...s, userId: viewer.id })))
+        .onConflictDoUpdate({
+          target: [seenContent.userId, seenContent.targetType, seenContent.targetId],
+          set: { seenAt: new Date() },
+        })
+        .catch(() => {});
+    }
+  }
   return NextResponse.json({ ok: true });
 }

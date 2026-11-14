@@ -1,7 +1,7 @@
 import "server-only";
 import { and, isNotNull, lt, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { brandAnalyticsEvents, errorEvents, rateLimitHits, reports, visitorEvents } from "@/db/schema";
+import { brandAnalyticsEvents, errorEvents, rateLimitHits, reports, seenContent, visitorEvents } from "@/db/schema";
 
 // Luca 18.10.: Löschfristen, wie sie in der Datenschutzerklärung stehen —
 // läuft im täglichen Nacht-Job (/api/cron/cleanup-uploads).
@@ -16,6 +16,8 @@ export const RATE_LIMIT_RETENTION_DAYS = 7;
 export const ANALYTICS_RETENTION_DAYS = 396; // 13 Monate
 export const REPORT_RETENTION_DAYS = 3 * 365;
 export const ERROR_RETENTION_DAYS = 30;
+/** Luca 13.11. (Phase 6): „schon gesehen“ fürs Feed-Ranking. */
+export const SEEN_RETENTION_DAYS = 90;
 
 export type RetentionResult = {
   rateLimitHits: number;
@@ -24,6 +26,7 @@ export type RetentionResult = {
   unlinkedVisitorEvents: number;
   reports: number;
   errorEvents: number;
+  seenContent: number;
 };
 
 export async function applyRetention(): Promise<RetentionResult> {
@@ -53,7 +56,13 @@ export async function applyRetention(): Promise<RetentionResult> {
     .where(lt(errorEvents.lastSeenAt, new Date(now - ERROR_RETENTION_DAYS * DAY_MS)))
     .returning({ signature: errorEvents.signature });
 
+  const oldSeen = await db
+    .delete(seenContent)
+    .where(lt(seenContent.seenAt, new Date(now - SEEN_RETENTION_DAYS * DAY_MS)))
+    .returning({ id: seenContent.targetId });
+
   return {
+    seenContent: oldSeen.length,
     errorEvents: oldErrors.length,
     rateLimitHits: rate.length,
     analyticsEvents: events.length,

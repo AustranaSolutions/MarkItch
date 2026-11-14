@@ -101,6 +101,13 @@ export default async function DatenschutzPage({ searchParams }: { searchParams: 
           gewünschte Funktion (Art. 6 Abs. 1 lit. b DSGVO, § 165 Abs. 3 TKG).
         </p>
         <p>
+          <B>Feed-Reihenfolge:</B> Den Feed sortieren wir nach Beliebtheit und Aktualität der Videos. Bist du angemeldet,
+          berücksichtigen wir außerdem, welchen Marken du folgst, welche Kategorien du magst (aus deinen Likes, Stimmen und
+          Abos) und welche Videos du schon gesehen hast, damit Neues zuerst kommt. „Schon gesehen“ speichern wir 90 Tage.
+          Das ist eine automatische Sortierung ohne rechtliche oder ähnlich erhebliche Wirkung. Rechtsgrundlage: Vertrag
+          (Art. 6 Abs. 1 lit. b DSGVO).
+        </p>
+        <p>
           <B>Kamera, Mikrofon, Fotos (App):</B> nur wenn du selbst aufnimmst oder etwas auswählst, und nur nach deiner
           Freigabe in den iOS-Einstellungen.
         </p>

@@ -1084,3 +1084,20 @@ export const guestVotes = pgTable(
   },
   (t) => [uniqueIndex("guest_votes_battle_device_idx").on(t.battleId, t.deviceHash), index("guest_votes_battle_idx").on(t.battleId, t.votedForBrandId)],
 );
+
+// Luca 13.11. (Phase 6): Feed-Ranking — was ein angemeldetes Konto schon
+// gesehen hat (Aufruf ≥ 4 s), damit Neues zuerst kommt. Ein Eintrag pro Konto
+// und Inhalt; nach 90 Tagen gelöscht (lib/retention.ts).
+export const seenContent = pgTable(
+  "seen_content",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // 'pitch' | 'battle' | 'reaction'
+    targetType: text("target_type").notNull(),
+    targetId: uuid("target_id").notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("seen_content_user_target_idx").on(t.userId, t.targetType, t.targetId), index("seen_content_seen_at_idx").on(t.seenAt)],
+);

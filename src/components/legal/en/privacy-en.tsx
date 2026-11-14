@@ -81,6 +81,12 @@ export function PrivacyEn() {
           GDPR, § 165(3) TKG).
         </p>
         <p>
+          <B>Feed order:</B> We sort the feed by how popular and recent videos are. If you are logged in, we also take
+          into account which brands you follow, which categories you like (from your likes, votes and follows) and which
+          videos you have already seen, so new things come first. We keep “already seen” for 90 days. This is automatic
+          sorting with no legal or similarly significant effect. Legal basis: contract (Art. 6(1)(b) GDPR).
+        </p>
+        <p>
           <B>Camera, microphone, photos (app):</B> only when you record or select something yourself, and only after you
           allow it in the iOS settings.
         </p>
