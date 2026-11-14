@@ -379,6 +379,13 @@
       "when": 1794655892769,
       "tag": "0053_pruefung_per_code",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794657486017,
+      "tag": "0054_gaeste_stimmen",
+      "breakpoints": true
     }
   ]
 }
