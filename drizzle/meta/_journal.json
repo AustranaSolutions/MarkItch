@@ -372,6 +372,13 @@
       "when": 1794654131280,
       "tag": "0052_rabattcodes",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1794655892769,
+      "tag": "0053_pruefung_per_code",
+      "breakpoints": true
     }
   ]
 }
