@@ -111,7 +111,19 @@ function VoteState({
       <div className="flex flex-wrap items-center gap-2">
         <ResultPill sideIndex={sideIndex} tally={result} />
         <span className="text-[11px] text-zinc-300">
-          {[t("Beendet", "Ended"), votes(result.total), driftPct !== null ? t(`aktuell ${driftPct} %`, `now ${driftPct}%`) : null].filter(Boolean).join(" · ")}
+          {[
+            // Luca 14.11.: auch nach Fristende sehen, wofür man gestimmt hat.
+            viewerVotedBrandId
+              ? viewerVotedBrandId === side.brandId
+                ? t("✓ Deine Stimme", "✓ Your vote")
+                : t(`✓ Für ${other.brandName} gestimmt`, `✓ Voted for ${other.brandName}`)
+              : null,
+            t("Beendet", "Ended"),
+            votes(result.total),
+            driftPct !== null ? t(`aktuell ${driftPct} %`, `now ${driftPct}%`) : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </span>
         {canStillVote && (
           <button onClick={onVote} disabled={voting} className="text-xs text-orange-400 hover:underline">
