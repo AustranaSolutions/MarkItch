@@ -142,11 +142,16 @@ export function CreateBrandForm() {
         </div>
       </div>
 
+      {/* Luca 13.11. (Phase 4): Pflicht für Unternehmen, freiwillig für Creator. */}
       <Field
-        label="Website (optional)"
+        label={
+          kind === "creator"
+            ? t("Link (optional, z. B. Instagram, YouTube)", "Link (optional, e.g. Instagram, YouTube)")
+            : t("Website oder Profil-Link (Instagram, TikTok, Google Maps)", "Website or profile link (Instagram, TikTok, Google Maps)")
+        }
         name="website"
-        type="url"
-        required={false}
+        type="text"
+        required={kind !== "creator"}
         errors={state?.errors?.website}
         value={website}
         onChange={setWebsite}

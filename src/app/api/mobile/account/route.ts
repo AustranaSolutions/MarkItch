@@ -34,6 +34,8 @@ export async function GET() {
           category: brand.category,
           country: brand.country,
           website: brand.website,
+          // Luca 13.11. (Phase 4): für „Profil prüfen lassen“ in den Einstellungen.
+          verified: brand.verifiedAt !== null,
           logoUrl: brand.logoUrl,
           kind: brand.kind,
         }

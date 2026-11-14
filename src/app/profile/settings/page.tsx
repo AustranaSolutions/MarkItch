@@ -18,6 +18,8 @@ import { getActiveCastingForBrand, getWonCastingsForBrand } from "@/lib/casting"
 import { isAdminEmail } from "@/lib/moderation";
 import { getLangSetting, getT } from "@/lib/lang";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { VerificationRequest } from "@/components/brand/verification-request";
+import { getVerificationStatus } from "@/lib/brand-trust";
 import { langOf, localeOf } from "@/lib/i18n";
 
 /**
@@ -41,6 +43,8 @@ export default async function ProfileSettingsPage() {
     brand ? getActiveCastingForBrand(brand.id) : Promise.resolve(null),
     brand ? getWonCastingsForBrand(brand.id) : Promise.resolve([]),
   ]);
+  // Luca 13.11. (Phase 4): Prüfung per Code, solange kein Haken.
+  const verification = brand && !brand.verifiedAt ? await getVerificationStatus(brand.id) : null;
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
@@ -100,6 +104,18 @@ export default async function ProfileSettingsPage() {
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {brand && verification && (
+        <div className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+          <h2 className="mb-4 text-lg font-semibold text-white">{t("Profil prüfen lassen", "Get verified")}</h2>
+          <VerificationRequest
+            code={verification.code}
+            requestedUrl={verification.requestedUrl}
+            defaultUrl={verification.website}
+            isCreator={brand.kind === "creator"}
+          />
         </div>
       )}
 

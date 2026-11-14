@@ -9,6 +9,13 @@ import { BrandCategories, CreateBrandSchema, CreatorCategories, IndustryComplian
 import { parseBrandKind, type BrandKind } from "@/lib/brand-kind";
 import { withHttps } from "@/lib/cta-link";
 import { parseBrandDetails } from "@/lib/brand-details";
+import { autoVerifyBrandsForUser } from "@/lib/brand-trust";
+
+/**
+ * Luca 13.11. (Phase 4): Unternehmen brauchen eine Website oder einen
+ * Profil-Link (Instagram, TikTok, Google Maps …) — Creator nicht.
+ */
+const WEBSITE_REQUIRED = "Bitte deine Website oder einen Profil-Link angeben (z. B. Instagram, TikTok, Google Maps).";
 
 // RN-4: Marke anlegen/bearbeiten — gemeinsam für die Web-Actions
 // (actions/brand.ts) und die App-Route (/api/mobile/brand).
@@ -118,6 +125,7 @@ export async function createBrandForUser(
   const kind = parseBrandKind(input.kind);
   const wrongCategory = categoryError(kind, parsed.data.category);
   if (wrongCategory) return { ok: false, errors: wrongCategory };
+  if (kind === "brand" && !parsed.data.website) return { ok: false, errors: { website: [WEBSITE_REQUIRED] } };
 
   if (await nameTaken(parsed.data.name)) return { ok: false, errors: { name: [nameTakenError(kind)] } };
 
@@ -161,6 +169,7 @@ export async function createBrandForUser(
     })
     .returning({ id: brands.id, slug: brands.slug });
   await db.insert(brandMembers).values({ brandId: brand.id, userId, role: "owner" });
+  await autoVerifyBrandsForUser(userId).catch(() => {});
   return { ok: true, slug: brand.slug };
 }
 
@@ -182,6 +191,9 @@ export async function updateBrandForUser(
   const wrongCategory = categoryError(kind, parsed.data.category);
   if (wrongCategory) return { ok: false, errors: wrongCategory };
   if (await nameTaken(parsed.data.name, brand.id)) return { ok: false, errors: { name: [nameTakenError(kind)] } };
+  // Nur wer eine Website hatte, muss eine behalten — ältere Unternehmen ohne
+  // Website werden beim Bearbeiten nicht ausgesperrt.
+  if (kind === "brand" && brand.website && !parsed.data.website) return { ok: false, errors: { website: [WEBSITE_REQUIRED] } };
 
   const logo = await uploadLogoIfAny(input.logo);
   if ("errors" in logo) return { ok: false, errors: logo.errors };
@@ -201,5 +213,6 @@ export async function updateBrandForUser(
       updatedAt: new Date(),
     })
     .where(eq(brands.id, brand.id));
+  await autoVerifyBrandsForUser(userId).catch(() => {});
   return { ok: true };
 }

@@ -58,7 +58,7 @@ function parseCategory(category: unknown): string | { error: string } {
  * Musikrechte, KI). Kein Video = wie bisher, Upload nach der Annahme.
  */
 type ChallengerVideo =
-  | { challengerVideoUrl: string; challengerCtaLabel: string; challengerCtaUrl: string; challengerCtaCode: string | null; challengerContainsAiContent: boolean; challengerPaidPartnership: boolean }
+  | { challengerVideoUrl: string; challengerCtaLabel: string | null; challengerCtaUrl: string | null; challengerCtaCode: string | null; challengerContainsAiContent: boolean; challengerPaidPartnership: boolean }
   | Record<string, never>;
 
 async function parseChallengerVideo(
@@ -69,7 +69,7 @@ async function parseChallengerVideo(
   if (!video || !video.get("videoUrl")) return {};
   const parsed = await readVideoUrlField(video, "battle-videos", userId);
   if ("error" in parsed) return { error: parsed.error };
-  const cta = validateCtaLink(video);
+  const cta = validateCtaLink(video, { optional: brand.kind === "creator" });
   if ("errors" in cta) return { error: Object.values(cta.errors)[0]![0] };
   const audio = AudioRightsSchema.safeParse({ audioRightsConfirmed: video.get("audioRightsConfirmed") });
   if (!audio.success) return { error: Object.values(audio.error.flatten().fieldErrors)[0]![0] };

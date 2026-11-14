@@ -5,6 +5,7 @@ import { getTrendingSoloPitches } from "@/lib/feed";
 import { TrendingStrip } from "@/components/brand/trending-strip";
 import { BrandSearchGrid } from "@/components/brand/brand-search-grid";
 import { getT } from "@/lib/lang";
+import { brandIsDiscoverable } from "@/lib/brand-trust";
 
 // Always live data — same reasoning as /pitches: no dynamic API is used
 // here otherwise, so Next would prerender this once at build time and
@@ -19,7 +20,8 @@ export const dynamic = "force-dynamic";
 export default async function BrandsPage() {
   const t = await getT();
   const [allBrands, trending] = await Promise.all([
-    db.select().from(brands).orderBy(desc(brands.createdAt)),
+    // Luca 13.11. (Phase 4): 60 Tage inaktive Unternehmen nicht mehr vorschlagen.
+    db.select().from(brands).where(brandIsDiscoverable()).orderBy(desc(brands.createdAt)),
     getTrendingSoloPitches(),
   ]);
 

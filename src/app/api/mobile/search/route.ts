@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { brands } from "@/db/schema";
 import { getTrendingSoloPitches, searchSoloPitches } from "@/lib/feed";
 import { getOptionalUser } from "@/lib/session";
+import { brandIsDiscoverable } from "@/lib/brand-trust";
 
 // RN-5: Suche-Tab der App — Trending-Leiste + alle Marken wie /brands im
 // Web. Gefiltert wird in der App (wie BrandSearchGrid), bei der aktuellen
@@ -28,6 +29,8 @@ export async function GET(request: NextRequest) {
         kind: brands.kind,
       })
       .from(brands)
+      // Luca 13.11. (Phase 4): 60 Tage inaktive Unternehmen nicht mehr vorschlagen.
+      .where(brandIsDiscoverable())
       .orderBy(desc(brands.createdAt)),
     getTrendingSoloPitches(12, viewer?.id ?? null),
   ]);

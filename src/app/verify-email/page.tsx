@@ -6,6 +6,7 @@ import { hashToken } from "@/lib/tokens";
 import { AuthCard } from "@/components/ui";
 import { getT } from "@/lib/lang";
 import { type Translate } from "@/lib/i18n";
+import { autoVerifyBrandsForUser } from "@/lib/brand-trust";
 
 async function verify(token: string | undefined, t: Translate) {
   if (!token) return { ok: false, message: t("Kein Bestätigungslink angegeben.", "No confirmation link provided.") };
@@ -23,6 +24,8 @@ async function verify(token: string | undefined, t: Translate) {
 
   await db.update(users).set({ emailVerifiedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, record.userId));
   await db.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, record.userId));
+  // Luca 13.11. (Phase 4): passt die E-Mail-Domain zur Website der Marke → Haken.
+  await autoVerifyBrandsForUser(record.userId).catch(() => {});
 
   return { ok: true, message: t("Deine E-Mail-Adresse wurde bestätigt.", "Your email address has been confirmed.") };
 }

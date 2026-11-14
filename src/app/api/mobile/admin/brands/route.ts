@@ -21,6 +21,11 @@ export async function GET() {
       verified: b.verifiedAt !== null,
       ownerEmails: b.ownerEmails,
       lookalike: b.lookalike,
+      kind: b.kind,
+      // Luca 13.11. (Phase 4): Prüfung per Code beantragt.
+      verificationRequest: b.verificationRequest
+        ? { code: b.verificationRequest.code, url: b.verificationRequest.url, requestedAt: b.verificationRequest.requestedAt.toISOString() }
+        : null,
     })),
   });
 }

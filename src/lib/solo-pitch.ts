@@ -82,7 +82,7 @@ export async function updateOwnSoloPitch(
   // ctaCode fehlt bei älteren App-Versionen → Code bleibt unverändert.
   input: { description: unknown; ctaLabel: unknown; ctaUrl: unknown; ctaCode?: unknown; containsAiContent?: boolean; paidPartnership?: boolean },
 ): Promise<
-  | { ok: true; description: string; ctaLabel: string; ctaUrl: string; ctaCode?: string | null; containsAiContent?: boolean; paidPartnership?: boolean }
+  | { ok: true; description: string; ctaLabel: string | null; ctaUrl: string | null; ctaCode?: string | null; containsAiContent?: boolean; paidPartnership?: boolean }
   | { ok: false; errors: Record<string, string[]> }
 > {
   const owner = await checkOwnSoloPitch(userId, soloPitchId);
@@ -96,12 +96,13 @@ export async function updateOwnSoloPitch(
   ctaForm.set("ctaUrl", typeof input.ctaUrl === "string" ? input.ctaUrl : "");
   const codeGiven = input.ctaCode !== undefined;
   if (codeGiven) ctaForm.set("ctaCode", typeof input.ctaCode === "string" ? input.ctaCode : "");
-  const cta = validateCtaLink(ctaForm);
+  // Luca 13.11. (Phase 4): Creator dürfen den Link weglassen.
+  const myBrand = await getBrandForUser(userId);
+  const cta = validateCtaLink(ctaForm, { optional: myBrand?.kind === "creator" });
   if ("errors" in cta) return { ok: false, errors: cta.errors };
 
   // Kooperation nur für Creator änderbar (Marken-Inhalte sind immer Anzeige).
-  const myBrand = input.paidPartnership === undefined ? null : await getBrandForUser(userId);
-  const paidPartnership = myBrand?.kind === "creator" ? input.paidPartnership : undefined;
+  const paidPartnership = input.paidPartnership !== undefined && myBrand?.kind === "creator" ? input.paidPartnership : undefined;
 
   await db
     .update(soloPitches)
@@ -143,7 +144,7 @@ export async function createSoloPitchForUser(
   formData: FormData,
   // RN-7: Einreichung zu einer Creator-Challenge (Prüfung macht der Aufrufer).
   options: { creatorChallengeId?: string } = {},
-): Promise<{ ok: true; id: string; videoUrl: string; description: string; ctaLabel: string; ctaUrl: string; ctaCode: string | null; containsAiContent: boolean; paidPartnership: boolean } | { ok: false; errors: Record<string, string[]> }> {
+): Promise<{ ok: true; id: string; videoUrl: string; description: string; ctaLabel: string | null; ctaUrl: string | null; ctaCode: string | null; containsAiContent: boolean; paidPartnership: boolean } | { ok: false; errors: Record<string, string[]> }> {
   const myBrand = await getBrandForUser(userId);
   if (!myBrand) return { ok: false, errors: { _form: ["Du musst zuerst eine Marke erstellen."] } };
 
@@ -153,7 +154,7 @@ export async function createSoloPitchForUser(
   const description = validateDescription(formData.get("description"));
   if ("error" in description) return { ok: false, errors: { description: [description.error] } };
 
-  const cta = validateCtaLink(formData);
+  const cta = validateCtaLink(formData, { optional: myBrand.kind === "creator" });
   if ("errors" in cta) return { ok: false, errors: cta.errors };
 
   const audioRights = AudioRightsSchema.safeParse({ audioRightsConfirmed: formData.get("audioRightsConfirmed") });

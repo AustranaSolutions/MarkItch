@@ -160,6 +160,11 @@ const EXACT: Record<string, string> = {
   "Ungültige Video-URL.": "Invalid video URL.",
   "Ungültiger Link (z. B. https://example.com).": "Invalid link (e.g. https://example.com).",
   "Code: maximal 30 Zeichen.": "Code: 30 characters max.",
+  "Bitte deine Website oder einen Profil-Link angeben (z. B. Instagram, TikTok, Google Maps).":
+    "Please enter your website or a profile link (e.g. Instagram, TikTok, Google Maps).",
+  "Bitte den Link zu deinem Profil oder deiner Website angeben.": "Please enter the link to your profile or website.",
+  "Dein Profil ist schon geprüft.": "Your profile is already verified.",
+  "Ein Code braucht einen Link.": "A code needs a link.",
   "Code: nur Buchstaben, Ziffern und - _ . % (keine Leerzeichen).": "Code: only letters, digits and - _ . % (no spaces).",
   "Upload konnte nicht vorbereitet werden.": "The upload couldn’t be prepared.",
   "Video fehlt.": "Video is missing.",

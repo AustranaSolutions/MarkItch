@@ -97,6 +97,12 @@ export const brands = pgTable(
     // Audit 04.10. (C1): vom Betreiber geprüft (echte Marke, echter Inhaber) —
     // vergeben im Admin-Bereich /admin/brands, angezeigt als Haken am Namen.
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    // Luca 13.11. (Phase 4): Prüfung per Code — wer keinen automatischen Haken
+    // (E-Mail-Domain = Website) bekommt, setzt diesen Code in Bio/Website und
+    // beantragt die Prüfung mit dem Link dorthin; der Admin schaut nach.
+    verificationCode: text("verification_code"),
+    verificationUrl: text("verification_url"),
+    verificationRequestedAt: timestamp("verification_requested_at", { withTimezone: true }),
     // Phase 3: one showcase video per brand for now. A brand's actual
     // battle submissions get their own table once Phase 4/5 need it — this
     // column is just "the video on my public profile".

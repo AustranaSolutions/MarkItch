@@ -25,15 +25,29 @@ export function parseCtaCode(raw: unknown): { code: string | null } | { error: s
   return { code };
 }
 
-export type CtaLinkResult = { ctaLabel: string; ctaUrl: string; ctaCode: string | null } | { errors: Record<string, string[]> };
+export type CtaLinkResult =
+  | { ctaLabel: string; ctaUrl: string; ctaCode: string | null }
+  // Luca 13.11. (Phase 4): nur bei optionalem Link (Creator) — alles leer.
+  | { ctaLabel: null; ctaUrl: null; ctaCode: null }
+  | { errors: Record<string, string[]> };
 
 /**
  * Phase 27: shared by every fresh-video server action (Solo-Pitch, Duell-
  * Video, Kontern) — required for any new upload, plain manual validation to
  * match the surrounding action files' existing style (no zod there).
  */
-export function validateCtaLink(formData: FormData): CtaLinkResult {
+export function validateCtaLink(formData: FormData, options: { optional?: boolean } = {}): CtaLinkResult {
   const errors: Record<string, string[]> = {};
+
+  // Luca 13.11. (Phase 4): Creator-Videos brauchen keinen Link — alles leer ist dann ok.
+  const filled = (key: string) => {
+    const v = formData.get(key);
+    return typeof v === "string" && v.trim() !== "";
+  };
+  if (options.optional && !filled("ctaLabel") && !filled("ctaUrl")) {
+    if (filled("ctaCode")) return { errors: { ctaUrl: ["Ein Code braucht einen Link."] } };
+    return { ctaLabel: null, ctaUrl: null, ctaCode: null };
+  }
 
   const rawLabel = formData.get("ctaLabel");
   const ctaLabel = typeof rawLabel === "string" ? rawLabel.trim() : "";

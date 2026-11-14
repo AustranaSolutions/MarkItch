@@ -48,7 +48,7 @@ export async function submitBattleVideoFor(
     return { ok: false, error: video.error };
   }
 
-  const cta = validateCtaLink(formData);
+  const cta = validateCtaLink(formData, { optional: myBrand.kind === "creator" });
   if ("errors" in cta) {
     return { ok: false, error: Object.values(cta.errors)[0]![0] };
   }

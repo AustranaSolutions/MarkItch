@@ -11,7 +11,9 @@ import { setBrandVerifiedAction } from "@/app/actions/brand-verify";
 export default async function BrandsAdminPage() {
   await requireAdminUser();
   const rows = await listBrandsForAdmin();
-  const unverified = rows.filter((r) => !r.verifiedAt);
+  // Luca 13.11. (Phase 4): beantragte Prüfungen (Code in Bio/Website) zuerst.
+  const requested = rows.filter((r) => r.verificationRequest).sort((a, b) => a.verificationRequest!.requestedAt.getTime() - b.verificationRequest!.requestedAt.getTime());
+  const unverified = rows.filter((r) => !r.verifiedAt && !r.verificationRequest);
   const verified = rows.filter((r) => r.verifiedAt);
 
   const row = (b: (typeof rows)[number]) => (
@@ -20,7 +22,16 @@ export default async function BrandsAdminPage() {
         <a href={`/brands/${b.slug}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-white hover:underline">
           {b.name} ↗
         </a>
+        {b.kind === "creator" && <span className="ml-2 rounded bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-300">Creator</span>}
         {b.lookalike && <span className="ml-2 rounded bg-red-500/15 px-1.5 py-0.5 text-xs text-red-300">ähnlicher Name existiert</span>}
+        {b.verificationRequest && (
+          <p className="mt-2 text-xs text-zinc-300">
+            Steht <span className="rounded bg-orange-500/15 px-1.5 py-0.5 font-mono text-orange-300">{b.verificationRequest.code}</span> hier?{" "}
+            <a href={b.verificationRequest.url} target="_blank" rel="noreferrer noopener" className="break-all text-orange-400 hover:underline">
+              {b.verificationRequest.url} ↗
+            </a>
+          </p>
+        )}
         <p className="mt-1 text-xs text-zinc-500">
           {b.website ?? "keine Website"} · {b.ownerEmails.join(", ") || "kein Inhaber"} · seit {b.createdAt.toLocaleDateString("de-AT")}
         </p>
@@ -55,6 +66,12 @@ export default async function BrandsAdminPage() {
         Nur verifizieren, wenn du geprüft hast, dass das Konto wirklich zur Marke gehört (z. B. E-Mail auf der Domain der
         Marke oder persönlicher Kontakt).
       </p>
+      {requested.length > 0 && (
+        <section className="mb-10">
+          <h2 className="mb-4 text-lg font-semibold text-white">Prüfung beantragt ({requested.length})</h2>
+          <ul className="space-y-3">{requested.map(row)}</ul>
+        </section>
+      )}
       <section className="mb-10">
         <h2 className="mb-4 text-lg font-semibold text-white">Nicht verifiziert ({unverified.length})</h2>
         <ul className="space-y-3">{unverified.map(row)}</ul>
