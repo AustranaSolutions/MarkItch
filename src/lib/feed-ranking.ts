@@ -6,11 +6,12 @@ import { brandAnalyticsEvents, brands, comments, follows, guestVotes, likes, rea
 
 // Luca 13.11. (Phase 6): Feed-Ranking statt rein chronologisch.
 //
-//  Punkte   = (Interaktionen + 1) / (Alter in Stunden + 2)^1,3 × Qualität × Persönlich
+//  Punkte   = (Interaktionen + 1) / (Alter in Stunden + 2)^1,5 × Qualität × Persönlich
 //  Interaktionen: Like 1, Meinung 2, Stimme 1,5, Reaktion 3, Teilen 4, Link-Klick 3
 //  Qualität: Anteil „bis zum Ende angesehen“ (0,6 … 1,6), erst ab ein paar Aufrufen aussagekräftig
 //  Persönlich: gefolgte Marke ×1,6, Lieblings-Kategorie ×1,3, schon gesehen ×0,15 (rutscht nach hinten, nicht weg)
-//  Neue Videos (< 48 h, < 30 Aufrufe) bekommen feste Test-Plätze (jede 5. Karte), danach zählen ihre Zahlen.
+//  Neue Videos (< 48 h, < 30 Aufrufe) stehen spätestens auf einem Test-Platz (2, 7, 12 …) — weiter vorn,
+//  wenn ihre Punkte das hergeben; danach zählen nur noch ihre Zahlen.
 //  Dieselbe Marke/Person nie zweimal hintereinander.
 //  Boost (nur wenn BOOST_ENABLED): Punkte ×2 und ein fester Platz weit oben, solange der Boost läuft.
 // Die Uhr wird auf 10 Minuten gerundet, damit die Reihenfolge beim Nachladen stabil bleibt.
@@ -37,6 +38,8 @@ const EXPLORE_EVERY = 5; // Test-Platz an Position 2, 7, 12, …
 const EXPLORE_FIRST = 2;
 const BOOST_SLOT = 3;
 const BUCKET_MS = 10 * 60 * 1000;
+/** Wie stark das Alter zählt (höher = Frisches gewinnt schneller). */
+const GRAVITY = 1.5;
 
 export type Counts = { likes: number; comments: number; votes: number; reactions: number; shares: number; cta: number; views: number; completes: number };
 export const empty = (): Counts => ({ likes: 0, comments: 0, votes: 0, reactions: 0, shares: 0, cta: 0, views: 0, completes: 0 });
@@ -199,7 +202,7 @@ export function orderItems<T extends RankItem>(items: T[], input: RankInput): T[
     const engagement = c.likes * W.like + c.comments * W.comment + c.votes * W.vote + c.reactions * W.reaction + c.shares * W.share + c.cta * W.cta;
     // Qualität erst ab 5 Aufrufen — davor neutral.
     const quality = c.views >= 5 ? 0.6 + Math.min(1, c.completes / c.views) : 1;
-    let score = ((engagement + 1) / Math.pow(ageH + 2, 1.3)) * quality;
+    let score = ((engagement + 1) / Math.pow(ageH + 2, GRAVITY)) * quality;
     if (item.brandIds.some((b) => viewer.followed.has(b))) score *= FOLLOW_BOOST;
     if (item.brandIds.some((b) => viewer.categories.has(categories.get(b) ?? ""))) score *= CATEGORY_BOOST;
     const seen = viewer.seen.has(`${item.type}:${item.id}`);
@@ -209,19 +212,26 @@ export function orderItems<T extends RankItem>(items: T[], input: RankInput): T[
     return { item, score, isNew };
   });
 
-  // Neue Videos: kleine Testgruppe — feste Plätze, Reihenfolge je Betrachter gemischt.
+  const order: T[] = scored
+    .sort((a, b) => b.score - a.score || b.item.createdAt.getTime() - a.item.createdAt.getTime())
+    .map((s) => s.item);
+  // Höchstens auf Platz `pos` — steht der Beitrag weiter hinten, wird er dorthin vorgezogen.
+  const atMost = (item: T, pos: number) => {
+    const idx = order.indexOf(item);
+    const target = Math.min(pos, order.length - 1);
+    if (idx <= target) return;
+    order.splice(idx, 1);
+    order.splice(target, 0, item);
+  };
+
+  // Boost: ein fester Platz weit oben (spätestens Platz 4).
+  const boosted = scored.filter((s) => s.item.boosted && !s.isNew).sort((a, b) => b.score - a.score);
+  if (boosted[0]) atMost(boosted[0].item, BOOST_SLOT);
+
+  // Neue Videos: kleine Testgruppe — spätestens auf einem Test-Platz, je Betrachter gemischt.
   const seed = viewerId ?? "anon";
   const explore = scored.filter((s) => s.isNew).sort((a, b) => seeded(seed + a.item.key) - seeded(seed + b.item.key));
-  const boosted = scored.filter((s) => s.item.boosted && !s.isNew).sort((a, b) => b.score - a.score);
-  const placedKeys = new Set([...explore, ...boosted.slice(0, 1)].map((s) => s.item.key));
-  const ranked = scored.filter((s) => !placedKeys.has(s.item.key)).sort((a, b) => b.score - a.score || b.item.createdAt.getTime() - a.item.createdAt.getTime());
-
-  const order: T[] = ranked.map((s) => s.item);
-  if (boosted[0]) order.splice(Math.min(BOOST_SLOT, order.length), 0, boosted[0].item);
-  explore.forEach((s, i) => {
-    const pos = EXPLORE_FIRST + i * EXPLORE_EVERY;
-    order.splice(Math.min(pos, order.length), 0, s.item);
-  });
+  explore.forEach((s, i) => atMost(s.item, EXPLORE_FIRST + i * EXPLORE_EVERY));
 
   // Nie zweimal hintereinander dieselbe Marke/Person: den nächsten passenden Beitrag vorziehen.
   for (let i = 1; i < order.length; i++) {
