@@ -25,6 +25,7 @@ export function Field({
   required = true,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   name: string;
@@ -39,6 +40,8 @@ export function Field({
   // person typed even when the server rejects the submission.
   value?: string;
   onChange?: (value: string) => void;
+  /** Luca 14.11.: Beispiel ins Feld statt in die Überschrift. */
+  placeholder?: string;
 }) {
   return (
     <div className="mb-4">
@@ -46,6 +49,7 @@ export function Field({
         {label}
       </label>
       <input
+        placeholder={placeholder}
         id={name}
         name={name}
         type={type}

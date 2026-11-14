@@ -40,15 +40,25 @@ export function CtaLinkFields({
         )}
       </p>
       <Field
-        label={t("Beschriftung (z. B. „Jetzt bestellen“, „Route“)", "Button text (e.g. “Order now”, “Directions”)")}
+        label={t("Beschriftung", "Button text")}
+        placeholder={t("z. B. Jetzt bestellen", "e.g. Order now")}
         name="ctaLabel"
         errors={errors?.ctaLabel}
         value={ctaLabel}
         onChange={onCtaLabelChange}
       />
-      <Field label="Link" name="ctaUrl" type="url" errors={errors?.ctaUrl} value={ctaUrl} onChange={onCtaUrlChange} />
       <Field
-        label={t("Rabattcode (optional, z. B. HALLO10) — wird beim Antippen des Links kopiert", "Discount code (optional, e.g. HELLO10) — copied when the link is tapped")}
+        label="Link"
+        name="ctaUrl"
+        type="url"
+        errors={errors?.ctaUrl}
+        value={ctaUrl}
+        onChange={onCtaUrlChange}
+        placeholder={t("z. B. meinshop.at", "e.g. myshop.com")}
+      />
+      <Field
+        label={t("Rabattcode (optional) — wird beim Antippen des Links kopiert", "Discount code (optional) — copied when the link is tapped")}
+        placeholder={t("z. B. HALLO10", "e.g. HELLO10")}
         name="ctaCode"
         required={false}
         errors={errors?.ctaCode}
