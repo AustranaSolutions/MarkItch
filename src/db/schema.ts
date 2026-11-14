@@ -1065,3 +1065,22 @@ export const savedCodes = pgTable(
 );
 
 export type SavedCode = typeof savedCodes.$inferSelect;
+
+// Luca 13.11. (Phase 5): Abstimmen ohne Konto — eine Stimme pro Gerät und
+// Duell, zählt halb (angezeigt: angemeldete + ⌊Gäste/2⌋ je Seite). Gespeichert
+// wird nur ein Hash der zufälligen Geräte-Kennung, kein Konto, keine IP.
+export const guestVotes = pgTable(
+  "guest_votes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    battleId: uuid("battle_id")
+      .notNull()
+      .references(() => battles.id, { onDelete: "cascade" }),
+    deviceHash: text("device_hash").notNull(),
+    votedForBrandId: uuid("voted_for_brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("guest_votes_battle_device_idx").on(t.battleId, t.deviceHash), index("guest_votes_battle_idx").on(t.battleId, t.votedForBrandId)],
+);

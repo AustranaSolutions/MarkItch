@@ -79,14 +79,19 @@ export default async function AnalyticsAdminPage() {
 
       <section className="mb-10">
         <h2 className="mb-1 text-lg font-semibold text-white">Überblick</h2>
-        <p className="mb-4 text-xs text-zinc-600">Die wichtigsten Zahlen der ganzen Plattform (App + Website), z. B. für Investoren.</p>
+        <p className="mb-4 text-xs text-zinc-600">
+          Die wichtigsten Zahlen der ganzen Plattform (App + Website), z. B. für Investoren. „Aktive Konten“ = mindestens eine
+          Aktion (Stimme, Like, Meinung, Folgen, Reaktion, Post); reines Zuschauen ohne Konto zählt bei „Sitzungen“.
+        </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Stat label="Konten gesamt" value={de(overview.accounts.total)} />
           <Stat label="Neue Konten (7 / 30 Tage)" value={`${de(overview.accounts.new7d)} / ${de(overview.accounts.new30d)}`} />
           <Stat label="Zuschauer · Unternehmen · Creator" value={`${de(overview.accounts.viewers)} · ${de(overview.accounts.businesses)} · ${de(overview.accounts.creators)}`} />
-          <Stat label="Aktive Geräte pro Tag (Ø 7 Tage)" value={de(overview.activeDevices.dau)} />
-          <Stat label="Aktive Geräte (7 / 30 Tage)" value={`${de(overview.activeDevices.wau)} / ${de(overview.activeDevices.mau)}`} />
-          <Stat label="Tägliche Nutzung (DAU/MAU)" value={overview.activeDevices.mau > 0 ? pct((overview.activeDevices.dau / overview.activeDevices.mau) * 100) : "—"} />
+          <Stat label="Aktive Konten pro Tag (Ø 7 Tage)" value={de(overview.activeAccounts.dau)} />
+          <Stat label="Aktive Konten (7 / 30 Tage)" value={`${de(overview.activeAccounts.wau)} / ${de(overview.activeAccounts.mau)}`} />
+          <Stat label="Tägliche Nutzung (DAU/MAU)" value={overview.activeAccounts.mau > 0 ? pct((overview.activeAccounts.dau / overview.activeAccounts.mau) * 100) : "—"} />
+          <Stat label="Sitzungen pro Tag (Ø 7 Tage)" value={de(overview.activeDevices.dau)} />
+          <Stat label="Sitzungen (7 / 30 Tage)" value={`${de(overview.activeDevices.wau)} / ${de(overview.activeDevices.mau)}`} />
           <Stat label="Link-Klicks gesamt" value={de(overview.links.clicksTotal)} />
           <Stat label="Link-Klicks (30 Tage)" value={de(overview.links.clicks30d)} />
           <Stat label="Gespeicherte Rabattcodes" value={de(overview.links.codesSaved)} />

@@ -288,8 +288,13 @@ export async function getActiveBrandsStats(): Promise<ActiveBrandsStats> {
 
 export type PlatformOverview = {
   accounts: { total: number; viewers: number; businesses: number; creators: number; new7d: number; new30d: number };
-  /** Eindeutige Geräte (App + Website) mit mindestens einem Ereignis — DAU = Ø der letzten 7 Tage. */
+  /**
+   * App-Sitzungen + Website-Besucher (anonyme Kennung). Achtung: die App hält ihre
+   * Kennung nur bis zum Schließen (Datenschutz) — das sind Sitzungen, keine Geräte.
+   */
   activeDevices: { dau: number; wau: number; mau: number };
+  /** Konten mit mindestens einer Aktion (Stimme, Like, Meinung, Folgen, Reaktion, Post) — echte aktive Nutzer. */
+  activeAccounts: { dau: number; wau: number; mau: number };
   content: { videos: number; videos30d: number; reactions: number; duels: number; duels30d: number };
   interactions30d: { views: number; completes: number; votes: number; likes: number; comments: number; follows: number; shares: number };
   links: { clicksTotal: number; clicks30d: number; codesSaved: number };
@@ -327,6 +332,32 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
           select anon_id, created_at from ${visitorEvents} where kind = 'session_start' and created_at > now() - interval '7 days'
         ) e group by 1
       ) per_day) as dau,
+      (select count(distinct user_id) from (
+          select user_id, created_at from ${votes} where created_at > now() - interval '30 days'
+          union all select user_id, created_at from ${likes} where created_at > now() - interval '30 days'
+          union all select user_id, created_at from ${comments} where created_at > now() - interval '30 days'
+          union all select user_id, created_at from ${follows} where created_at > now() - interval '30 days'
+          union all select user_id, created_at from ${reactions} where created_at > now() - interval '30 days'
+          union all select m.user_id, sp.created_at from ${soloPitches} sp join ${brandMembers} m on m.brand_id = sp.brand_id where sp.created_at > now() - interval '30 days'
+      ) a) as active_accounts_30d,
+      (select count(distinct user_id) from (
+          select user_id, created_at from ${votes} where created_at > now() - interval '7 days'
+          union all select user_id, created_at from ${likes} where created_at > now() - interval '7 days'
+          union all select user_id, created_at from ${comments} where created_at > now() - interval '7 days'
+          union all select user_id, created_at from ${follows} where created_at > now() - interval '7 days'
+          union all select user_id, created_at from ${reactions} where created_at > now() - interval '7 days'
+          union all select m.user_id, sp.created_at from ${soloPitches} sp join ${brandMembers} m on m.brand_id = sp.brand_id where sp.created_at > now() - interval '7 days'
+      ) a) as active_accounts_7d,
+      (select coalesce(sum(n), 0) / 7.0 from (
+        select date_trunc('day', created_at) as d, count(distinct user_id) as n from (
+          select user_id, created_at from ${votes} where created_at > now() - interval '7 days'
+          union all select user_id, created_at from ${likes} where created_at > now() - interval '7 days'
+          union all select user_id, created_at from ${comments} where created_at > now() - interval '7 days'
+          union all select user_id, created_at from ${follows} where created_at > now() - interval '7 days'
+          union all select user_id, created_at from ${reactions} where created_at > now() - interval '7 days'
+          union all select m.user_id, sp.created_at from ${soloPitches} sp join ${brandMembers} m on m.brand_id = sp.brand_id where sp.created_at > now() - interval '7 days'
+        ) a group by 1
+      ) per_day) as active_accounts_dau,
       (select count(*) from ${soloPitches}) as videos,
       (select count(*) from ${soloPitches} where created_at > now() - interval '30 days') as videos_30d,
       (select count(*) from ${reactions}) as reactions,
@@ -367,6 +398,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
   return {
     accounts: { total: n("accounts_total"), viewers: n("viewers"), businesses: n("businesses"), creators: n("creators"), new7d: n("new_7d"), new30d: n("new_30d") },
     activeDevices: { dau: Math.round(n("dau")), wau: n("wau"), mau: n("mau") },
+    activeAccounts: { dau: Math.round(n("active_accounts_dau")), wau: n("active_accounts_7d"), mau: n("active_accounts_30d") },
     content: { videos: n("videos"), videos30d: n("videos_30d"), reactions: n("reactions"), duels: n("duels"), duels30d: n("duels_30d") },
     interactions30d: {
       views: n("views_30d"),

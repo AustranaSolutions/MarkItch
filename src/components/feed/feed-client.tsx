@@ -12,6 +12,7 @@ import { CommentSheet, type CommentTarget } from "@/components/feed/comment-shee
 import { ReactionsOverlay } from "@/components/pitches/reactions-overlay";
 import { getNotificationPermission, subscribeToPush } from "@/lib/push-client";
 import { useT } from "@/components/i18n/lang-provider";
+import { getGuestId, rememberGuestVote } from "@/lib/guest-votes-client";
 
 type Tab = "foryou" | "following";
 
@@ -254,9 +255,11 @@ export function FeedClient({
       const res = await fetch("/api/feed/vote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ battleId: duel.battleId, votedForBrandId: side.brandId }),
+        // Luca 13.11. (Phase 5): ohne Konto als Gast (zählt halb).
+        body: JSON.stringify({ battleId: duel.battleId, votedForBrandId: side.brandId, ...(isLoggedIn ? {} : { guestId: getGuestId() }) }),
       });
       const data = await res.json();
+      if (res.ok && data.guest) rememberGuestVote(duel.battleId, data.votedForBrandId);
       if (res.ok && data.tally) {
         patchDuel(duel.key, { tally: data.tally, viewerVotedBrandId: data.votedForBrandId });
         maybeOfferPushPrompt();

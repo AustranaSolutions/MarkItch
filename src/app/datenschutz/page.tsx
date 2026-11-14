@@ -93,6 +93,14 @@ export default async function DatenschutzPage({ searchParams }: { searchParams: 
           einzelne Codes jederzeit unter Einstellungen → Meine Codes löschen; mit dem Konto werden alle gelöscht.
         </p>
         <p>
+          <B>Abstimmen ohne Konto:</B> Stimmst du ohne Konto ab, legen App bzw. Browser eine zufällige Kennung auf deinem
+          Gerät ab und merken sich dort, wofür du gestimmt hast. Das ist technisch nötig, damit jedes Gerät pro Duell nur
+          einmal abstimmt. Bei uns speichern wir nur einen nicht umkehrbaren Hash dieser Kennung zusammen mit der Stimme,
+          keinen Namen und kein Konto; zum Schutz vor Missbrauch zählen wir außerdem kurzzeitig Stimmen pro IP-Adresse.
+          Löschst du die App oder die Website-Daten, ist die Kennung weg. Rechtsgrundlage: Vertrag bzw. die von dir
+          gewünschte Funktion (Art. 6 Abs. 1 lit. b DSGVO, § 165 Abs. 3 TKG).
+        </p>
+        <p>
           <B>Kamera, Mikrofon, Fotos (App):</B> nur wenn du selbst aufnimmst oder etwas auswählst, und nur nach deiner
           Freigabe in den iOS-Einstellungen.
         </p>

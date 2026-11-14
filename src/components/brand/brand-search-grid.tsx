@@ -24,17 +24,25 @@ export type SearchableBrand = {
 export function BrandSearchGrid({ brands }: { brands: SearchableBrand[] }) {
   const t = useT();
   const [query, setQuery] = useState("");
+  // Luca 13.11. (Phase 5): Stöbern nach Kategorie — nur vorhandene, häufigste zuerst.
+  const [category, setCategory] = useState<string | null>(null);
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const b of brands) counts.set(b.category, (counts.get(b.category) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c);
+  }, [brands]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return brands;
-    return brands.filter(
+    const inCategory = category ? brands.filter((b) => b.category === category) : brands;
+    if (!q) return inCategory;
+    return inCategory.filter(
       (b) =>
         b.name.toLowerCase().includes(q) ||
         b.category.toLowerCase().includes(q) ||
         (b.description ?? "").toLowerCase().includes(q),
     );
-  }, [brands, query]);
+  }, [brands, query, category]);
 
   return (
     <div>
@@ -48,8 +56,28 @@ export function BrandSearchGrid({ brands }: { brands: SearchableBrand[] }) {
         />
       </div>
 
+      {categories.length > 1 && (
+        <div className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1">
+          {[null, ...categories].map((c) => (
+            <button
+              key={c ?? "all"}
+              type="button"
+              onClick={() => setCategory(c)}
+              className={
+                "shrink-0 rounded-full border px-3 py-1 text-xs font-medium " +
+                (category === c ? "border-orange-500 bg-orange-500/10 text-orange-400" : "border-zinc-700 text-zinc-400 hover:border-zinc-500")
+              }
+            >
+              {c ? categoryLabel(c, langOf(t)) : t("Alle Kategorien", "All categories")}
+            </button>
+          ))}
+        </div>
+      )}
+
       {filtered.length === 0 ? (
-        <p className="text-sm text-zinc-500">{t("Keine Treffer für", "No results for")} „{query}“.</p>
+        <p className="text-sm text-zinc-500">
+          {query.trim() ? `${t("Keine Treffer für", "No results for")} „${query}“.` : t("Keine Profile in dieser Kategorie.", "No profiles in this category.")}
+        </p>
       ) : (
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {filtered.map((brand) => (

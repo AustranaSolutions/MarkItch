@@ -28,6 +28,7 @@ import { useVideoTrim, useWatchedToEnd } from "@/lib/use-video-trim";
 import { useVideoMusic } from "@/lib/use-video-music";
 import { useT } from "@/components/i18n/lang-provider";
 import { type Translate, langOf, socialCount, compactNumber, duelCategoryLabel } from "@/lib/i18n";
+import { useGuestVote } from "@/lib/guest-votes-client";
 
 // Phase 39: both sides of a duel are now always mounted side by side (the
 // Phase 38 sliding carousel) instead of only the active one — the inactive
@@ -89,7 +90,16 @@ function VoteState({
   voting: boolean;
 }) {
   const t = useT();
-  const { tally, officialTally, isFinished, viewerVotedBrandId, viewerOwnsThisBattle, votingEndsAt } = duel;
+  const { tally, officialTally, isFinished, viewerOwnsThisBattle, votingEndsAt } = duel;
+  // Luca 13.11. (Phase 5): ohne Konto zählt die im Browser gemerkte Gast-Stimme.
+  const guestVote = useGuestVote(duel.battleId);
+  const viewerVotedBrandId = duel.viewerVotedBrandId ?? (isLoggedIn ? null : guestVote);
+  const votedAsGuest = !isLoggedIn && Boolean(guestVote);
+  const signUpHint = votedAsGuest ? (
+    <a href="/register" className="text-[11px] text-orange-400 hover:underline">
+      {t("Zählt halb — registrieren, damit sie voll zählt", "Counts half — sign up so it counts fully")}
+    </a>
+  ) : null;
   const side = duel.sides[sideIndex];
   const other = duel.sides[sideIndex === 0 ? 1 : 0];
   const votes = (n: number) => `${n} ${n === 1 ? t("Stimme", "vote") : t("Stimmen", "votes")}`;
@@ -107,7 +117,7 @@ function VoteState({
       officialTally && tally.total !== officialTally.total && tally.total > 0
         ? Math.round(((sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes) / tally.total) * 100)
         : null;
-    const canStillVote = isLoggedIn && !viewerOwnsThisBattle && !viewerVotedBrandId;
+    const canStillVote = !viewerOwnsThisBattle && !viewerVotedBrandId;
     return (
       <div className="flex flex-wrap items-center gap-2">
         <ResultPill sideIndex={sideIndex} tally={result} />
@@ -146,35 +156,29 @@ function VoteState({
   if (viewerVotedBrandId) {
     const votedForThis = viewerVotedBrandId === side.brandId;
     return (
-      <p className="text-[11px] text-zinc-300">
-        {[votedForThis ? t("✓ Abgestimmt", "✓ Voted") : t(`✓ Für ${other.brandName} gestimmt`, `✓ Voted for ${other.brandName}`), liveInfo].filter(Boolean).join(" · ")}
-      </p>
+      <div className="flex flex-wrap items-center gap-x-2">
+        <p className="text-[11px] text-zinc-300">
+          {[votedForThis ? t("✓ Abgestimmt", "✓ Voted") : t(`✓ Für ${other.brandName} gestimmt`, `✓ Voted for ${other.brandName}`), liveInfo].filter(Boolean).join(" · ")}
+        </p>
+        {signUpHint}
+      </div>
     );
   }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {isLoggedIn ? (
-        <button
-          onClick={onVote}
-          disabled={voting}
-          className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
-        >
-          {voting ? "…" : (
-            <>
-              <Trophy size={14} /> {t(`Für ${side.brandName} stimmen`, `Vote for ${side.brandName}`)}
-            </>
-          )}
-        </button>
-      ) : (
-        <a
-          href="/login"
-          onClick={() => trackAnalyticsEvent(side.brandId, "login_required", { battleId: duel.battleId })}
-          className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-orange-500"
-        >
-          <Trophy size={14} /> {t(`Für ${side.brandName} stimmen`, `Vote for ${side.brandName}`)}
-        </a>
-      )}
+      {/* Luca 13.11. (Phase 5): auch ohne Konto (Gast-Stimme). */}
+      <button
+        onClick={onVote}
+        disabled={voting}
+        className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
+      >
+        {voting ? "…" : (
+          <>
+            <Trophy size={14} /> {t(`Für ${side.brandName} stimmen`, `Vote for ${side.brandName}`)}
+          </>
+        )}
+      </button>
       {liveInfo && <span className="text-[11px] text-zinc-300">{liveInfo}</span>}
     </div>
   );

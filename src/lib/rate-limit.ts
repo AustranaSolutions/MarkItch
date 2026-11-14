@@ -15,6 +15,7 @@ export type RateLimitBucket =
   | "register"
   | "login"
   | "vote"
+  | "guest-vote"
   | "challenge"
   | "reaction"
   | "like"
@@ -35,6 +36,8 @@ const LIMITS: Record<RateLimitBucket, { max: number; windowMs: number }> = {
   register: { max: 5, windowMs: 60 * 60 * 1000 }, // 5 Registrierungen/Stunde pro IP
   login: { max: 20, windowMs: 60 * 60 * 1000 }, // RN-2: 20 App-Login-Versuche/Stunde pro IP (Passwort-Raten bremsen)
   vote: { max: 40, windowMs: 60 * 60 * 1000 }, // 40 Votes/Stunde pro IP
+  // Luca 13.11. (Phase 5): Gast-Stimmen strenger — neue Geräte-Kennung ist billig.
+  "guest-vote": { max: 15, windowMs: 60 * 60 * 1000 }, // 15 Gast-Stimmen/Stunde pro IP
   challenge: { max: 10, windowMs: 24 * 60 * 60 * 1000 }, // 10 Herausforderungen/Tag pro Marke
   reaction: { max: 10, windowMs: 24 * 60 * 60 * 1000 }, // 10 Reaktionen/Tag pro Marke
   like: { max: 300, windowMs: 60 * 60 * 1000 }, // 300 Likes/Stunde pro Nutzer

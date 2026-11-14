@@ -63,7 +63,11 @@ export default async function AppPage() {
       </ul>
 
       <p className="mt-10 text-sm text-zinc-500">
-        {t("Du bist eine Marke? Posten, Duelle starten und deine Statistik gibt es in der App.", "Are you a brand? Posting, starting duels and your stats are in the app.")}
+        {t("Du bist eine Marke? Posten, Duelle starten und deine Statistik gibt es in der App.", "Are you a brand? Posting, starting duels and your stats are in the app.")}{" "}
+        {/* Luca 13.11. (Phase 5): Landingpage für Unternehmen. */}
+        <Link href="/unternehmen" className="text-orange-400 hover:underline">
+          {t("Mehr für Unternehmen →", "More for businesses →")}
+        </Link>
       </p>
 
       <div className="mt-8 flex gap-4 text-xs text-zinc-600">

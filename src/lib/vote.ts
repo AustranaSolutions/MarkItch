@@ -1,7 +1,8 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { and, count, eq, inArray, lte, or } from "drizzle-orm";
 import { db } from "@/db";
-import { battles, brandMembers, votes } from "@/db/schema";
+import { battles, brandMembers, guestVotes, votes } from "@/db/schema";
 
 export type VoteTally = { brandAVotes: number; brandBVotes: number; total: number };
 
@@ -18,16 +19,38 @@ export function publicTally(tally: VoteTally, isFinished: boolean): VoteTally {
   return isFinished ? tally : { brandAVotes: 0, brandBVotes: 0, total: tally.total };
 }
 
-export async function getVoteTally(battleId: string, brandAId: string, brandBId: string): Promise<VoteTally> {
-  const rows = await db
-    .select({ votedForBrandId: votes.votedForBrandId, n: count() })
-    .from(votes)
-    .where(eq(votes.battleId, battleId))
-    .groupBy(votes.votedForBrandId);
-  const byBrand = new Map(rows.map((r) => [r.votedForBrandId, r.n]));
-  const brandAVotes = byBrand.get(brandAId) ?? 0;
-  const brandBVotes = byBrand.get(brandBId) ?? 0;
+/**
+ * Luca 13.11. (Phase 5): Gast-Stimmen (ohne Konto) zählen halb — pro Seite
+ * angemeldete + ⌊Gäste/2⌋, damit Gäste nicht mehr Gewicht haben als Konten.
+ */
+function combineTally(
+  registered: { votedForBrandId: string; n: number }[],
+  guests: { votedForBrandId: string; n: number }[],
+  brandAId: string,
+  brandBId: string,
+): VoteTally {
+  const reg = new Map(registered.map((r) => [r.votedForBrandId, r.n]));
+  const gst = new Map(guests.map((r) => [r.votedForBrandId, r.n]));
+  const side = (id: string) => (reg.get(id) ?? 0) + Math.floor((gst.get(id) ?? 0) / 2);
+  const brandAVotes = side(brandAId);
+  const brandBVotes = side(brandBId);
   return { brandAVotes, brandBVotes, total: brandAVotes + brandBVotes };
+}
+
+export async function getVoteTally(battleId: string, brandAId: string, brandBId: string): Promise<VoteTally> {
+  const [rows, guests] = await Promise.all([
+    db
+      .select({ votedForBrandId: votes.votedForBrandId, n: count() })
+      .from(votes)
+      .where(eq(votes.battleId, battleId))
+      .groupBy(votes.votedForBrandId),
+    db
+      .select({ votedForBrandId: guestVotes.votedForBrandId, n: count() })
+      .from(guestVotes)
+      .where(eq(guestVotes.battleId, battleId))
+      .groupBy(guestVotes.votedForBrandId),
+  ]);
+  return combineTally(rows, guests, brandAId, brandBId);
 }
 
 /**
@@ -45,15 +68,19 @@ export async function getVoteTallyAsOf(
   brandBId: string,
   asOf: Date,
 ): Promise<VoteTally> {
-  const rows = await db
-    .select({ votedForBrandId: votes.votedForBrandId, n: count() })
-    .from(votes)
-    .where(and(eq(votes.battleId, battleId), lte(votes.createdAt, asOf)))
-    .groupBy(votes.votedForBrandId);
-  const byBrand = new Map(rows.map((r) => [r.votedForBrandId, r.n]));
-  const brandAVotes = byBrand.get(brandAId) ?? 0;
-  const brandBVotes = byBrand.get(brandBId) ?? 0;
-  return { brandAVotes, brandBVotes, total: brandAVotes + brandBVotes };
+  const [rows, guests] = await Promise.all([
+    db
+      .select({ votedForBrandId: votes.votedForBrandId, n: count() })
+      .from(votes)
+      .where(and(eq(votes.battleId, battleId), lte(votes.createdAt, asOf)))
+      .groupBy(votes.votedForBrandId),
+    db
+      .select({ votedForBrandId: guestVotes.votedForBrandId, n: count() })
+      .from(guestVotes)
+      .where(and(eq(guestVotes.battleId, battleId), lte(guestVotes.createdAt, asOf)))
+      .groupBy(guestVotes.votedForBrandId),
+  ]);
+  return combineTally(rows, guests, brandAId, brandBId);
 }
 
 /** Which brand (if any) this user already voted for in this battle. */
@@ -134,4 +161,44 @@ export async function castVoteForUser(
 
   await db.insert(votes).values({ battleId, userId, votedForBrandId }).onConflictDoNothing();
   return {};
+}
+
+// ——— Luca 13.11. (Phase 5): Abstimmen ohne Konto ———
+
+const GUEST_ID_RE = /^[A-Za-z0-9-]{16,64}$/;
+
+/** Nur der Hash der zufälligen Geräte-Kennung wird gespeichert. */
+function hashGuestId(guestId: string): string {
+  return createHash("sha256").update(`markitch-guest:${guestId}`).digest("hex");
+}
+
+/** Gleiche Regeln wie castVoteForUser, nur pro Gerät statt pro Konto. */
+export async function castGuestVote(guestId: unknown, battleId: string, votedForBrandId: string): Promise<{ error?: string }> {
+  if (typeof guestId !== "string" || !GUEST_ID_RE.test(guestId)) return { error: "Bitte melde dich an." };
+  const [battle] = await db.select().from(battles).where(eq(battles.id, battleId)).limit(1);
+  if (!battle) return { error: "Dieser Pitch existiert nicht." };
+  if (votedForBrandId !== battle.brandAId && votedForBrandId !== battle.brandBId) {
+    return { error: "Ungültige Marke für diesen Pitch." };
+  }
+  const isLegacyRow = battle.mode === "scheduled" && battle.productionDeadline === null;
+  if (!isLegacyRow && (!battle.brandAVideoUrl || !battle.brandBVideoUrl)) {
+    return { error: "Abstimmen ist erst möglich, wenn beide Videos da sind." };
+  }
+  const inserted = await db
+    .insert(guestVotes)
+    .values({ battleId, deviceHash: hashGuestId(guestId), votedForBrandId })
+    .onConflictDoNothing()
+    .returning({ id: guestVotes.id });
+  if (inserted.length === 0) return { error: "Du hast bereits abgestimmt." };
+  return {};
+}
+
+/** Für welche Seite dieses Gerät schon gestimmt hat (je Duell). */
+export async function getGuestVotes(guestId: unknown, battleIds: string[]): Promise<Map<string, string>> {
+  if (typeof guestId !== "string" || !GUEST_ID_RE.test(guestId) || battleIds.length === 0) return new Map();
+  const rows = await db
+    .select({ battleId: guestVotes.battleId, votedForBrandId: guestVotes.votedForBrandId })
+    .from(guestVotes)
+    .where(and(eq(guestVotes.deviceHash, hashGuestId(guestId)), inArray(guestVotes.battleId, battleIds)));
+  return new Map(rows.map((r) => [r.battleId, r.votedForBrandId]));
 }
