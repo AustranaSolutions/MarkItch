@@ -3,7 +3,7 @@ import { getOptionalUser } from "@/lib/session";
 import { recordVisitorEvent, type VisitorEventKind } from "@/lib/analytics";
 import { apiError } from "@/lib/api-error";
 
-const VALID_KINDS: VisitorEventKind[] = ["session_start", "register_started"];
+const VALID_KINDS: VisitorEventKind[] = ["session_start", "register_started", "shared_open"];
 
 /** Same "open to anyone, not rate-limited" reasoning as /api/analytics/track — see that route's comment. */
 export async function POST(request: NextRequest) {

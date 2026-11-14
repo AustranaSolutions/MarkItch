@@ -16,6 +16,16 @@ const SESSION_DATE_KEY = "mi_session_date";
  */
 export function SessionBoot() {
   useEffect(() => {
+    // Luca 14.11.: geöffneten geteilten Link immer zählen — ohne Gerätekennung
+    // und ohne etwas zu speichern, daher auch ohne Einwilligung.
+    const sharedRef = new URLSearchParams(window.location.search).get("ref");
+    if (sharedRef) {
+      fetch("/api/analytics/visit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ anonId: "-", kind: "shared_open", ref: sharedRef }),
+      }).catch(() => {});
+    }
     // Luca 18.10.: Besuche/Wiederkehr nur mit Einwilligung (braucht Speicher auf dem Gerät).
     if (getStatsConsent() !== "stats") return;
     const today = new Date().toISOString().slice(0, 10);

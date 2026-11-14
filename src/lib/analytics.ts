@@ -15,7 +15,8 @@ import { getSoloPitchesForBrand } from "@/lib/solo-pitch";
 // dafür schon die Ground Truth.
 export type AnalyticsEventKind = "view" | "share" | "cta_click" | "vote_click" | "login_required" | "complete";
 
-export type VisitorEventKind = "session_start" | "register_started";
+// Luca 14.11.: 'shared_open' = geteilter Link geöffnet (ohne Gerätekennung, anonId '-').
+export type VisitorEventKind = "session_start" | "register_started" | "shared_open";
 
 /** Fire-and-forget event log — see schema.ts for why this is a log, not a counter. */
 export async function recordAnalyticsEvent(

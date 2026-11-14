@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import {
   getActiveBrandsStats,
   getCtaStats,
+  getPlatformOverview,
+  refTypeLabel,
   getReferralStats,
   getRetention,
   getVideosPerSessionStats,
@@ -65,8 +67,25 @@ export async function GET() {
       registerCompleted: 0,
       voteCompleted: 0,
     }),
-    withTimeout("referrals", () => getReferralStats(30), { totalSessions: 0, withRef: 0, topRefs: [] }),
+    withTimeout("referrals", () => getReferralStats(30), { opens: 0, byType: [], topRefs: [] }),
   ]);
   const brands = await withTimeout("brands", () => getActiveBrandsStats(), { totalBrands: 0, activeLast30d: 0, postedMoreThanOnce: 0 });
-  return NextResponse.json({ visitors, videosPerSession, retention, cta, voteFunnel, referrals, brands });
+  // Luca 14.11.: Überblick für Investoren (eine Abfrage, nach den anderen).
+  const overview = await withTimeout("overview", () => getPlatformOverview(), null);
+  return NextResponse.json({
+    overview,
+    visitors,
+    videosPerSession,
+    retention,
+    cta,
+    voteFunnel,
+    referrals: {
+      ...referrals,
+      byType: referrals.byType.map((r) => ({ ...r, label: refTypeLabel(r.type) })),
+      // Ältere App-Versionen lesen diese Felder.
+      withRef: referrals.opens,
+      totalSessions: referrals.opens,
+    },
+    brands,
+  });
 }

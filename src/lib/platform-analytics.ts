@@ -1,7 +1,7 @@
 import "server-only";
 import { and, count, countDistinct, eq, gte, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { brandAnalyticsEvents, visitorEvents, battles, brands, soloPitches, users, votes } from "@/db/schema";
+import { brandAnalyticsEvents, brandMembers, visitorEvents, battles, brands, comments, follows, likes, reactions, savedCodes, soloPitches, users, votes } from "@/db/schema";
 
 // Phase 47: interne Metriken für /admin/analytics — deckt BETA-2-F/G aus
 // MarkItch_Launch_Minimum_Claude_Code_Prompt.md ab ("Produkt-/Funnel-
@@ -211,28 +211,48 @@ export async function getVoteFunnel(days = 30): Promise<VoteFunnelStats> {
   };
 }
 
-export type ReferralStats = { totalSessions: number; withRef: number; topRefs: { ref: string; count: number }[] };
+/** Anzeige-Name für die Art eines geteilten Links (ref vor dem Doppelpunkt). */
+export function refTypeLabel(type: string): string {
+  return (
+    { solo: "Video", pitch: "Video", duel: "Duell", battle: "Duell", profile: "Profil", story: "Insta-Story", reaction: "Reaktion", challenge: "Challenge" }[
+      type
+    ] ?? type
+  );
+}
 
-/** "Herkunft über geteilte MarkItch-Links". */
+export type ReferralStats = {
+  /** Geöffnete geteilte Links (App + Website) im Zeitraum. */
+  opens: number;
+  /** Nach Art des Geteilten (Video, Duell, Profil, Story …). */
+  byType: { type: string; count: number }[];
+  topRefs: { ref: string; count: number }[];
+};
+
+/**
+ * "Herkunft über geteilte MarkItch-Links". Luca 14.11.: gezählt wird jedes
+ * Öffnen eines geteilten Links ('shared_open') — in der App (Universal Link)
+ * und auf der Website, ohne Gerätekennung, also auch ohne Statistik-Einwilligung.
+ */
 export async function getReferralStats(days = 30): Promise<ReferralStats> {
   const rows = await db
     .select({ ref: visitorEvents.ref })
     .from(visitorEvents)
-    .where(and(eq(visitorEvents.kind, "session_start"), gte(visitorEvents.createdAt, daysAgo(days))));
+    .where(and(eq(visitorEvents.kind, "shared_open"), gte(visitorEvents.createdAt, daysAgo(days))));
 
   const counts = new Map<string, number>();
-  let withRef = 0;
+  const types = new Map<string, number>();
   for (const r of rows) {
     if (!r.ref) continue;
-    withRef += 1;
     counts.set(r.ref, (counts.get(r.ref) ?? 0) + 1);
+    const type = r.ref.split(":")[0] === "story" ? "story" : r.ref.split(":")[0];
+    types.set(type, (types.get(type) ?? 0) + 1);
   }
-  const topRefs = [...counts.entries()]
-    .map(([ref, count]) => ({ ref, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  return { totalSessions: rows.length, withRef, topRefs };
+  const sorted = (m: Map<string, number>) => [...m.entries()].sort((a, b) => b[1] - a[1]);
+  return {
+    opens: rows.length,
+    byType: sorted(types).map(([type, count]) => ({ type, count })),
+    topRefs: sorted(counts).slice(0, 10).map(([ref, count]) => ({ ref, count })),
+  };
 }
 
 export type ActiveBrandsStats = { totalBrands: number; activeLast30d: number; postedMoreThanOnce: number };
@@ -262,4 +282,102 @@ export async function getActiveBrandsStats(): Promise<ActiveBrandsStats> {
   }
 
   return { totalBrands: Number(total?.n ?? 0), activeLast30d, postedMoreThanOnce };
+}
+
+// ——— Luca 14.11.: Überblick für Investoren ———
+
+export type PlatformOverview = {
+  accounts: { total: number; viewers: number; businesses: number; creators: number; new7d: number; new30d: number };
+  /** Eindeutige Geräte (App + Website) mit mindestens einem Ereignis — DAU = Ø der letzten 7 Tage. */
+  activeDevices: { dau: number; wau: number; mau: number };
+  content: { videos: number; videos30d: number; reactions: number; duels: number; duels30d: number };
+  interactions30d: { views: number; completes: number; votes: number; likes: number; comments: number; follows: number; shares: number };
+  links: { clicksTotal: number; clicks30d: number; codesSaved: number };
+  /** Neue Konten pro Woche, die letzten 8 Wochen (älteste zuerst). */
+  weeklySignups: { weekStart: string; count: number }[];
+};
+
+/**
+ * Eine einzige Abfrage mit Unterabfragen — wie getActiveBrandsStats bewusst
+ * nicht parallel, damit sie keine Datenbank-Verbindungen blockiert.
+ */
+export async function getPlatformOverview(): Promise<PlatformOverview> {
+  const { rows } = await db.execute<Record<string, string | number | null>>(sql`
+    select
+      (select count(*) from ${users}) as accounts_total,
+      (select count(*) from ${users} u where not exists (select 1 from ${brandMembers} m where m.user_id = u.id)) as viewers,
+      (select count(*) from ${brands} where kind = 'brand') as businesses,
+      (select count(*) from ${brands} where kind = 'creator') as creators,
+      (select count(*) from ${users} where created_at > now() - interval '7 days') as new_7d,
+      (select count(*) from ${users} where created_at > now() - interval '30 days') as new_30d,
+      (select count(distinct anon_id) from (
+        select anon_id, created_at from ${brandAnalyticsEvents} where anon_id is not null and created_at > now() - interval '30 days'
+        union all
+        select anon_id, created_at from ${visitorEvents} where kind = 'session_start' and created_at > now() - interval '30 days'
+      ) e) as mau,
+      (select count(distinct anon_id) from (
+        select anon_id from ${brandAnalyticsEvents} where anon_id is not null and created_at > now() - interval '7 days'
+        union all
+        select anon_id from ${visitorEvents} where kind = 'session_start' and created_at > now() - interval '7 days'
+      ) e) as wau,
+      (select coalesce(sum(n), 0) / 7.0 from (
+        select date_trunc('day', created_at) as d, count(distinct anon_id) as n from (
+          select anon_id, created_at from ${brandAnalyticsEvents} where anon_id is not null and created_at > now() - interval '7 days'
+          union all
+          select anon_id, created_at from ${visitorEvents} where kind = 'session_start' and created_at > now() - interval '7 days'
+        ) e group by 1
+      ) per_day) as dau,
+      (select count(*) from ${soloPitches}) as videos,
+      (select count(*) from ${soloPitches} where created_at > now() - interval '30 days') as videos_30d,
+      (select count(*) from ${reactions}) as reactions,
+      (select count(*) from ${battles}) as duels,
+      (select count(*) from ${battles} where created_at > now() - interval '30 days') as duels_30d,
+      (select count(*) from ${brandAnalyticsEvents} where kind = 'view' and created_at > now() - interval '30 days') as views_30d,
+      (select count(*) from ${brandAnalyticsEvents} where kind = 'complete' and created_at > now() - interval '30 days') as completes_30d,
+      (select count(*) from ${brandAnalyticsEvents} where kind = 'share' and created_at > now() - interval '30 days') as shares_30d,
+      (select count(*) from ${votes} where created_at > now() - interval '30 days') as votes_30d,
+      (select count(*) from ${likes} where created_at > now() - interval '30 days') as likes_30d,
+      (select count(*) from ${comments} where created_at > now() - interval '30 days') as comments_30d,
+      (select count(*) from ${follows} where created_at > now() - interval '30 days') as follows_30d,
+      (select count(*) from ${brandAnalyticsEvents} where kind = 'cta_click') as clicks_total,
+      (select count(*) from ${brandAnalyticsEvents} where kind = 'cta_click' and created_at > now() - interval '30 days') as clicks_30d,
+      (select count(*) from ${savedCodes}) as codes_saved,
+      (select coalesce(json_agg(w order by w.week), '[]'::json) from (
+        select to_char(date_trunc('week', created_at), 'YYYY-MM-DD') as week, count(*) as n
+        from ${users} where created_at > date_trunc('week', now()) - interval '7 weeks'
+        group by 1
+      ) w) as weekly
+  `);
+  const r = rows[0] ?? {};
+  const n = (key: string) => Number(r[key] ?? 0);
+
+  // Lücken (Wochen ohne Anmeldung) mit 0 füllen.
+  const weeklyRaw = (typeof r.weekly === "string" ? JSON.parse(r.weekly) : (r.weekly ?? [])) as { week: string; n: number }[];
+  const byWeek = new Map(weeklyRaw.map((w) => [w.week, Number(w.n)]));
+  const monday = new Date();
+  monday.setUTCHours(0, 0, 0, 0);
+  monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
+  const weeklySignups = Array.from({ length: 8 }, (_, i) => {
+    const d = new Date(monday);
+    d.setUTCDate(d.getUTCDate() - (7 - i) * 7);
+    const key = dayKey(d);
+    return { weekStart: key, count: byWeek.get(key) ?? 0 };
+  });
+
+  return {
+    accounts: { total: n("accounts_total"), viewers: n("viewers"), businesses: n("businesses"), creators: n("creators"), new7d: n("new_7d"), new30d: n("new_30d") },
+    activeDevices: { dau: Math.round(n("dau")), wau: n("wau"), mau: n("mau") },
+    content: { videos: n("videos"), videos30d: n("videos_30d"), reactions: n("reactions"), duels: n("duels"), duels30d: n("duels_30d") },
+    interactions30d: {
+      views: n("views_30d"),
+      completes: n("completes_30d"),
+      votes: n("votes_30d"),
+      likes: n("likes_30d"),
+      comments: n("comments_30d"),
+      follows: n("follows_30d"),
+      shares: n("shares_30d"),
+    },
+    links: { clicksTotal: n("clicks_total"), clicks30d: n("clicks_30d"), codesSaved: n("codes_saved") },
+    weeklySignups,
+  };
 }
