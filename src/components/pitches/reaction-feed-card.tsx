@@ -106,7 +106,7 @@ export function ReactionFeedCard({
   const getVideo = useCallback(() => videoRef.current, []);
   // Luca 25.10.: gekürzte Videos spielen nur den Ausschnitt.
   useVideoTrim(getVideo, reaction.trim);
-  useVideoMusic(getVideo, reaction.music);
+  useVideoMusic(getVideo, reaction.music, reaction.trim);
   const edge = useEdgeFastForward(() => videoRef.current);
   const skipTap = useRef(false);
 

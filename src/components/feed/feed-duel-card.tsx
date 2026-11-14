@@ -357,7 +357,7 @@ export function FeedDuelCard({
     trackAnalyticsEvent(duel.sides[sideIndex].brandId, "complete", { battleId: duel.battleId });
   }, [sideIndex, duel.sides, duel.battleId]);
   useWatchedToEnd(getVideo, side.trim, handleWatchedToEnd);
-  useVideoMusic(getVideo, side.music);
+  useVideoMusic(getVideo, side.music, side.trim);
   const edge = useEdgeFastForward(() => videoRefs.current[sideIndex]);
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {

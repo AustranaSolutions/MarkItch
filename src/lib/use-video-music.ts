@@ -9,7 +9,16 @@ import { useEffect } from "react";
 
 export type Music = { url: string; musicVolume: number; originalVolume: number } | null | undefined;
 
-export function useVideoMusic(getVideo: () => HTMLVideoElement | null, music: Music) {
+/** Ab so viel Abweichung (Sekunden) springt die Musik an die passende Stelle. */
+const MAX_DRIFT_S = 0.35;
+
+export function useVideoMusic(
+  getVideo: () => HTMLVideoElement | null,
+  music: Music,
+  /** Gekürztes Video: die Musik beginnt am Anfang des Ausschnitts. */
+  trim?: { startMs: number } | null,
+) {
+  const startSec = (trim?.startMs ?? 0) / 1000;
   const url = music?.url ?? null;
   const musicVolume = music?.musicVolume ?? 0;
   const originalVolume = music?.originalVolume ?? 100;
@@ -31,6 +40,14 @@ export function useVideoMusic(getVideo: () => HTMLVideoElement | null, music: Mu
       audio.play().catch(() => {});
     };
     const pause = () => audio.pause();
+    // Luca 14.11.: Musik folgt der Position des Videos (Vorspulen, Zurückspulen, Schleife).
+    const syncPosition = () => {
+      const length = audio.duration;
+      if (!length || !Number.isFinite(length)) return;
+      const expected = (((video.currentTime - startSec) % length) + length) % length;
+      const diff = Math.abs(audio.currentTime - expected);
+      if (diff > MAX_DRIFT_S && length - diff > MAX_DRIFT_S) audio.currentTime = expected;
+    };
     syncVolume();
     if (!video.paused) play();
     video.addEventListener("play", play);
@@ -38,7 +55,11 @@ export function useVideoMusic(getVideo: () => HTMLVideoElement | null, music: Mu
     video.addEventListener("pause", pause);
     video.addEventListener("ended", pause);
     video.addEventListener("volumechange", syncVolume);
+    video.addEventListener("seeked", syncPosition);
+    video.addEventListener("timeupdate", syncPosition);
     return () => {
+      video.removeEventListener("seeked", syncPosition);
+      video.removeEventListener("timeupdate", syncPosition);
       video.removeEventListener("play", play);
       video.removeEventListener("playing", play);
       video.removeEventListener("pause", pause);
@@ -48,5 +69,5 @@ export function useVideoMusic(getVideo: () => HTMLVideoElement | null, music: Mu
       audio.src = "";
       video.volume = 1;
     };
-  }, [getVideo, url, musicVolume, originalVolume]);
+  }, [getVideo, url, musicVolume, originalVolume, startSec]);
 }

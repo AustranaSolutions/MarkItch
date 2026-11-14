@@ -137,7 +137,7 @@ export function FeedSoloPitchCard({
     trackAnalyticsEvent(pitch.brandId, "complete", { soloPitchId: pitch.soloPitchId });
   }, [pitch.brandId, pitch.soloPitchId]);
   useWatchedToEnd(getVideo, pitch.trim, handleWatchedToEnd);
-  useVideoMusic(getVideo, pitch.music);
+  useVideoMusic(getVideo, pitch.music, pitch.trim);
   const edge = useEdgeFastForward(() => videoRef.current);
   const skipTap = useRef(false);
 
