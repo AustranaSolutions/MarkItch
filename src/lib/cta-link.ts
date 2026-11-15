@@ -25,6 +25,18 @@ export function parseCtaCode(raw: unknown): { code: string | null } | { error: s
   return { code };
 }
 
+/**
+ * Luca 15.11.: „Anrufen“ unter dem Video — eine Telefonnummer (auch ohne
+ * „tel:“ getippt, z. B. „+43 660 1234567“) wird zum Anruf-Link. Sonst null.
+ */
+export function phoneLink(input: string): string | null {
+  const raw = input.trim().replace(/^tel:/i, "");
+  if (!/^\+?[0-9][0-9\s/().-]{4,24}$/.test(raw)) return null;
+  const digits = raw.replace(/[^0-9+]/g, "");
+  if (digits.replace(/\D/g, "").length < 5) return null;
+  return `tel:${digits}`;
+}
+
 export type CtaLinkResult =
   | { ctaLabel: string; ctaUrl: string; ctaCode: string | null }
   // Luca 13.11. (Phase 4): nur bei optionalem Link (Creator) — alles leer.
@@ -58,9 +70,12 @@ export function validateCtaLink(formData: FormData, options: { optional?: boolea
   }
 
   const rawUrl = formData.get("ctaUrl");
+  const phone = typeof rawUrl === "string" ? phoneLink(rawUrl) : null;
   const ctaUrlInput = typeof rawUrl === "string" ? withHttps(rawUrl) : "";
   let ctaUrl = "";
-  if (!ctaUrlInput) {
+  if (phone) {
+    ctaUrl = phone;
+  } else if (!ctaUrlInput) {
     errors.ctaUrl = ["Bitte einen Link angeben."];
   } else {
     try {

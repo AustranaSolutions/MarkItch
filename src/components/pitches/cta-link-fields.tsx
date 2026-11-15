@@ -50,11 +50,12 @@ export function CtaLinkFields({
       <Field
         label="Link"
         name="ctaUrl"
-        type="url"
+        // Luca 15.11.: auch Telefonnummern („+43 …“ → Anruf-Link), deshalb kein type="url".
+        type="text"
         errors={errors?.ctaUrl}
         value={ctaUrl}
         onChange={onCtaUrlChange}
-        placeholder={t("z. B. meinshop.at", "e.g. myshop.com")}
+        placeholder={t("z. B. meinshop.at oder +43 …", "e.g. myshop.com or +1 …")}
       />
       <Field
         label={t("Rabattcode (optional) — wird beim Antippen des Links kopiert", "Discount code (optional) — copied when the link is tapped")}
