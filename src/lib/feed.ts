@@ -16,6 +16,7 @@ import { getAllSoloPitches, type SoloPitchWithBrand } from "@/lib/solo-pitch";
 import { getReactionCounts } from "@/lib/reaction";
 import { getActiveBoostedSoloPitchIds } from "@/lib/boost";
 import { rankFeed, type RankItem } from "@/lib/feed-ranking";
+import { mentionsOf, resolveMentions, type Mention } from "@/lib/mentions";
 import { BOOST_ENABLED } from "@/lib/feature-flags";
 import { getViewCountsForSoloPitches, getViewCountsForBattles } from "@/lib/analytics";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
@@ -343,6 +344,8 @@ export type FeedSoloPitch = {
   music: VideoMusic | null;
   /** Phase 30: null only for content posted before this existed. */
   description: string | null;
+  /** Luca 15.11.: markierte Profile („@genussfux“) aus der Beschreibung, die es wirklich gibt. */
+  mentions: Mention[];
   likeCount: number;
   viewerLiked: boolean;
   viewerOwnsThisBrand: boolean;
@@ -390,6 +393,7 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
   if (pitches.length === 0) return [];
 
   const ids = pitches.map((p) => p.id);
+  const mentionMap = await resolveMentions(pitches.map((p) => p.description));
   const [likeCounts, commentCounts, reactionCounts, viewerLikedIds, viewerBrand, followedBrandIds, boostedIds, viewCounts, contexts, thumbnails, trims, musics] =
     await Promise.all([
       getSoloPitchLikeCounts(ids),
@@ -422,6 +426,7 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
     trim: trims.get(pitch.videoUrl) ?? null,
     music: musics.get(pitch.videoUrl) ?? null,
     description: pitch.description,
+    mentions: mentionsOf(pitch.description, mentionMap),
     likeCount: likeCounts.get(pitch.id) ?? 0,
     viewerLiked: viewerLikedIds.has(pitch.id),
     viewerOwnsThisBrand: viewerBrand?.id === pitch.brand.id,

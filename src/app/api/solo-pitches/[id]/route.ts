@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mentionsOf, resolveMentions } from "@/lib/mentions";
 import { getOptionalUser } from "@/lib/session";
 import { deleteOwnSoloPitch, updateOwnSoloPitch } from "@/lib/solo-pitch";
 import { apiError } from "@/lib/api-error";
@@ -27,7 +28,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const first = Object.values(result.errors).find((messages) => messages?.length)?.[0];
     return await apiError({ error: first ?? "Ungültige Eingabe.", fieldErrors: result.errors }, { status: 400 });
   }
+  // Luca 15.11.: markierte Profile gleich mitschicken, damit die Karte sie sofort verlinkt.
+  const mentions = mentionsOf(result.description, await resolveMentions([result.description]));
   return NextResponse.json({
+    mentions,
     description: result.description,
     ctaLabel: result.ctaLabel,
     ctaUrl: result.ctaUrl,

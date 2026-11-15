@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Eye, EyeOff, Heart, MessageCircle, Repeat2, Rocket, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
 import { RailFollowButton } from "@/components/brand/follow-button";
 import { CtaLink } from "@/components/feed/cta-link";
+import { MentionText } from "@/components/feed/mention-text";
 import { PitchChallengeButton } from "@/components/pitches/pitch-challenge-button";
 import { BoostButton } from "@/components/pitches/boost-button";
 import { ReportButton } from "@/components/moderation/report-button";
@@ -268,7 +269,11 @@ export function FeedSoloPitchCard({
             </span>
           )}
         </div>
-        {pitch.description && <p className="mb-2 text-sm text-white/90">{pitch.description}</p>}
+        {pitch.description && (
+          <p className="mb-2 text-sm text-white/90">
+            <MentionText text={pitch.description} mentions={pitch.mentions ?? []} />
+          </p>
+        )}
         {pitch.ctaUrl && pitch.ctaLabel && (
           <CtaLink
             url={pitch.ctaUrl}

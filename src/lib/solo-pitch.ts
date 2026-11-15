@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { soloPitches, brands, type SoloPitch } from "@/db/schema";
 import { getBrandForUser } from "@/lib/brand";
 import { validateCtaLink } from "@/lib/cta-link";
+import { notifyNewMentions } from "@/lib/mentions";
 import { readVideoUrlField } from "@/lib/storage";
 import { DEFAULT_DUEL_CATEGORY } from "@/lib/battle-format";
 import { AudioRightsSchema } from "@/lib/validation";
@@ -98,6 +99,8 @@ export async function updateOwnSoloPitch(
   if (codeGiven) ctaForm.set("ctaCode", typeof input.ctaCode === "string" ? input.ctaCode : "");
   // Luca 13.11. (Phase 4): Creator dürfen den Link weglassen.
   const myBrand = await getBrandForUser(userId);
+  // Luca 15.11.: für „neu markierte Profile benachrichtigen“ den alten Text merken.
+  const [before] = await db.select({ description: soloPitches.description }).from(soloPitches).where(eq(soloPitches.id, soloPitchId)).limit(1);
   const cta = validateCtaLink(ctaForm, { optional: myBrand?.kind === "creator" });
   if ("errors" in cta) return { ok: false, errors: cta.errors };
 
@@ -115,6 +118,14 @@ export async function updateOwnSoloPitch(
       ...(paidPartnership === undefined ? {} : { paidPartnership }),
     })
     .where(eq(soloPitches.id, soloPitchId));
+  if (myBrand) {
+    await notifyNewMentions({
+      authorBrandId: myBrand.id,
+      text: description.description,
+      previousText: before?.description,
+      link: `/?pitch=${soloPitchId}`,
+    }).catch(() => {});
+  }
   return {
     ok: true,
     description: description.description,
@@ -177,6 +188,8 @@ export async function createSoloPitchForUser(
       creatorChallengeId: options.creatorChallengeId ?? null,
     })
     .returning({ id: soloPitches.id });
+  // Luca 15.11.: markierte Profile („@genussfux“) benachrichtigen.
+  await notifyNewMentions({ authorBrandId: myBrand.id, text: description.description, link: `/?pitch=${pitch.id}` }).catch(() => {});
   return {
     ok: true,
     id: pitch.id,
