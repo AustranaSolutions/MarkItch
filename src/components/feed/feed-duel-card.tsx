@@ -59,22 +59,33 @@ function outcomeLabel(sideIndex: 0 | 1, tally: FeedDuel["tally"], t: Translate):
  * Luca 13.11. (2): aufgeräumt wie in der App — pro Zustand ein Element plus
  * höchstens eine kleine graue Zeile. Sieger in Gold, sonst ruhig.
  */
+function votesOf(sideIndex: 0 | 1, tally: FeedDuel["tally"], t: Translate) {
+  const sideVotes = sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes;
+  return {
+    pct: Math.round((sideVotes / tally.total) * 100),
+    count: t(`${sideVotes}/${tally.total} Stimmen`, `${sideVotes}/${tally.total} votes`),
+  };
+}
+
+/** Luca 16.11.: Gewonnen = goldenes „Gewonnen · 90 %“; Verloren/Unentschieden klein mit „10 % · 1/10 Stimmen“. */
 function ResultPill({ sideIndex, tally }: { sideIndex: 0 | 1; tally: FeedDuel["tally"] }) {
   const t = useT();
   const outcome = outcomeLabel(sideIndex, tally, t);
   if (!outcome) return null;
-  // Luca 16.11.: Stimmen dieser Seite von allen — „40/50 Stimmen“ statt Prozent.
-  const sideVotes = sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes;
-  const count = t(`${sideVotes}/${tally.total} Stimmen`, `${sideVotes}/${tally.total} votes`);
+  const { pct, count } = votesOf(sideIndex, tally, t);
   if (outcome.won) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-[#f5c542] px-2.5 py-0.5 text-xs font-bold text-[#2a1d00]">
-        <Trophy size={12} /> {t("Gewonnen", "Won")} · {count}
+        <Trophy size={12} /> {t(`Gewonnen · ${pct} %`, `Won · ${pct}%`)}
       </span>
     );
   }
   const tie = tally.brandAVotes === tally.brandBVotes;
-  return <span className="text-xs text-zinc-300">{tie ? t("Unentschieden", "Tie") : t("Verloren", "Lost")} · {count}</span>;
+  return (
+    <span className="text-xs text-zinc-300">
+      {tie ? t(`Unentschieden · ${pct} %`, `Tie · ${pct}%`) : t(`Verloren · ${pct} %`, `Lost · ${pct}%`)} · {count}
+    </span>
+  );
 }
 
 function VoteState({
@@ -127,6 +138,8 @@ function VoteState({
                 : t(`✓ Für ${other.brandName} gestimmt`, `✓ Voted for ${other.brandName}`)
               : null,
             t("Beendet", "Ended"),
+            // Beim Sieger stehen die Stimmen hier, beim Verlierer schon in der Zeile davor.
+            result.total > 0 && outcomeLabel(sideIndex, result, t)?.won ? votesOf(sideIndex, result, t).count : null,
           ]
             .filter(Boolean)
             .join(" · ")}
