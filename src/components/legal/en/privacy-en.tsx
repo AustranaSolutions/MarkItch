@@ -68,9 +68,15 @@ export function PrivacyEn() {
           notifications. Videos are downsized on your device when uploading; we generate preview images from them.
         </p>
         <p>
-          <B>My codes:</B> If you tap the link of a video with a discount code while logged in, we save the code, link and
+          <B>Codes:</B> If you tap the link of a video with a discount code while logged in, we save the code, link and
           video in your account so you can find them later. The business doesn’t learn who you are from this. You can
-          delete individual codes at any time under Settings → My codes; all of them are deleted with your account.
+          delete individual codes at any time under Settings → Saved for later; all of them are deleted with your account.
+        </p>
+        <p>
+          <B>Saved for later, “Not interested”, notifications:</B> If you save a video or hide one with “Not interested”, we
+          store this in your account to show you the list or to order your feed accordingly. The same applies to the
+          notification types you turned off. Businesses don’t learn about this. You can remove saved videos at any time;
+          everything is deleted with your account.
         </p>
         <p>
           <B>Voting without an account:</B> If you vote without an account, the app or your browser stores a random

@@ -736,3 +736,4 @@ production:
 ## 6. Repo
 
 https://github.com/AustranaSolutions/MarkItch
+- **Phasen-Map Phase 2 + 3 (16.11., Migration 0056):** „Für später“ (`saved_videos`, `lib/saved-videos.ts`, `/api/mobile/saved-videos`), „Nicht interessiert“ (`hidden_content`, `lib/hidden-content.ts`, `/api/mobile/hidden`, Ranking-Abwertung in `lib/feed-ranking.ts`), beendete Duelle (`getLiveAndFinishedFeedDuels`, Feld `finished` in `/api/mobile/pitches`), Benachrichtigungsarten abschaltbar (`users.muted_notification_kinds`, `lib/notification-kinds.ts`, `notifyUsers(..., kind)`, `/api/mobile/notification-settings`), Videos planen (`solo_pitches.publish_at`, `parsePublishAt`, sichtbar nur fürs eigene Profil bis zum Zeitpunkt). Datenschutz (de+en) ergänzt.

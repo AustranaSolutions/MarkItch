@@ -88,9 +88,15 @@ export default async function DatenschutzPage({ searchParams }: { searchParams: 
           Vorschaubilder.
         </p>
         <p>
-          <B>Meine Codes:</B> Tippst du angemeldet auf den Link eines Videos mit Rabattcode, speichern wir Code, Link und
+          <B>Codes:</B> Tippst du angemeldet auf den Link eines Videos mit Rabattcode, speichern wir Code, Link und
           Video in deinem Konto, damit du sie später wiederfindest. Die Marke erfährt dadurch nicht, wer du bist. Du kannst
-          einzelne Codes jederzeit unter Einstellungen → Meine Codes löschen; mit dem Konto werden alle gelöscht.
+          einzelne Codes jederzeit unter Einstellungen → Für später löschen; mit dem Konto werden alle gelöscht.
+        </p>
+        <p>
+          <B>Für später, „Nicht interessiert“, Benachrichtigungen:</B> Merkst du dir ein Video oder blendest du eines mit
+          „Nicht interessiert“ aus, speichern wir das in deinem Konto, um dir die Liste zu zeigen bzw. deinen Feed danach
+          zu ordnen. Ebenso, welche Benachrichtigungsarten du abgeschaltet hast. Die Marken erfahren davon nichts. Du kannst
+          gemerkte Videos jederzeit entfernen; mit dem Konto wird alles gelöscht.
         </p>
         <p>
           <B>Abstimmen ohne Konto:</B> Stimmst du ohne Konto ab, legen App bzw. Browser eine zufällige Kennung auf deinem
