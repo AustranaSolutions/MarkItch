@@ -17,6 +17,14 @@ type CommentRow = Omit<CommentWithAuthor, "createdAt"> & { createdAt: string };
 // identical components.
 // Phase 40: reactions got the same comment thread — "like/comment/teilen/
 // melden sollen überall gleich sein" (Luca).
+function threadComments(list: CommentRow[]): CommentRow[] {
+  const replies = new Map<string, CommentRow[]>();
+  for (const c of list) if (c.parentId) replies.set(c.parentId, [...(replies.get(c.parentId) ?? []), c]);
+  return list
+    .filter((c) => !c.parentId)
+    .flatMap((c) => [c, ...(replies.get(c.id) ?? []).sort((a, b) => a.createdAt.localeCompare(b.createdAt))]);
+}
+
 export type CommentTarget = { kind: "battle"; id: string } | { kind: "solo"; id: string } | { kind: "reaction"; id: string };
 
 const ENDPOINT_BY_KIND: Record<CommentTarget["kind"], { endpoint: string; idParam: string }> = {
@@ -108,14 +116,18 @@ export function CommentSheet({
             <p className="text-sm text-zinc-600">{t("Noch keine Meinungen — sag als Erste:r, was du denkst.", "No comments yet — be the first to say what you think.")}</p>
           ) : (
             <ul className="space-y-3">
-              {comments.map((c) => (
-                <li key={c.id}>
+              {/* Luca 16.11. (4.2): Antworten (aus der App) eingerückt unter ihrer Meinung. */}
+              {threadComments(comments).map((c) => (
+                <li key={c.id} className={`${c.parentId ? "ml-6 border-l-2 border-zinc-800 pl-3" : ""} ${c.authorIsOwner ? "rounded-lg bg-orange-500/10 p-2" : ""}`}>
                   <div className="flex items-center justify-between">
                     <Link
                       href={c.authorBrand ? `/brands/${c.authorBrand.slug}` : `/users/${c.authorId}`}
                       className="text-sm font-semibold text-white hover:underline"
                     >
                       {c.authorName}
+                      {c.authorIsOwner ? (
+                        <span className="ml-1.5 rounded-full border border-orange-500/50 px-1.5 text-[10px] font-bold text-orange-400">{t("Ersteller", "Creator")}</span>
+                      ) : null}
                     </Link>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-zinc-600">{shortTimeAgo(c.createdAt, t)}</span>
