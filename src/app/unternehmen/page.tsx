@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BadgeCheck, BarChart3, Clapperboard, Link2, Music, Swords, Ticket, Trophy } from "lucide-react";
+import { BadgeCheck, BarChart3, Clapperboard, Link2, Music, Ticket, Trophy, Vote } from "lucide-react";
 import { APP_STORE_LIVE, APP_STORE_URL } from "@/lib/feature-flags";
 import { getT } from "@/lib/lang";
 import { type Translate } from "@/lib/i18n";
@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const BENEFITS = (t: Translate) => [
   {
-    icon: Swords,
+    icon: Vote,
     title: t("Werbung, die man freiwillig ansieht", "Ads people choose to watch"),
     text: t(
       "Im Duell treten zwei Marken mit derselben Aufgabe an. Die Zuschauer stimmen ab — dadurch schauen sie wirklich hin, statt weiterzuwischen.",

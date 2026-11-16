@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Swords, User, Smartphone, type LucideIcon } from "lucide-react";
+import { Home, Search, Trophy, User, Smartphone, type LucideIcon } from "lucide-react";
 import { useT } from "@/components/i18n/lang-provider";
 
 // Phase 12d: real line icons instead of emoji. Emoji render inconsistently
@@ -19,10 +19,10 @@ import { useT } from "@/components/i18n/lang-provider";
 export function BottomNav({ isLoggedIn }: { isLoggedIn: boolean }) {
   const t = useT();
   const pathname = usePathname();
-  // Luca 16.11.: „Pitches“ (Mikrofon) → „Duelle“ (Schwerter) — dort sind nur Duelle.
+  // Luca 16.11.: „Pitches“ (Mikrofon) → „Duelle“ (Pokal; keine Schwerter, Luca 30.09.) — dort sind nur Duelle.
   const TABS: { href: string; label: string; icon: LucideIcon }[] = [
     { href: "/", label: "Feed", icon: Home },
-    { href: "/pitches", label: t("Duelle", "Duels"), icon: Swords },
+    { href: "/pitches", label: t("Duelle", "Duels"), icon: Trophy },
   ];
   const searchTab = { href: "/brands", label: t("Suche", "Search"), icon: Search };
   // Phase 21: a real "+" tab, TikTok/Instagram-style — every posting action
