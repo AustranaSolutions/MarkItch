@@ -9,6 +9,40 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 // deployment notes for how to lift that restriction.
 const FROM = process.env.EMAIL_FROM ?? "MarkItch <onboarding@resend.dev>";
 
+const REPLY_TO = process.env.EMAIL_REPLY_TO ?? "MarkItch Support <support@markitch.com>";
+
+export function wrapHtml(body: string): string {
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#18181b;background:#ffffff">
+${body}
+<p style="margin-top:32px;font-size:12px;color:#71717a">MarkItch · Austrana Solutions KG · <a href="https://www.markitch.com/impressum" style="color:#71717a">Impressum</a></p>
+</body></html>`;
+}
+
+/** Textfassung für Mail-Programme/Spamfilter: Links als „Text: URL“, Tags raus. */
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, (_m, href: string, label: string) =>
+      label.replace(/<[^>]+>/g, "").trim() === href ? href : `${label.replace(/<[^>]+>/g, "").trim()}: ${href}`,
+    )
+    .replace(/<hr\s*\/?>/gi, "\n----\n")
+    .replace(/<\/(p|pre|div)>|<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export function button(href: string, label: string, en = false): string {
+  return `<p><a href="${href}" style="display:inline-block;background:#ea580c;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:999px">${label}</a></p>
+     <p style="font-size:13px;color:#71717a">${en ? "If the button doesn’t work, copy this link:" : "Falls der Knopf nicht geht, kopiere diesen Link:"}<br>${href}</p>`;
+}
+
 async function sendEmail(to: string, subject: string, html: string, linkForLogs: string) {
   // Lokal den Link ausgeben (ohne Mail-Versand der einzige Weg, ihn zu
   // bekommen). In Produktion nie (Audit 04.10., H2): ein Reset-Link im Log ist
@@ -24,7 +58,18 @@ async function sendEmail(to: string, subject: string, html: string, linkForLogs:
     return;
   }
 
-  const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+  // Luca 16.11.: Mails landeten bei Outlook im Junk. Reine HTML-Mails ohne
+  // Textfassung, ohne Antwortadresse und mit nackten Links als Linktext werten
+  // Spamfilter ab — deshalb vollständiges HTML-Dokument + Textfassung + Antwort an
+  // den Support. Der Rest (SPF/DKIM/DMARC, Ruf der neuen Domain) liegt im DNS.
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject,
+    html: wrapHtml(html),
+    text: htmlToText(html),
+    replyTo: REPLY_TO,
+  });
   if (error) {
     // Don't throw: the user can still copy the link from the server logs
     // while email delivery is being set up (e.g. resend.dev's
@@ -41,7 +86,7 @@ export async function sendVerificationEmail(to: string, verifyUrl: string) {
       "Confirm your email address — MarkItch",
       `<p>Welcome to MarkItch!</p>
      <p>Please confirm your email address to activate your account:</p>
-     <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+     ${button(verifyUrl, "Confirm email", true)}
      <p>The link is valid for 24 hours.</p>`,
       verifyUrl,
     );
@@ -52,7 +97,7 @@ export async function sendVerificationEmail(to: string, verifyUrl: string) {
     "Bestätige deine E-Mail-Adresse — MarkItch",
     `<p>Willkommen bei MarkItch!</p>
      <p>Bitte bestätige deine E-Mail-Adresse, um deinen Account zu aktivieren:</p>
-     <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+     ${button(verifyUrl, "E-Mail bestätigen")}
      <p>Der Link ist 24 Stunden gültig.</p>`,
     verifyUrl,
   );
@@ -64,7 +109,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
       to,
       "Reset your password — MarkItch",
       `<p>You asked to reset your password.</p>
-     <p><a href="${resetUrl}">${resetUrl}</a></p>
+     ${button(resetUrl, "Set new password", true)}
      <p>The link is valid for 1 hour. If this wasn’t you, you can ignore this email.</p>`,
       resetUrl,
     );
@@ -74,7 +119,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
     to,
     "Passwort zurücksetzen — MarkItch",
     `<p>Du hast angefordert, dein Passwort zurückzusetzen.</p>
-     <p><a href="${resetUrl}">${resetUrl}</a></p>
+     ${button(resetUrl, "Neues Passwort festlegen")}
      <p>Der Link ist 1 Stunde gültig. Falls du das nicht warst, kannst du diese E-Mail ignorieren.</p>`,
     resetUrl,
   );
