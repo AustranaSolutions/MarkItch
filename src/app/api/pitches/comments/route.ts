@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { soloPitches, comments } from "@/db/schema";
 import { getOptionalUser } from "@/lib/session";
 import { checkComment } from "@/lib/comment-filter";
-import { getCommentsForSoloPitch } from "@/lib/comment";
+import { getCommentsForSoloPitch, resolveReplyParent } from "@/lib/comment";
 import { getActorLabel, notifyUsers } from "@/lib/notification";
 import { getBrandMemberUserIds } from "@/lib/brand";
 import { apiError } from "@/lib/api-error";
@@ -44,9 +44,15 @@ export async function POST(request: NextRequest) {
     return await apiError({ error: checked.error }, { status: 400 });
   }
   const content = checked.content;
-  await db.insert(comments).values({ soloPitchId, userId: viewer.id, content });
+  // Luca 16.11. (4.2): Antwort auf eine einzelne Meinung.
+  const reply = await resolveReplyParent(body?.parentId, { soloPitchId });
+  if (!reply.ok) return await apiError({ error: reply.error }, { status: 400 });
+  await db.insert(comments).values({ soloPitchId, userId: viewer.id, content, parentId: reply.parentId });
   const [memberIds, actor] = await Promise.all([getBrandMemberUserIds(pitch.brandId), getActorLabel(viewer.id)]);
   await notifyUsers(memberIds, { de: `${actor.label} hat eine Meinung zu deinem Video geschrieben.`, en: `${actor.label} commented on your video.` }, `/?pitch=${soloPitchId}`, viewer.id, "comment");
+  if (reply.parentAuthorId) {
+    await notifyUsers([reply.parentAuthorId], { de: `${actor.label} hat auf deine Meinung geantwortet.`, en: `${actor.label} replied to your comment.` }, `/?pitch=${soloPitchId}`, viewer.id, "comment");
+  }
   const list = await getCommentsForSoloPitch(soloPitchId, viewer.id);
   return NextResponse.json({ comments: list });
 }

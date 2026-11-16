@@ -18,6 +18,10 @@ export type CommentWithAuthor = {
   viewerCanDelete: boolean;
   /** Luca 25.10.: eigener Kommentar → kein „Blockieren“ (Web). */
   viewerIsAuthor: boolean;
+  /** Luca 16.11. (Phasen-Map 4.2): Antwort auf diese Meinung (eine Ebene tief), sonst null. */
+  parentId: string | null;
+  /** Luca 16.11.: Verfasser gehört zum Video (Marke bzw. Reaktions-Konto) → als „Antwort von …“ hervorheben. */
+  authorIsOwner: boolean;
 };
 
 type CommentTarget = { battleId?: string | null; soloPitchId?: string | null; reactionId?: string | null };
@@ -82,6 +86,7 @@ async function loadComments(where: SQL, viewerId: string | null, target: Comment
     db
       .select({
         id: comments.id,
+        parentId: comments.parentId,
         content: comments.content,
         createdAt: comments.createdAt,
         userId: comments.userId,
@@ -99,7 +104,7 @@ async function loadComments(where: SQL, viewerId: string | null, target: Comment
       .where(where)
       .orderBy(desc(comments.createdAt)),
     getBlockedIds(viewerId),
-    viewerId ? getTargetOwnerUserIds(target) : Promise.resolve(new Set<string>()),
+    getTargetOwnerUserIds(target),
   ]);
   const viewerOwnsTarget = viewerId !== null && owners.has(viewerId);
 
@@ -120,6 +125,8 @@ async function loadComments(where: SQL, viewerId: string | null, target: Comment
       authorBrand: row.brandId && row.brandSlug ? { id: row.brandId, slug: row.brandSlug, verified: row.brandVerifiedAt !== null } : null,
       viewerCanDelete: viewerOwnsTarget || row.userId === viewerId,
       viewerIsAuthor: row.userId === viewerId,
+      parentId: row.parentId,
+      authorIsOwner: owners.has(row.userId),
     }));
 }
 
@@ -167,4 +174,29 @@ export async function getCommentCountsForReactions(reactionIds: string[]): Promi
     .where(inArray(comments.reactionId, reactionIds))
     .groupBy(comments.reactionId);
   return new Map(rows.map((row) => [row.reactionId as string, row.n]));
+}
+
+/**
+ * Luca 16.11. (Phasen-Map 4.2): Antwort auf eine einzelne Meinung. Die Meinung
+ * muss zum selben Video gehören; geantwortet wird immer auf die oberste Ebene
+ * (Antwort auf eine Antwort hängt sich an deren Meinung).
+ */
+export async function resolveReplyParent(
+  rawParentId: unknown,
+  target: CommentTarget,
+): Promise<{ ok: true; parentId: string | null; parentAuthorId: string | null } | { ok: false; error: string }> {
+  if (rawParentId === undefined || rawParentId === null || rawParentId === "") return { ok: true, parentId: null, parentAuthorId: null };
+  if (typeof rawParentId !== "string" || !isUuid(rawParentId)) return { ok: false, error: "Ungültige Anfrage." };
+  const [parent] = await db.select().from(comments).where(eq(comments.id, rawParentId)).limit(1);
+  const sameTarget =
+    parent &&
+    (parent.battleId ?? null) === (target.battleId ?? null) &&
+    (parent.soloPitchId ?? null) === (target.soloPitchId ?? null) &&
+    (parent.reactionId ?? null) === (target.reactionId ?? null);
+  if (!parent || !sameTarget) return { ok: false, error: "Diese Meinung gibt es nicht mehr." };
+  if (parent.parentId) {
+    const [top] = await db.select({ id: comments.id, userId: comments.userId }).from(comments).where(eq(comments.id, parent.parentId)).limit(1);
+    if (top) return { ok: true, parentId: top.id, parentAuthorId: parent.userId };
+  }
+  return { ok: true, parentId: parent.id, parentAuthorId: parent.userId };
 }
