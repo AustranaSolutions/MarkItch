@@ -55,7 +55,7 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
-      <h1 className="mb-1 text-2xl font-bold text-white">Pitches</h1>
+      <h1 className="mb-1 text-2xl font-bold text-white">{t("Duelle", "Duels")}</h1>
       <p className="mb-6 text-sm text-zinc-500">
         {tab === "soon"
           ? t("Kommende Duelle — merk dir eins vor, dann sagen wir dir Bescheid, sobald es live geht.", "Upcoming duels — set a reminder and we’ll let you know as soon as one goes live.")
