@@ -694,14 +694,9 @@ export async function getFeedDuelById(viewerId: string | null, battleId: string)
   return duel ?? null;
 }
 
-/**
- * Luca 26.10.: Pitches-Tab → Reiter „Live“ — Duelle, deren Abstimmung gerade läuft
- * (beide Videos da, noch nicht beendet), zuletzt gestartete zuerst. Volle Feed-Karten,
- * weil man sie von dort aus wie im Feed durchwischt.
- */
+/** Luca 26.10.: Reiter „Live“ im Web (/pitches) — siehe getLiveAndFinishedFeedDuels. */
 export async function getLiveFeedDuels(viewerId: string | null): Promise<FeedDuel[]> {
-  const duels = await buildFeedDuels(viewerId);
-  return duels.filter((d) => !d.isFinished).sort((a, b) => b.activatedAt.localeCompare(a.activatedAt));
+  return (await getLiveAndFinishedFeedDuels(viewerId, 0)).live;
 }
 
 /** Same deep-link purpose as getFeedDuelById, for a solo pitch's share link. */

@@ -48,11 +48,12 @@ function timeLeftLabel(iso: string, t: Translate): string {
   return `${Math.max(1, Math.ceil(hoursLeft))}h`;
 }
 
-function outcomeLabel(sideIndex: 0 | 1, tally: FeedDuel["tally"], t: Translate): { label: string; won: boolean } | null {
+/** Ergebnis aus Sicht dieser Seite (offizielle Zählung); null = keine Stimmen. */
+function outcomeOf(sideIndex: 0 | 1, tally: FeedDuel["tally"]): "won" | "lost" | "tie" | null {
   if (tally.total === 0) return null;
-  if (tally.brandAVotes === tally.brandBVotes) return { label: t("Unentschieden", "Tie"), won: false };
-  const won = (sideIndex === 0 && tally.brandAVotes > tally.brandBVotes) || (sideIndex === 1 && tally.brandBVotes > tally.brandAVotes);
-  return { label: won ? t("Gewonnen", "Won") : t("Verloren", "Lost"), won };
+  if (tally.brandAVotes === tally.brandBVotes) return "tie";
+  const aWins = tally.brandAVotes > tally.brandBVotes;
+  return (sideIndex === 0) === aWins ? "won" : "lost";
 }
 
 /**
@@ -70,20 +71,19 @@ function votesOf(sideIndex: 0 | 1, tally: FeedDuel["tally"], t: Translate) {
 /** Luca 16.11.: Gewonnen = goldenes „Gewonnen · 90 %“; Verloren/Unentschieden klein mit „10 % · 1/10 Stimmen“. */
 function ResultPill({ sideIndex, tally }: { sideIndex: 0 | 1; tally: FeedDuel["tally"] }) {
   const t = useT();
-  const outcome = outcomeLabel(sideIndex, tally, t);
+  const outcome = outcomeOf(sideIndex, tally);
   if (!outcome) return null;
   const { pct, count } = votesOf(sideIndex, tally, t);
-  if (outcome.won) {
+  if (outcome === "won") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-[#f5c542] px-2.5 py-0.5 text-xs font-bold text-[#2a1d00]">
         <Trophy size={12} /> {t(`Gewonnen · ${pct} %`, `Won · ${pct}%`)}
       </span>
     );
   }
-  const tie = tally.brandAVotes === tally.brandBVotes;
   return (
     <span className="text-xs text-zinc-300">
-      {tie ? t(`Unentschieden · ${pct} %`, `Tie · ${pct}%`) : t(`Verloren · ${pct} %`, `Lost · ${pct}%`)} · {count}
+      {outcome === "tie" ? t(`Unentschieden · ${pct} %`, `Tie · ${pct}%`) : t(`Verloren · ${pct} %`, `Lost · ${pct}%`)} · {count}
     </span>
   );
 }
@@ -139,7 +139,7 @@ function VoteState({
               : null,
             t("Beendet", "Ended"),
             // Beim Sieger stehen die Stimmen hier, beim Verlierer schon in der Zeile davor.
-            result.total > 0 && outcomeLabel(sideIndex, result, t)?.won ? votesOf(sideIndex, result, t).count : null,
+            outcomeOf(sideIndex, result) === "won" ? votesOf(sideIndex, result, t).count : null,
           ]
             .filter(Boolean)
             .join(" · ")}
