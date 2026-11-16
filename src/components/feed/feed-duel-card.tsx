@@ -138,7 +138,8 @@ function VoteState({
         </span>
         {canStillVote && (
           <button onClick={onVote} disabled={voting} className="text-xs text-orange-400 hover:underline">
-            {voting ? "…" : t("Noch abstimmen", "Vote anyway")}
+            {/* Luca 16.11.: klar sagen, dass man direkt für diese Seite stimmt. */}
+            {voting ? "…" : t(`Nachträglich für ${side.brandName} stimmen`, `Vote for ${side.brandName} anyway`)}
           </button>
         )}
       </div>
@@ -626,6 +627,7 @@ export function FeedDuelCard({
             code={side.ctaCode}
             target={{ targetType: "battle", targetId: duel.battleId, brandId: side.brandId }}
             onClick={() => trackAnalyticsEvent(side.brandId, "cta_click", { battleId: duel.battleId })}
+            subtle
           />
         )}
         <div className="pointer-events-auto">

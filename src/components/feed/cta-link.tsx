@@ -17,6 +17,7 @@ export function CtaLink({
   target,
   onClick,
   className = "",
+  subtle = false,
 }: {
   url: string;
   label: string;
@@ -24,6 +25,8 @@ export function CtaLink({
   target: { targetType: "pitch" | "battle"; targetId: string; brandId: string };
   onClick?: () => void;
   className?: string;
+  /** Luca 16.11.: im Duell ist Abstimmen der orange Hauptknopf — Link dann hell umrandet. */
+  subtle?: boolean;
 }) {
   const t = useT();
   const [copied, setCopied] = useState(false);
@@ -47,7 +50,7 @@ export function CtaLink({
       target="_blank"
       rel="noreferrer noopener"
       onClick={handleClick}
-      className={`pointer-events-auto mb-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-orange-500 ${className}`}
+      className={`pointer-events-auto mb-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-white ${subtle ? "border border-white/60 bg-black/35 hover:bg-black/50" : "bg-orange-600 hover:bg-orange-500"} ${className}`}
     >
       <span className="truncate">{label} →</span>
       {code ? (
