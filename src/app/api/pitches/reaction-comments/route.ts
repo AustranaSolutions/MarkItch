@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   ]);
   // No dedicated reaction deep-link exists yet — points at the pitch the
   // reaction belongs to instead of a dead link.
-  await notifyUsers(memberIds, { de: `${actor.label} hat eine Meinung zu deiner Reaktion geschrieben.`, en: `${actor.label} commented on your reaction.` }, reaction.soloPitchId ? `/?pitch=${reaction.soloPitchId}` : `/challenges/${reaction.creatorChallengeId}`, viewer.id);
+  await notifyUsers(memberIds, { de: `${actor.label} hat eine Meinung zu deiner Reaktion geschrieben.`, en: `${actor.label} commented on your reaction.` }, reaction.soloPitchId ? `/?pitch=${reaction.soloPitchId}` : `/challenges/${reaction.creatorChallengeId}`, viewer.id, "comment");
   const list = await getCommentsForReaction(reactionId, viewer.id);
   return NextResponse.json({ comments: list });
 }

@@ -165,6 +165,8 @@ const EXACT: Record<string, string> = {
   "Bitte den Link zu deinem Profil oder deiner Website angeben.": "Please enter the link to your profile or website.",
   "Dein Profil ist schon geprüft.": "Your profile is already verified.",
   "Ein Code braucht einen Link.": "A code needs a link.",
+  "Bitte einen Zeitpunkt zwischen 5 Minuten und 30 Tagen in der Zukunft wählen.": "Please pick a time between 5 minutes and 30 days from now.",
+  "Video nicht gefunden.": "Video not found.",
   "Code: nur Buchstaben, Ziffern und - _ . % (keine Leerzeichen).": "Code: only letters, digits and - _ . % (no spaces).",
   "Upload konnte nicht vorbereitet werden.": "The upload couldn’t be prepared.",
   "Video fehlt.": "Video is missing.",

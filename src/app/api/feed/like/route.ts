@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   const count = await getLikeCount(battleId, brandId);
   if (liked) {
     const [memberIds, actor] = await Promise.all([getBrandMemberUserIds(brandId), getActorLabel(viewer.id)]);
-    await notifyUsers(memberIds, { de: `${actor.label} gefällt deine Duell-Seite.`, en: `${actor.label} likes your side of the duel.` }, `/?battle=${battleId}`, viewer.id);
+    await notifyUsers(memberIds, { de: `${actor.label} gefällt deine Duell-Seite.`, en: `${actor.label} likes your side of the duel.` }, `/?battle=${battleId}`, viewer.id, "like");
   }
   return NextResponse.json({ liked, count });
 }

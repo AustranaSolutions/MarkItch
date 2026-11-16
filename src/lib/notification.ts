@@ -1,9 +1,10 @@
 import "server-only";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { brandMembers, brands, notifications, users, type Notification } from "@/db/schema";
 import { sendPushToUser } from "@/lib/push";
 import type { Lang } from "@/lib/i18n";
+import type { NotificationKind } from "@/lib/notification-kinds";
 
 /** Luca 12.11.: Benachrichtigungen in beiden Sprachen — gezeigt wird die des Lesers. */
 export type Msg = { de: string; en: string };
@@ -50,13 +51,35 @@ export async function getActorLabel(userId: string): Promise<{ label: string; li
  * that device never subscribed, and no-ops entirely when VAPID keys aren't
  * configured — never blocks the in-app notification either way.
  */
+/** Luca 16.11. (3.4): Empfänger ohne die, die diese Art abgeschaltet haben. */
+export async function withoutMuted(userIds: string[], kind: NotificationKind | undefined): Promise<string[]> {
+  const ids = [...new Set(userIds)];
+  if (!kind || ids.length === 0) return ids;
+  try {
+    const muted = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(inArray(users.id, ids), sql`${users.mutedNotificationKinds} @> ${JSON.stringify([kind])}::jsonb`));
+    const mutedSet = new Set(muted.map((m) => m.id));
+    return ids.filter((id) => !mutedSet.has(id));
+  } catch (err) {
+    console.error("[notification] withoutMuted failed:", err);
+    return ids;
+  }
+}
+
 export async function notifyUsers(
   userIds: string[],
   message: Msg,
   link: string | null,
   excludeUserId?: string,
+  /** Luca 16.11. (3.4): Art — wer sie abgeschaltet hat, bekommt nichts. Ohne Art: immer. */
+  kind?: NotificationKind,
 ): Promise<void> {
-  const recipients = [...new Set(userIds)].filter((id) => id !== excludeUserId);
+  const recipients = await withoutMuted(
+    [...new Set(userIds)].filter((id) => id !== excludeUserId),
+    kind,
+  );
   if (recipients.length === 0) return;
   await db
     .insert(notifications)

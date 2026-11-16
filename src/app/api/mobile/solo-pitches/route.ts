@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
   if (body.audioRightsConfirmed === true) form.set("audioRightsConfirmed", "on");
   if (body.containsAiContent === true) form.set("containsAiContent", "on");
   if (body.paidPartnership === true) form.set("paidPartnership", "on");
+  // Luca 16.11. (2.4): geplant veröffentlichen (ISO-Zeitpunkt).
+  if (typeof body.publishAt === "string") form.set("publishAt", body.publishAt);
 
   const result = await createSoloPitchForUser(viewer.id, form);
   if (!result.ok) return fieldErrorResponse(result.errors);

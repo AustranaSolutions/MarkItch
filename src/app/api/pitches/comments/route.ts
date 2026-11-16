@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   const content = checked.content;
   await db.insert(comments).values({ soloPitchId, userId: viewer.id, content });
   const [memberIds, actor] = await Promise.all([getBrandMemberUserIds(pitch.brandId), getActorLabel(viewer.id)]);
-  await notifyUsers(memberIds, { de: `${actor.label} hat eine Meinung zu deinem Video geschrieben.`, en: `${actor.label} commented on your video.` }, `/?pitch=${soloPitchId}`, viewer.id);
+  await notifyUsers(memberIds, { de: `${actor.label} hat eine Meinung zu deinem Video geschrieben.`, en: `${actor.label} commented on your video.` }, `/?pitch=${soloPitchId}`, viewer.id, "comment");
   const list = await getCommentsForSoloPitch(soloPitchId, viewer.id);
   return NextResponse.json({ comments: list });
 }

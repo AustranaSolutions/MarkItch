@@ -23,6 +23,19 @@ export type SoloPitchWithBrand = SoloPitch & { brand: SoloPitchBrand };
 
 const brandCols = { id: brands.id, name: brands.name, slug: brands.slug, logoUrl: brands.logoUrl, verifiedAt: brands.verifiedAt, kind: brands.kind };
 
+const MIN_SCHEDULE_MS = 5 * 60 * 1000;
+const MAX_SCHEDULE_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** ISO-Zeitpunkt aus dem Formular → Date, null (sofort) oder "invalid". */
+export function parsePublishAt(raw: FormDataEntryValue | null, now = Date.now()): Date | null | "invalid" {
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "invalid";
+  const diff = date.getTime() - now;
+  if (diff < MIN_SCHEDULE_MS || diff > MAX_SCHEDULE_MS) return "invalid";
+  return date;
+}
+
 /** Phase F (H3): `where` filtert schon in der DB (eine Marke, ein Video, eine Challenge). */
 export async function getAllSoloPitches(where?: SQL): Promise<SoloPitchWithBrand[]> {
   const rows = await db
@@ -173,6 +186,11 @@ export async function createSoloPitchForUser(
 
   const containsAiContent = formData.get("containsAiContent") === "on";
   const paidPartnership = readPaidPartnership(formData, myBrand);
+  // Luca 16.11. (2.4): geplant veröffentlichen — frühestens in 5 Minuten, höchstens 30 Tage voraus.
+  const publishAt = parsePublishAt(formData.get("publishAt"));
+  if (publishAt === "invalid") {
+    return { ok: false, errors: { publishAt: ["Bitte einen Zeitpunkt zwischen 5 Minuten und 30 Tagen in der Zukunft wählen."] } };
+  }
   const [pitch] = await db
     .insert(soloPitches)
     .values({
@@ -186,10 +204,14 @@ export async function createSoloPitchForUser(
       containsAiContent,
       paidPartnership,
       creatorChallengeId: options.creatorChallengeId ?? null,
+      publishAt,
     })
     .returning({ id: soloPitches.id });
-  // Luca 15.11.: markierte Profile („@genussfux“) benachrichtigen.
-  await notifyNewMentions({ authorBrandId: myBrand.id, text: description.description, link: `/?pitch=${pitch.id}` }).catch(() => {});
+  // Luca 15.11.: markierte Profile („@genussfux“) benachrichtigen — bei geplanten
+  // Videos nicht (der Link ginge sonst ins Leere, solange das Video noch nicht sichtbar ist).
+  if (!publishAt) {
+    await notifyNewMentions({ authorBrandId: myBrand.id, text: description.description, link: `/?pitch=${pitch.id}` }).catch(() => {});
+  }
   return {
     ok: true,
     id: pitch.id,

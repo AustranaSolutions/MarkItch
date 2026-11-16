@@ -2,6 +2,7 @@ import "server-only";
 import { and, count, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "@/db";
+import { getNotInterestedBrandIds } from "@/lib/hidden-content";
 import { brandAnalyticsEvents, brands, comments, follows, guestVotes, likes, reactions, seenContent, votes } from "@/db/schema";
 
 // Luca 13.11. (Phase 6): Feed-Ranking statt rein chronologisch.
@@ -32,6 +33,8 @@ const W = { like: 1, comment: 2, vote: 1.5, reaction: 3, share: 4, cta: 3 };
 const FOLLOW_BOOST = 1.6;
 const CATEGORY_BOOST = 1.3;
 const SEEN_FACTOR = 0.15;
+/** Luca 16.11. (3.2): Marke mit „Nicht interessiert“ rutscht deutlich nach hinten (nicht ganz weg). */
+const NOT_INTERESTED_FACTOR = 0.2;
 const NEW_MAX_AGE_H = 48;
 const NEW_MAX_VIEWS = 30;
 const EXPLORE_EVERY = 5; // Test-Platz an Position 2, 7, 12, …
@@ -137,10 +140,16 @@ async function loadSignals(items: RankItem[]): Promise<Map<string, Counts>> {
   return counts;
 }
 
-export type Viewer = { followed: Set<string>; categories: Set<string>; seen: Set<string> };
+export type Viewer = {
+  followed: Set<string>;
+  categories: Set<string>;
+  seen: Set<string>;
+  /** Luca 16.11. (3.2): Marken, bei denen „Nicht interessiert“ gewählt wurde. */
+  notInterested?: Set<string>;
+};
 
 async function loadViewer(viewerId: string | null, items: RankItem[]): Promise<Viewer> {
-  if (!viewerId) return { followed: new Set(), categories: new Set(), seen: new Set() };
+  if (!viewerId) return { followed: new Set(), categories: new Set(), seen: new Set(), notInterested: new Set() };
   const followedRows = await db.select({ brandId: follows.brandId }).from(follows).where(eq(follows.userId, viewerId));
   const since = sql`now() - interval '90 days'`;
   // Lieblings-Kategorien: Kategorien der Marken, die man gelikt, gewählt oder abonniert hat (top 3).
@@ -161,10 +170,12 @@ async function loadViewer(viewerId: string | null, items: RankItem[]): Promise<V
         .from(seenContent)
         .where(and(eq(seenContent.userId, viewerId), inArray(seenContent.targetId, targetIds)))
     : [];
+  const notInterested = await getNotInterestedBrandIds(viewerId).catch(() => new Set<string>());
   return {
     followed: new Set(followedRows.map((r) => r.brandId)),
     categories: new Set(catRows.map((r) => r.category)),
     seen: new Set(seenRows.map((r) => `${r.t}:${r.id}`)),
+    notInterested,
   };
 }
 
@@ -208,7 +219,9 @@ export function orderItems<T extends RankItem>(items: T[], input: RankInput): T[
     const seen = viewer.seen.has(`${item.type}:${item.id}`);
     if (seen) score *= SEEN_FACTOR;
     if (item.boosted) score *= 2;
-    const isNew = !seen && item.type !== "reaction" && ageH < NEW_MAX_AGE_H && c.views < NEW_MAX_VIEWS;
+    if (item.brandIds.some((b) => viewer.notInterested?.has(b))) score *= NOT_INTERESTED_FACTOR;
+    const notInterested = item.brandIds.some((b) => viewer.notInterested?.has(b));
+    const isNew = !seen && !notInterested && item.type !== "reaction" && ageH < NEW_MAX_AGE_H && c.views < NEW_MAX_VIEWS;
     return { item, score, isNew };
   });
 

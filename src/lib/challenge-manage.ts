@@ -173,6 +173,7 @@ async function notifyChallenge(challengedBrandId: string, challengerUserId: stri
     { de: `${actor.label} hat dich zu einem Duell herausgefordert.`, en: `${actor.label} challenged you to a duel.` },
     "/profile/settings#einladungen",
     challengerUserId,
+    "duel",
   );
 }
 
@@ -269,7 +270,7 @@ export async function cancelChallengeFor(user: { id: string }, challengeId: unkn
     getBrandMemberUserIds(challenge.challengedBrandId),
     getActorLabel(user.id),
   ]);
-  await notifyUsers(challengedMemberIds, { de: `${actor.label} hat die Duell-Einladung zurückgezogen.`, en: `${actor.label} withdrew the duel invite.` }, null, user.id);
+  await notifyUsers(challengedMemberIds, { de: `${actor.label} hat die Duell-Einladung zurückgezogen.`, en: `${actor.label} withdrew the duel invite.` }, null, user.id, "duel");
 
   return { ok: true };
 }
@@ -391,6 +392,7 @@ export async function respondToChallengeFor(
           },
       `/pitches/${battle.id}`,
       user.id,
+      "duel",
     );
   } else {
     await notifyUsers(
@@ -398,6 +400,7 @@ export async function respondToChallengeFor(
       { de: `${actor.label} hat deine Duell-Einladung abgelehnt.`, en: `${actor.label} declined your duel invite.` },
       "/profile/settings#einladungen",
       user.id,
+      "duel",
     );
   }
 

@@ -63,5 +63,7 @@ export async function notifyNewMentions(input: {
     userIds,
     { de: `🏷️ ${author.name} hat dich in einem Video erwähnt.`, en: `🏷️ ${author.name} mentioned you in a video.` },
     input.link,
+    undefined,
+    "mention",
   );
 }

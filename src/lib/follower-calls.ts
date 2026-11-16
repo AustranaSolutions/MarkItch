@@ -12,6 +12,6 @@ import { notifyUsers, type Msg } from "@/lib/notification";
 export function notifyFollowersOfNewCall(brand: { id: string }, message: Msg, link: string): void {
   after(async () => {
     const followers = await getFollowerUserIds(brand.id);
-    await notifyUsers(followers, message, link);
+    await notifyUsers(followers, message, link, undefined, "news");
   });
 }

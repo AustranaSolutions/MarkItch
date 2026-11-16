@@ -2,16 +2,17 @@ import { NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { getUpcomingBattles } from "@/lib/upcoming-battles";
 import { getRemindedBattleIds } from "@/lib/reminder";
-import { getLiveFeedDuels } from "@/lib/feed";
+import { getLiveAndFinishedFeedDuels } from "@/lib/feed";
 
 // RN-5: Pitches-Tab der App — dieselbe „kommt bald“-Liste wie /pitches im Web.
 export async function GET() {
   const viewer = await getOptionalUser();
-  const [upcoming, remindedIds, live] = await Promise.all([
+  const [upcoming, remindedIds, { live, finished }] = await Promise.all([
     getUpcomingBattles(),
     viewer ? getRemindedBattleIds(viewer.id) : Promise.resolve([] as string[]),
     // Luca 26.10.: Reiter „Live“ (ältere App-Versionen ignorieren das Feld).
-    getLiveFeedDuels(viewer?.id ?? null),
+    // Luca 16.11.: dazu Reiter „Beendet“.
+    getLiveAndFinishedFeedDuels(viewer?.id ?? null),
   ]);
   const reminded = new Set(remindedIds);
   const brand = (b: { name: string; slug: string; logoUrl: string | null }) => ({ name: b.name, slug: b.slug, logoUrl: b.logoUrl });
@@ -29,5 +30,6 @@ export async function GET() {
       reminded: reminded.has(battle.id),
     })),
     live,
+    finished,
   });
 }

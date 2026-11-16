@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const result = await toggleSoloPitchLikeForUser(viewer.id, soloPitchId, pitch.brandId);
     if (result.liked) {
       const [memberIds, actor] = await Promise.all([getBrandMemberUserIds(pitch.brandId), getActorLabel(viewer.id)]);
-      await notifyUsers(memberIds, { de: `${actor.label} gefällt dein Pitch.`, en: `${actor.label} likes your pitch.` }, `/?pitch=${soloPitchId}`, viewer.id);
+      await notifyUsers(memberIds, { de: `${actor.label} gefällt dein Pitch.`, en: `${actor.label} likes your pitch.` }, `/?pitch=${soloPitchId}`, viewer.id, "like");
     }
     return NextResponse.json(result);
   }
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         reaction.brandId ? getBrandMemberUserIds(reaction.brandId) : Promise.resolve(reaction.userId ? [reaction.userId] : []),
         getActorLabel(viewer.id),
       ]);
-      await notifyUsers(memberIds, { de: `${actor.label} gefällt deine Reaktion.`, en: `${actor.label} likes your reaction.` }, reaction.soloPitchId ? `/?pitch=${reaction.soloPitchId}` : `/challenges/${reaction.creatorChallengeId}`, viewer.id);
+      await notifyUsers(memberIds, { de: `${actor.label} gefällt deine Reaktion.`, en: `${actor.label} likes your reaction.` }, reaction.soloPitchId ? `/?pitch=${reaction.soloPitchId}` : `/challenges/${reaction.creatorChallengeId}`, viewer.id, "like");
     }
     return NextResponse.json(result);
   }

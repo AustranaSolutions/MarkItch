@@ -1,6 +1,8 @@
 import "server-only";
 import { after } from "next/server";
-import { eq, inArray, or, type SQL } from "drizzle-orm";
+import { and, eq, inArray, or, type SQL } from "drizzle-orm";
+import { db } from "@/db";
+import { brandMembers } from "@/db/schema";
 import { battles as battlesTable, soloPitches } from "@/db/schema";
 import { isUuid } from "@/lib/mobile-auth";
 import { getAllBattles, resolveBattleVideos, type BattleWithBrands } from "@/lib/battle";
@@ -21,6 +23,7 @@ import { BOOST_ENABLED } from "@/lib/feature-flags";
 import { getViewCountsForSoloPitches, getViewCountsForBattles } from "@/lib/analytics";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
 import { getBlockedIds } from "@/lib/block";
+import { getHiddenKeys } from "@/lib/hidden-content";
 import { getSoloPitchContexts, type PitchContext } from "@/lib/pitch-context";
 import {
   enrichCommunityReactions,
@@ -370,6 +373,8 @@ export type FeedSoloPitch = {
   context: PitchContext | null;
   /** RN-7: für die Challenge-Seite (Einreichungen filtern). */
   creatorChallengeId: string | null;
+  /** Luca 16.11. (Phasen-Map 2.4): geplant — nur die Marke selbst sieht das Video vorher (ISO). */
+  publishAt: string | null;
 };
 
 export type FeedItem = FeedDuel | FeedSoloPitch;
@@ -377,15 +382,30 @@ export type FeedItem = FeedDuel | FeedSoloPitch;
 export type FeedItemWithReactions = FeedItem | FeedReaction;
 
 /** Stufe 1: sichtbare Solo-Pitches (nicht blockiert/pausiert), neueste zuerst, ohne Zählungen. */
-async function getEligibleSoloPitches(viewerId: string | null, where?: SQL): Promise<SoloPitchWithBrand[]> {
+async function getEligibleSoloPitches(
+  viewerId: string | null,
+  where?: SQL,
+  /** Luca 16.11.: geplante Videos dieser Marke mitliefern (nur für ihr eigenes Profil). */
+  scheduledOfBrandId?: string,
+): Promise<SoloPitchWithBrand[]> {
   const [allPitches, autoHiddenIds, blocked] = await Promise.all([
     getAllSoloPitches(where),
     getAutoHiddenTargetIds(["solo_pitch"]),
     getBlockedIds(viewerId),
   ]);
+  const now = Date.now();
   // Phase 46: siehe getEligibleBattles — mehrere unterschiedliche Meldende → automatisch pausiert.
   // RN-7: dazu alles von blockierten Marken.
-  return allPitches.filter((p) => !autoHiddenIds.has(p.id) && !blocked.brandIds.has(p.brandId));
+  return allPitches.flatMap((p) => {
+    if (autoHiddenIds.has(p.id) || blocked.brandIds.has(p.brandId)) return [];
+    if (p.publishAt) {
+      // Luca 16.11. (2.4): noch nicht veröffentlicht → nur die Marke selbst sieht es.
+      if (p.publishAt.getTime() > now) return p.brandId === scheduledOfBrandId ? [p] : [];
+      // Veröffentlicht: ab dann zählt der Zeitpunkt der Veröffentlichung (Ranking, „neu“).
+      if (p.publishAt > p.createdAt) return [{ ...p, createdAt: p.publishAt }];
+    }
+    return [p];
+  });
 }
 
 /** Stufe 2: volle Feed-Karten für genau diese Solo-Pitches. */
@@ -444,11 +464,12 @@ async function enrichSoloPitches(viewerId: string | null, pitches: SoloPitchWith
     adLabel: showsAdLabel(pitch.brand.kind, pitch.paidPartnership),
     context: contexts.get(pitch.id) ?? null,
     creatorChallengeId: pitch.creatorChallengeId,
+    publishAt: pitch.publishAt && pitch.publishAt.getTime() > Date.now() ? pitch.publishAt.toISOString() : null,
   }));
 }
 
-async function buildFeedSoloPitches(viewerId: string | null, where?: SQL): Promise<FeedSoloPitch[]> {
-  return enrichSoloPitches(viewerId, await getEligibleSoloPitches(viewerId, where));
+async function buildFeedSoloPitches(viewerId: string | null, where?: SQL, scheduledOfBrandId?: string): Promise<FeedSoloPitch[]> {
+  return enrichSoloPitches(viewerId, await getEligibleSoloPitches(viewerId, where, scheduledOfBrandId));
 }
 
 /** RN-7: alle Einreichungen einer Creator-Challenge, meiste Likes zuerst (= Rangliste). */
@@ -574,12 +595,16 @@ function timed<T>(label: string, make: () => Promise<T>): Promise<T> {
 }
 
 async function forYouPlan(viewerId: string | null, withReactions: boolean): Promise<PlanEntry[]> {
-  const [battles, pitches, communityRows, viewerBrand] = await Promise.all([
+  const [allBattles, allPitches, communityRows, viewerBrand, hidden] = await Promise.all([
     timed("plan.battles", () => getEligibleBattles(viewerId)),
     timed("plan.pitches", () => getEligibleSoloPitches(viewerId)),
     withReactions ? timed("plan.reactions", () => getEligibleCommunityReactions(viewerId)) : Promise.resolve([]),
     viewerId ? timed("plan.viewerBrand", () => getBrandForUser(viewerId)) : Promise.resolve(null),
+    getHiddenKeys(viewerId),
   ]);
+  // Luca 16.11. (3.2): „Nicht interessiert“ — für dieses Konto raus aus dem Feed.
+  const battles = allBattles.filter((b) => !hidden.has(`battle:${b.id}`));
+  const pitches = allPitches.filter((p) => !hidden.has(`pitch:${p.id}`));
   const stream: StreamEntry[] = [
     ...pitches.map((pitch): StreamEntry => ({ kind: "solo", pitch, createdAt: pitch.createdAt, boosted: false })),
     ...communityRows.map((row): StreamEntry => ({ kind: "reaction", row, createdAt: row.reaction.createdAt })),
@@ -694,7 +719,48 @@ export async function getFeedSoloPitchById(viewerId: string | null, soloPitchId:
  * "muss genau gleich aussehen wie im Feed").
  */
 export async function getFeedSoloPitchesForBrand(viewerId: string | null, brandId: string): Promise<FeedSoloPitch[]> {
-  return buildFeedSoloPitches(viewerId, eq(soloPitches.brandId, brandId));
+  // Luca 16.11. (2.4): Die Marke selbst sieht im eigenen Profil auch geplante Videos.
+  const isMember = viewerId
+    ? (
+        await db
+          .select({ b: brandMembers.brandId })
+          .from(brandMembers)
+          .where(and(eq(brandMembers.brandId, brandId), eq(brandMembers.userId, viewerId)))
+          .limit(1)
+      ).length > 0
+    : false;
+  return buildFeedSoloPitches(viewerId, eq(soloPitches.brandId, brandId), isMember ? brandId : undefined);
+}
+
+/**
+ * Luca 16.11. (3.3): Duelle-Tab — „Live“ und „Beendet“ (mit Ergebnis, zuletzt
+ * beendete zuerst) aus einem einzigen Aufbau.
+ */
+export async function getLiveAndFinishedFeedDuels(viewerId: string | null, finishedLimit = 60): Promise<{ live: FeedDuel[]; finished: FeedDuel[] }> {
+  const duels = await buildFeedDuels(viewerId);
+  return {
+    live: duels.filter((d) => !d.isFinished).sort((a, b) => b.activatedAt.localeCompare(a.activatedAt)),
+    finished: duels
+      .filter((d) => d.isFinished)
+      .sort((a, b) => (b.votingEndsAt ?? b.activatedAt).localeCompare(a.votingEndsAt ?? a.activatedAt))
+      .slice(0, finishedLimit),
+  };
+}
+
+/** Luca 16.11. (3.1): Feed-Karten in genau dieser Reihenfolge (z. B. „Für später“). Nicht mehr sichtbare fallen weg. */
+export async function getFeedItemsByKeys(viewerId: string | null, keys: { type: "pitch" | "battle"; id: string }[]): Promise<FeedItem[]> {
+  const pitchIds = keys.filter((k) => k.type === "pitch").map((k) => k.id);
+  const battleIds = keys.filter((k) => k.type === "battle").map((k) => k.id);
+  const [pitches, duels] = await Promise.all([
+    pitchIds.length ? buildFeedSoloPitches(viewerId, inArray(soloPitches.id, pitchIds)) : Promise.resolve([]),
+    battleIds.length ? buildFeedDuels(viewerId, inArray(battlesTable.id, battleIds)) : Promise.resolve([]),
+  ]);
+  const pitchById = new Map(pitches.map((p) => [p.soloPitchId, p]));
+  const duelById = new Map(duels.map((d) => [d.battleId, d]));
+  return keys.flatMap((k): FeedItem[] => {
+    const item = k.type === "pitch" ? pitchById.get(k.id) : duelById.get(k.id);
+    return item ? [item] : [];
+  });
 }
 
 /**

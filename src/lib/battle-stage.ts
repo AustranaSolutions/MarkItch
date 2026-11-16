@@ -6,6 +6,7 @@ import { getFollowerUserIds } from "@/lib/follow";
 import { getReminderUserIds } from "@/lib/reminder";
 import { VOTING_WINDOW_MS } from "@/lib/battle-format";
 import { sendPushToUser } from "@/lib/push";
+import { withoutMuted } from "@/lib/notification";
 
 export type BattleStage =
   | { stage: "awaiting_videos"; waitingOnBrandIds: string[]; deadline: Date | null }
@@ -103,7 +104,7 @@ async function notifyFollowersOfLiveBattle(battleId: string, brandAId: string, b
   const brandAFollowers = brandAFollowersAll.filter((id) => !memberIds.has(id));
   const brandBFollowers = brandBFollowersAll.filter((id) => !memberIds.has(id));
 
-  const rows: NewNotification[] = [
+  let rows: NewNotification[] = [
     ...members.map((m) => {
       const opponent = m.brandId === brandAId ? brandBName : brandAName;
       return {
@@ -141,6 +142,9 @@ async function notifyFollowersOfLiveBattle(battleId: string, brandAId: string, b
     });
   }
 
+  // Luca 16.11. (3.4): wer Duell-Benachrichtigungen abgeschaltet hat, bekommt keine.
+  const allowed = new Set(await withoutMuted(rows.map((r) => r.userId), "duel"));
+  rows = rows.filter((r) => allowed.has(r.userId));
   if (rows.length > 0) {
     await db.insert(notifications).values(rows);
     // Phase 36: this was the very first notification type this app ever

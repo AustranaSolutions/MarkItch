@@ -42,7 +42,7 @@ async function postCommentImpl(_prevState: CommentFormState, formData: FormData)
     getBrandMemberUserIds(battle.brandBId),
     getActorLabel(user.id),
   ]);
-  await notifyUsers([...memberIdsA, ...memberIdsB], { de: `${actor.label} hat eine Meinung zu deinem Duell geschrieben.`, en: `${actor.label} commented on your duel.` }, `/?battle=${battleId}`, user.id);
+  await notifyUsers([...memberIdsA, ...memberIdsB], { de: `${actor.label} hat eine Meinung zu deinem Duell geschrieben.`, en: `${actor.label} commented on your duel.` }, `/?battle=${battleId}`, user.id, "comment");
 
   refresh();
   return undefined;

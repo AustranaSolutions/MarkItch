@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, uniqueIndex, index, integer, boolean, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, uniqueIndex, index, integer, boolean, jsonb, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // Phase 1: just what real authentication needs.
@@ -34,6 +34,9 @@ export const users = pgTable(
     // älter als die aktuelle, fragt App/Web vor der weiteren Nutzung nach.
     termsVersion: text("terms_version"),
     termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
+    // Luca 16.11. (Phasen-Map 3.4): abgeschaltete Benachrichtigungsarten,
+    // z. B. ["follow", "like"]. Leer = alles an. Arten: lib/notification-kinds.ts.
+    mutedNotificationKinds: jsonb("muted_notification_kinds").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -406,6 +409,8 @@ export const comments = pgTable("comments", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
+  // Luca 16.11. (Phasen-Map 4.2): Antwort auf eine einzelne Meinung (eine Ebene tief).
+  parentId: uuid("parent_id").references((): AnyPgColumn => comments.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -556,6 +561,9 @@ export const soloPitches = pgTable("solo_pitches", {
   ctaLabel: text("cta_label"),
   ctaUrl: text("cta_url"),
   ctaCode: text("cta_code"),
+  // Luca 16.11. (Phasen-Map 2.4): geplant veröffentlichen — vorher nur für die
+  // Marke selbst sichtbar. Null = sofort.
+  publishAt: timestamp("publish_at", { withTimezone: true }),
   // Phase 46: EU-AI-Act-Kennzeichnungspflicht (Rechtskonformitäts-Audit) —
   // ein Upload-Schalter, kein automatischer Scan. Default false statt
   // nullable, weil "keine Angabe" hier praktisch dasselbe bedeutet wie
@@ -1100,4 +1108,35 @@ export const seenContent = pgTable(
     seenAt: timestamp("seen_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("seen_content_user_target_idx").on(t.userId, t.targetType, t.targetId), index("seen_content_seen_at_idx").on(t.seenAt)],
+);
+
+// Luca 16.11. (Phasen-Map 3.1): „Für später“ — gemerkte Videos eines Kontos.
+export const savedVideos = pgTable(
+  "saved_videos",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // 'pitch' | 'battle'
+    targetType: text("target_type").notNull(),
+    targetId: uuid("target_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("saved_videos_user_target_idx").on(t.userId, t.targetType, t.targetId), index("saved_videos_user_created_idx").on(t.userId, t.createdAt)],
+);
+
+// Luca 16.11. (Phasen-Map 3.2): „Nicht interessiert“ — Inhalt verschwindet für
+// dieses Konto, die Marke rutscht im Feed nach hinten.
+export const hiddenContent = pgTable(
+  "hidden_content",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    targetType: text("target_type").notNull(),
+    targetId: uuid("target_id").notNull(),
+    brandId: uuid("brand_id").references(() => brands.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("hidden_content_user_target_idx").on(t.userId, t.targetType, t.targetId), index("hidden_content_user_brand_idx").on(t.userId, t.brandId)],
 );

@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { battles, brands, notifications, votes } from "@/db/schema";
 import { getVoteTallyAsOf } from "@/lib/vote";
 import { sendPushToUser } from "@/lib/push";
+import { withoutMuted } from "@/lib/notification";
 import { getBrandMemberUserIds } from "@/lib/brand";
 import { getReminderUserIds } from "@/lib/reminder";
 
@@ -29,7 +30,10 @@ const RECENT_MS = 7 * 24 * 60 * 60 * 1000;
 type Msg = { de: string; en: string };
 type Note = { userId: string; message: Msg };
 
-async function deliver(notes: Note[], title: Msg, url: string): Promise<void> {
+async function deliver(allNotes: Note[], title: Msg, url: string): Promise<void> {
+  // Luca 16.11. (3.4): Duell-Ergebnisse lassen sich abschalten.
+  const allowed = new Set(await withoutMuted(allNotes.map((n) => n.userId), "duel"));
+  const notes = allNotes.filter((n) => allowed.has(n.userId));
   if (notes.length === 0) return;
   await db.insert(notifications).values(notes.map((n) => ({ userId: n.userId, message: n.message.de, messageEn: n.message.en, link: url })));
   await Promise.all(notes.map((n) => sendPushToUser(n.userId, { title, body: n.message, url }).catch(() => {})));
