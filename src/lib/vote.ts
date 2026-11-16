@@ -112,12 +112,10 @@ export async function getVoteTotals(battleIds: string[]): Promise<Map<string, nu
  * unique index on (battleId, userId) is the real backstop, this check is
  * just for a friendly error message).
  *
- * Deliberately no "voting is closed" check: a Pitch's official result
- * freezes at votingEndsAt (see getVoteTallyAsOf), but anyone who hasn't
- * voted yet can still vote afterwards — the live tally keeps growing, shown
- * in the feed alongside the frozen result. Whether the two ever diverge
- * enough to flip who "would" be winning is exactly the kind of thing worth
- * watching play out, not something to shut off at the deadline.
+ * Luca 16.11.: Nach Fristende ist das Duell entschieden — kein nachträgliches
+ * Abstimmen mehr (vorher lief eine zweite, „aktuelle“ Zählung neben dem
+ * offiziellen Ergebnis weiter; das war verwirrend). Alte Duelle ohne Frist
+ * (votingEndsAt null) bleiben offen.
  */
 export async function castVoteForUser(
   userId: string,
@@ -128,6 +126,7 @@ export async function castVoteForUser(
   if (!battle) {
     return { error: "Dieser Pitch existiert nicht." };
   }
+  if (votingClosed(battle.votingEndsAt)) return { error: "Die Abstimmung ist beendet." };
   if (votedForBrandId !== battle.brandAId && votedForBrandId !== battle.brandBId) {
     return { error: "Ungültige Marke für diesen Pitch." };
   }
@@ -163,6 +162,10 @@ export async function castVoteForUser(
   return {};
 }
 
+function votingClosed(votingEndsAt: Date | null): boolean {
+  return votingEndsAt !== null && votingEndsAt.getTime() <= Date.now();
+}
+
 // ——— Luca 13.11. (Phase 5): Abstimmen ohne Konto ———
 
 const GUEST_ID_RE = /^[A-Za-z0-9-]{16,64}$/;
@@ -177,6 +180,7 @@ export async function castGuestVote(guestId: unknown, battleId: string, votedFor
   if (typeof guestId !== "string" || !GUEST_ID_RE.test(guestId)) return { error: "Bitte melde dich an." };
   const [battle] = await db.select().from(battles).where(eq(battles.id, battleId)).limit(1);
   if (!battle) return { error: "Dieser Pitch existiert nicht." };
+  if (votingClosed(battle.votingEndsAt)) return { error: "Die Abstimmung ist beendet." };
   if (votedForBrandId !== battle.brandAId && votedForBrandId !== battle.brandBId) {
     return { error: "Ungültige Marke für diesen Pitch." };
   }

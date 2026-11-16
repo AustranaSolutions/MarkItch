@@ -63,17 +63,18 @@ function ResultPill({ sideIndex, tally }: { sideIndex: 0 | 1; tally: FeedDuel["t
   const t = useT();
   const outcome = outcomeLabel(sideIndex, tally, t);
   if (!outcome) return null;
+  // Luca 16.11.: Stimmen dieser Seite von allen — „40/50 Stimmen“ statt Prozent.
   const sideVotes = sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes;
-  const pct = Math.round((sideVotes / tally.total) * 100);
+  const count = t(`${sideVotes}/${tally.total} Stimmen`, `${sideVotes}/${tally.total} votes`);
   if (outcome.won) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-[#f5c542] px-2.5 py-0.5 text-xs font-bold text-[#2a1d00]">
-        <Trophy size={12} /> {t(`Gewonnen · ${pct} %`, `Won · ${pct}%`)}
+        <Trophy size={12} /> {t("Gewonnen", "Won")} · {count}
       </span>
     );
   }
   const tie = tally.brandAVotes === tally.brandBVotes;
-  return <span className="text-xs text-zinc-300">{tie ? t(`Unentschieden · ${pct} %`, `Tie · ${pct}%`) : t(`Verloren · ${pct} %`, `Lost · ${pct}%`)}</span>;
+  return <span className="text-xs text-zinc-300">{tie ? t("Unentschieden", "Tie") : t("Verloren", "Lost")} · {count}</span>;
 }
 
 function VoteState({
@@ -112,12 +113,8 @@ function VoteState({
     .join(" · ");
 
   if (isFinished) {
+    // Luca 16.11.: Nach Fristende entschieden — kein nachträgliches Abstimmen, keine zweite Zählung.
     const result = officialTally ?? tally;
-    const driftPct =
-      officialTally && tally.total !== officialTally.total && tally.total > 0
-        ? Math.round(((sideIndex === 0 ? tally.brandAVotes : tally.brandBVotes) / tally.total) * 100)
-        : null;
-    const canStillVote = !viewerOwnsThisBattle && !viewerVotedBrandId;
     return (
       <div className="flex flex-wrap items-center gap-2">
         <ResultPill sideIndex={sideIndex} tally={result} />
@@ -130,18 +127,10 @@ function VoteState({
                 : t(`✓ Für ${other.brandName} gestimmt`, `✓ Voted for ${other.brandName}`)
               : null,
             t("Beendet", "Ended"),
-            votes(result.total),
-            driftPct !== null ? t(`aktuell ${driftPct} %`, `now ${driftPct}%`) : null,
           ]
             .filter(Boolean)
             .join(" · ")}
         </span>
-        {canStillVote && (
-          <button onClick={onVote} disabled={voting} className="text-xs text-orange-400 hover:underline">
-            {/* Luca 16.11.: klar sagen, dass man direkt für diese Seite stimmt. */}
-            {voting ? "…" : t(`Nachträglich für ${side.brandName} stimmen`, `Vote for ${side.brandName} anyway`)}
-          </button>
-        )}
       </div>
     );
   }
@@ -627,7 +616,6 @@ export function FeedDuelCard({
             code={side.ctaCode}
             target={{ targetType: "battle", targetId: duel.battleId, brandId: side.brandId }}
             onClick={() => trackAnalyticsEvent(side.brandId, "cta_click", { battleId: duel.battleId })}
-            subtle
           />
         )}
         <div className="pointer-events-auto">

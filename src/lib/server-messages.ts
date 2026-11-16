@@ -167,6 +167,7 @@ const EXACT: Record<string, string> = {
   "Bitte einen Zeitpunkt zwischen 5 Minuten und 30 Tagen in der Zukunft wählen.": "Please pick a time between 5 minutes and 30 days from now.",
   "Video nicht gefunden.": "Video not found.",
   "Diese Meinung gibt es nicht mehr.": "This comment no longer exists.",
+  "Die Abstimmung ist beendet.": "Voting has ended.",
   "Code: nur Buchstaben, Ziffern und - _ . % (keine Leerzeichen).": "Code: only letters, digits and - _ . % (no spaces).",
   "Upload konnte nicht vorbereitet werden.": "The upload couldn’t be prepared.",
   "Video fehlt.": "Video is missing.",
