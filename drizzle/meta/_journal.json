@@ -407,6 +407,13 @@
       "when": 1794946995118,
       "tag": "0057_duell_umfragen",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1794948441624,
+      "tag": "0058_umfrage_frist_meinungen",
+      "breakpoints": true
     }
   ]
 }
