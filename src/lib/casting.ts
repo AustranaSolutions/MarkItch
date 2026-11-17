@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { partnerCastings, castingSubmissions, castingVotes, brands, brandMembers, type PartnerCasting } from "@/db/schema";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
@@ -273,4 +273,44 @@ export async function castCastingVote(userId: string, castingId: string, submiss
 
   await db.insert(castingVotes).values({ castingId, submissionId, userId }).onConflictDoNothing();
   return {};
+}
+
+export type OpenCasting = {
+  id: string;
+  prompt: string;
+  submissionDeadline: Date;
+  submissionCount: number;
+  hostBrand: { id: string; name: string; slug: string; logoUrl: string | null };
+};
+
+/**
+ * Luca 17.11. (Phasen-Map 4.3): alle Castings, bei denen man gerade noch
+ * einreichen kann — von allen Marken, nicht nur gefolgten. Frist zuerst,
+ * die bald endet. Blockierte Marken fehlen.
+ */
+export async function getOpenCastings(blockedBrandIds: Set<string> = new Set()): Promise<OpenCasting[]> {
+  const rows = await db
+    .select({ casting: partnerCastings, brand: brandCols })
+    .from(partnerCastings)
+    .innerJoin(brands, eq(partnerCastings.hostBrandId, brands.id))
+    .where(gt(partnerCastings.submissionDeadline, new Date()))
+    .orderBy(asc(partnerCastings.submissionDeadline))
+    .limit(100);
+  const visible = rows.filter((r) => !blockedBrandIds.has(r.brand.id));
+  const ids = visible.map((r) => r.casting.id);
+  const counts = ids.length
+    ? await db
+        .select({ castingId: castingSubmissions.castingId, n: count() })
+        .from(castingSubmissions)
+        .where(inArray(castingSubmissions.castingId, ids))
+        .groupBy(castingSubmissions.castingId)
+    : [];
+  const byId = new Map(counts.map((c) => [c.castingId, Number(c.n)]));
+  return visible.map((r) => ({
+    id: r.casting.id,
+    prompt: r.casting.prompt,
+    submissionDeadline: r.casting.submissionDeadline,
+    submissionCount: byId.get(r.casting.id) ?? 0,
+    hostBrand: r.brand,
+  }));
 }
