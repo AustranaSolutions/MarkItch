@@ -34,6 +34,8 @@ function PollCard({ poll, onChange }: { poll: DuelPoll; onChange: (p: DuelPoll) 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const voted = poll.viewerOptionId !== null;
+  // „Marke A gegen B, C oder D“: A steht dann einmal oben, die Zeilen zeigen nur die Gegner.
+  const shared = poll.options.every((o) => o.brandA.id === poll.options[0]?.brandA.id) ? poll.options[0]?.brandA : null;
 
   async function vote(optionId: string) {
     if (voted || busy) return;
@@ -59,6 +61,12 @@ function PollCard({ poll, onChange }: { poll: DuelPoll; onChange: (p: DuelPoll) 
         <BarChart3 size={13} /> {t("Umfrage von MarkItch", "Poll by MarkItch")}
       </p>
       <h2 className="mb-3 text-base font-semibold text-white">{poll.title ?? t("Welches Duell wollt ihr sehen?", "Which duel do you want to see?")}</h2>
+      {shared && (
+        <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
+          <Logo brand={shared} /> <span className="truncate">{shared.name}</span>
+          <span className="shrink-0 text-xs font-bold text-orange-500">{t("gegen …", "vs …")}</span>
+        </p>
+      )}
       <ul className="space-y-2">
         {poll.options.map((o) => {
           const pct = voted && poll.total > 0 ? Math.round(((o.votes ?? 0) / poll.total) * 100) : null;
@@ -73,11 +81,20 @@ function PollCard({ poll, onChange }: { poll: DuelPoll; onChange: (p: DuelPoll) 
               >
                 {pct !== null && <span className="absolute inset-y-0 left-0 bg-orange-500/15" style={{ width: `${pct}%` }} aria-hidden />}
                 <span className="relative flex min-w-0 flex-1 items-center gap-2">
-                  <Logo brand={o.brandA} />
-                  <span className="truncate text-white">{o.brandA.name}</span>
-                  <span className="shrink-0 text-xs font-bold text-orange-500">VS</span>
-                  <span className="truncate text-white">{o.brandB.name}</span>
-                  <Logo brand={o.brandB} />
+                  {shared ? (
+                    <>
+                      <Logo brand={o.brandB} />
+                      <span className="truncate text-white">{o.brandB.name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Logo brand={o.brandA} />
+                      <span className="truncate text-white">{o.brandA.name}</span>
+                      <span className="shrink-0 text-xs font-bold text-orange-500">VS</span>
+                      <span className="truncate text-white">{o.brandB.name}</span>
+                      <Logo brand={o.brandB} />
+                    </>
+                  )}
                 </span>
                 {pct !== null && (
                   <span className="relative flex shrink-0 items-center gap-1 text-xs font-semibold text-zinc-300">
