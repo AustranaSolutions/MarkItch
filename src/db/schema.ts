@@ -1140,3 +1140,62 @@ export const hiddenContent = pgTable(
   },
   (t) => [uniqueIndex("hidden_content_user_target_idx").on(t.userId, t.targetType, t.targetId), index("hidden_content_user_brand_idx").on(t.userId, t.brandId)],
 );
+
+// Luca 17.11. (Phasen-Map 5.5): Duell-Umfragen von MarkItch — „Marke A gegen
+// B, C oder D: welches Duell wollt ihr sehen?“. Der Admin legt sie in der App
+// an, Zuschauer wählen eine Paarung (mit oder ohne Konto, eine Stimme pro
+// Konto bzw. Gerät). Knappe Paarungen kann der Admin sich „für später“ merken.
+export const duelPolls = pgTable(
+  "duel_polls",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Optionales Thema, z. B. „Bester Kaffee“.
+    title: text("title"),
+    // 'open' | 'closed'
+    status: text("status").notNull().default("open"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+  },
+  (t) => [index("duel_polls_status_created_idx").on(t.status, t.createdAt)],
+);
+
+export const duelPollOptions = pgTable(
+  "duel_poll_options",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pollId: uuid("poll_id")
+      .notNull()
+      .references(() => duelPolls.id, { onDelete: "cascade" }),
+    brandAId: uuid("brand_a_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    brandBId: uuid("brand_b_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    position: integer("position").notNull().default(0),
+    savedForLater: boolean("saved_for_later").notNull().default(false),
+  },
+  (t) => [index("duel_poll_options_poll_idx").on(t.pollId)],
+);
+
+export const duelPollVotes = pgTable(
+  "duel_poll_votes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pollId: uuid("poll_id")
+      .notNull()
+      .references(() => duelPolls.id, { onDelete: "cascade" }),
+    optionId: uuid("option_id")
+      .notNull()
+      .references(() => duelPollOptions.id, { onDelete: "cascade" }),
+    // Genau eins von beiden: Konto oder (ohne Konto) Hash der Geräte-Kennung.
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    deviceHash: text("device_hash"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("duel_poll_votes_poll_user_idx").on(t.pollId, t.userId),
+    uniqueIndex("duel_poll_votes_poll_device_idx").on(t.pollId, t.deviceHash),
+    index("duel_poll_votes_option_idx").on(t.optionId),
+  ],
+);
