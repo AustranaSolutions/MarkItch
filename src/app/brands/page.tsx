@@ -36,14 +36,12 @@ export default async function BrandsPage() {
       <TrendingStrip pitches={trending} />
 
       {/* Luca 17.11. (Phasen-Map 4.3): Eingang zu allen offenen Castings. */}
-      {castings.length > 0 && (
-        <Link href="/castings" className="mb-6 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white hover:bg-zinc-900">
+      <Link href="/castings" className="mb-6 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white hover:bg-zinc-900">
           <Clapperboard size={18} className="text-orange-400" />
           <span className="flex-1 font-semibold">{t("Offene Castings", "Open castings")}</span>
-          <span className="rounded-full bg-orange-600 px-2 py-0.5 text-xs font-bold">{castings.length}</span>
+          {castings.length > 0 && <span className="rounded-full bg-orange-600 px-2 py-0.5 text-xs font-bold">{castings.length}</span>}
           <ChevronRight size={16} className="text-zinc-500" />
         </Link>
-      )}
 
       {allBrands.length === 0 ? (
         <p className="text-sm text-zinc-500">{t("Noch keine Marken registriert.", "No brands registered yet.")}</p>
