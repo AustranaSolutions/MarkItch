@@ -411,6 +411,8 @@ export const comments = pgTable("comments", {
   content: text("content").notNull(),
   // Luca 16.11. (Phasen-Map 4.2): Antwort auf eine einzelne Meinung (eine Ebene tief).
   parentId: uuid("parent_id").references((): AnyPgColumn => comments.id, { onDelete: "cascade" }),
+  // Luca 17.11. (5.5): Meinungen zu einer Duell-Umfrage („lieber Marke X“).
+  pollId: uuid("poll_id").references((): AnyPgColumn => duelPolls.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -1153,6 +1155,8 @@ export const duelPolls = pgTable(
     title: text("title"),
     // 'open' | 'closed'
     status: text("status").notNull().default("open"),
+    // Luca 17.11.: Frist — danach ist die Umfrage beendet (null = bis der Admin sie beendet).
+    endsAt: timestamp("ends_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
   },
@@ -1174,6 +1178,8 @@ export const duelPollOptions = pgTable(
       .references(() => brands.id, { onDelete: "cascade" }),
     position: integer("position").notNull().default(0),
     savedForLater: boolean("saved_for_later").notNull().default(false),
+    // Luca 17.11.: „An Marken schicken“ — wann beide Marken benachrichtigt wurden.
+    sentToBrandsAt: timestamp("sent_to_brands_at", { withTimezone: true }),
   },
   (t) => [index("duel_poll_options_poll_idx").on(t.pollId)],
 );

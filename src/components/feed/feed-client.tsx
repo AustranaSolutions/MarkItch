@@ -1,7 +1,7 @@
 "use client";
 
 import { useCleanScreen } from "@/lib/clean-screen";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedDuel, FeedItemWithReactions, FeedSoloPitch } from "@/lib/feed";
 import type { FeedReaction } from "@/lib/community-feed";
@@ -10,6 +10,7 @@ import { FeedDuelCard } from "@/components/feed/feed-duel-card";
 import { FeedSoloPitchCard } from "@/components/feed/feed-solo-pitch-card";
 import { CommentSheet, type CommentTarget } from "@/components/feed/comment-sheet";
 import { ReactionsOverlay } from "@/components/pitches/reactions-overlay";
+import { FeedPollSlide, useDuelPolls } from "@/components/pitches/duel-polls";
 import { getNotificationPermission, subscribeToPush } from "@/lib/push-client";
 import { useT } from "@/components/i18n/lang-provider";
 import { getGuestId, rememberGuestVote } from "@/lib/guest-votes-client";
@@ -34,6 +35,8 @@ const SCROLL_STORAGE_KEY = "markitch:feed:scrollTop";
 // the currently active one stay mounted; the rest fall back to a plain
 // same-sized placeholder div so scroll-snap positions don't shift.
 const FEED_WINDOW = 2;
+// Luca 17.11. (5.5): nach jeder 8. Karte eine Umfrage (solange es ungestimmte gibt).
+const POLL_EVERY = 8;
 
 export function FeedClient({
   initialItems,
@@ -64,6 +67,16 @@ export function FeedClient({
   const [followsAnyone, setFollowsAnyone] = useState(true);
   const [muted, setMuted] = useState(true);
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
+  // Luca 17.11. (5.5): Umfragen zwischendurch im Feed — nur die, bei denen man
+  // beim Laden noch nicht abgestimmt hat; nach der Stimme bleibt die Karte stehen.
+  const { polls, update: updatePoll, bumpComments: bumpPollComments } = useDuelPolls();
+  const [feedPollIds, setFeedPollIds] = useState<string[] | null>(null);
+  if (polls && feedPollIds === null) setFeedPollIds(polls.filter((p) => p.viewerOptionId === null).map((p) => p.id));
+  const pollAfter = (index: number) => {
+    if (tab !== "foryou" || !feedPollIds || index % POLL_EVERY !== POLL_EVERY - 1) return null;
+    const id = feedPollIds[Math.floor(index / POLL_EVERY)];
+    return polls?.find((p) => p.id === id) ?? null;
+  };
   const [reactionsSoloPitchId, setReactionsSoloPitchId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
@@ -386,35 +399,7 @@ export function FeedClient({
 
   const showEmptyFollowing = tab === "following" && !loading && items.length === 0;
 
-  return (
-    // Phase 30: capped to a phone-shaped column and centered — Luca's report
-    // that a video looks "extrem in die Breite gezogen" on a laptop: a 9:16
-    // video with object-cover inside a full-viewport-width box gets
-    // aggressively cropped on a wide, short window. Below this width
-    // (any real phone) it's a no-op, full bleed as before.
-    <div className="relative mx-auto h-[calc(100dvh-var(--bottom-nav-h))] w-full max-w-[480px] overflow-hidden bg-black md:border-x md:border-zinc-900">
-      {/* Tabs — Luca 13.11.: bei „Bildschirm frei“ (Auge) ausgeblendet. */}
-      <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center gap-6 pt-[calc(env(safe-area-inset-top)+14px)] ${cleanScreen ? "hidden" : ""}`}>
-        {(
-          [
-            ["foryou", "Feed"],
-            ["following", t("Folge ich", "Following")],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => handleTabChange(key)}
-            className={`pointer-events-auto text-sm font-semibold drop-shadow ${
-              tab === key ? "text-white" : "text-white/50"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div ref={scrollRef} className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
-        {items.map((item, index) => {
+  const renderItem = (item: FeedItemWithReactions, index: number) => {
           if (Math.abs(index - activeIndex) > FEED_WINDOW) {
             // Out of the mounted window — same height/snap behavior, no video.
             return (
@@ -469,6 +454,47 @@ export function FeedClient({
               onActive={() => handleActive(item.key)}
             />
           );
+  };
+
+  return (
+    // Phase 30: capped to a phone-shaped column and centered — Luca's report
+    // that a video looks "extrem in die Breite gezogen" on a laptop: a 9:16
+    // video with object-cover inside a full-viewport-width box gets
+    // aggressively cropped on a wide, short window. Below this width
+    // (any real phone) it's a no-op, full bleed as before.
+    <div className="relative mx-auto h-[calc(100dvh-var(--bottom-nav-h))] w-full max-w-[480px] overflow-hidden bg-black md:border-x md:border-zinc-900">
+      {/* Tabs — Luca 13.11.: bei „Bildschirm frei“ (Auge) ausgeblendet. */}
+      <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center gap-6 pt-[calc(env(safe-area-inset-top)+14px)] ${cleanScreen ? "hidden" : ""}`}>
+        {(
+          [
+            ["foryou", "Feed"],
+            ["following", t("Folge ich", "Following")],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => handleTabChange(key)}
+            className={`pointer-events-auto text-sm font-semibold drop-shadow ${
+              tab === key ? "text-white" : "text-white/50"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div ref={scrollRef} className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
+        {items.map((item, index) => {
+          const poll = pollAfter(index);
+          const card = renderItem(item, index);
+          return poll ? (
+            <Fragment key={item.key}>
+              {card}
+              <FeedPollSlide poll={poll} onChange={updatePoll} onOpenComments={(id) => setCommentTarget({ kind: "poll", id })} />
+            </Fragment>
+          ) : (
+            card
+          );
         })}
         <div ref={sentinelRef} className="h-1 w-full" />
 
@@ -510,7 +536,7 @@ export function FeedClient({
           target={commentTarget}
           isLoggedIn={isLoggedIn}
           onClose={() => setCommentTarget(null)}
-          onCommentPosted={handleCommentPosted}
+          onCommentPosted={commentTarget.kind === "poll" ? bumpPollComments : handleCommentPosted}
         />
       )}
 

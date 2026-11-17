@@ -45,7 +45,7 @@ function deadlineLabel(deadline: Date | null, t: Translate): string | null {
 export default async function PitchesPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const t = await getT();
   const { tab: rawTab } = await searchParams;
-  const tab = rawTab === "live" ? "live" : "soon";
+  const tab = rawTab === "live" ? "live" : rawTab === "polls" ? "polls" : "soon";
   const viewer = await getOptionalUser();
   const [upcoming, live, viewerBrand] = await Promise.all([
     getUpcomingBattles(),
@@ -60,7 +60,9 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
       <p className="mb-6 text-sm text-zinc-500">
         {tab === "soon"
           ? t("Kommende Duelle — merk dir eins vor, dann sagen wir dir Bescheid, sobald es live geht.", "Upcoming duels — set a reminder and we’ll let you know as soon as one goes live.")
-          : t("Duelle, bei denen gerade abgestimmt wird — antippen und wie im Feed durchwischen.", "Duels open for voting right now — tap one and swipe through like in the feed.")}
+          : tab === "live"
+            ? t("Duelle, bei denen gerade abgestimmt wird — antippen und wie im Feed durchwischen.", "Duels open for voting right now — tap one and swipe through like in the feed.")
+            : t("Welches Duell wollt ihr sehen? Stimm ab — MarkItch lädt die Marken ein.", "Which duel do you want to see? Vote — MarkItch invites the brands.")}
       </p>
 
       {viewerBrand && (
@@ -73,20 +75,19 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
         </Link>
       )}
 
-      {/* Luca 17.11. (5.5): Duell-Umfragen von MarkItch — über den Reitern, damit man sie immer sieht. */}
-      <DuelPolls />
-
       {/* Wie die Reiter im Profil (Videos · Duelle · Aktionen). */}
       <div className="mb-6 flex border-b border-zinc-800">
         {(
           [
             ["soon", t("Demnächst", "Coming soon"), upcoming.length],
             ["live", "Live", live.length],
+            // Luca 17.11. (5.5): Umfragen als eigener Reiter, damit viele Umfragen die Liste nicht verdrängen.
+            ["polls", t("Umfragen", "Polls"), 0],
           ] as const
         ).map(([key, label, n]) => (
           <Link
             key={key}
-            href={key === "live" ? "/pitches?tab=live" : "/pitches"}
+            href={key === "soon" ? "/pitches" : `/pitches?tab=${key}`}
             className={`-mb-px flex-1 border-b-2 py-2.5 text-center text-sm ${tab === key ? "border-orange-500 font-semibold text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
           >
             {label}
@@ -95,7 +96,9 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
         ))}
       </div>
 
-      {tab === "live" ? (
+      {tab === "polls" ? (
+        <DuelPolls isLoggedIn={Boolean(viewer)} />
+      ) : tab === "live" ? (
         <LiveDuelList duels={live} isLoggedIn={Boolean(viewer)} />
       ) : upcoming.length === 0 ? (
         <p className="text-sm text-zinc-500">{t("Gerade kommt nichts Neues — schau später wieder vorbei.", "Nothing new right now — check back later.")}</p>

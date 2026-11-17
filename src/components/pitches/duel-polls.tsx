@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { BarChart3, Check } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { BarChart3, Check, MessageCircle } from "lucide-react";
 import { useT } from "@/components/i18n/lang-provider";
+import { CommentSheet } from "@/components/feed/comment-sheet";
 import { getGuestId, peekGuestId } from "@/lib/guest-votes-client";
+import type { Translate } from "@/lib/i18n";
 
-// Luca 17.11. (5.5): Duell-Umfragen von MarkItch oben im Duelle-Bereich —
-// „Welches Duell wollt ihr sehen?“. Antippen = abstimmen (auch ohne Konto),
-// danach Prozente je Paarung.
+// Luca 17.11. (5.5): Duell-Umfragen von MarkItch — „Welches Duell wollt ihr
+// sehen?“. Antippen = abstimmen (auch ohne Konto), danach Prozente je Paarung.
+// Eigener Reiter „Umfragen“ auf /pitches und zwischendurch im Feed.
 
 type PollBrand = { id: string; name: string; slug: string; logoUrl: string | null };
 export type DuelPoll = {
@@ -15,6 +17,8 @@ export type DuelPoll = {
   title: string | null;
   total: number;
   viewerOptionId: string | null;
+  endsAt: string | null;
+  commentCount: number;
   options: { id: string; brandA: PollBrand; brandB: PollBrand; votes: number | null }[];
 };
 
@@ -29,13 +33,42 @@ function Logo({ brand }: { brand: PollBrand }) {
   );
 }
 
-function PollCard({ poll, onChange }: { poll: DuelPoll; onChange: (p: DuelPoll) => void }) {
+function timeLeft(endsAt: string | null, t: Translate): string | null {
+  if (!endsAt) return null;
+  const hours = Math.max(0, (new Date(endsAt).getTime() - Date.now()) / 3_600_000);
+  return hours >= 24
+    ? t(`noch ${Math.ceil(hours / 24)} Tage`, `${Math.ceil(hours / 24)} days left`)
+    : t(`noch ${Math.max(1, Math.ceil(hours))} Std.`, `${Math.max(1, Math.ceil(hours))} hrs left`);
+}
+
+/** Lädt die laufenden Umfragen (mit eigener Stimme, auch ohne Konto). */
+export function useDuelPolls() {
+  const [polls, setPolls] = useState<DuelPoll[] | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    const guestId = peekGuestId();
+    fetch("/api/duel-polls", { signal: controller.signal, headers: guestId ? { "x-guest-id": guestId } : {} })
+      .then((r) => (r.ok ? r.json() : { polls: [] }))
+      .then((d: { polls?: DuelPoll[] }) => setPolls(d.polls ?? []))
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+  const update = useCallback((next: DuelPoll) => setPolls((prev) => prev?.map((x) => (x.id === next.id ? next : x)) ?? prev), []);
+  const bumpComments = useCallback(
+    (id: string) => setPolls((prev) => prev?.map((x) => (x.id === id ? { ...x, commentCount: x.commentCount + 1 } : x)) ?? prev),
+    [],
+  );
+  return { polls, update, bumpComments };
+}
+
+export function PollCard({ poll, onChange, onOpenComments }: { poll: DuelPoll; onChange: (p: DuelPoll) => void; onOpenComments: (id: string) => void }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const voted = poll.viewerOptionId !== null;
   // „Marke A gegen B, C oder D“: A steht dann einmal oben, die Zeilen zeigen nur die Gegner.
   const shared = poll.options.every((o) => o.brandA.id === poll.options[0]?.brandA.id) ? poll.options[0]?.brandA : null;
+  const left = timeLeft(poll.endsAt, t);
 
   async function vote(optionId: string) {
     if (voted || busy) return;
@@ -56,9 +89,10 @@ function PollCard({ poll, onChange }: { poll: DuelPoll; onChange: (p: DuelPoll) 
   }
 
   return (
-    <section className="mb-6 rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+    <section className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-4">
       <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-orange-400">
         <BarChart3 size={13} /> {t("Umfrage von MarkItch", "Poll by MarkItch")}
+        {left && <span className="font-normal text-zinc-500">· {left}</span>}
       </p>
       <h2 className="mb-3 text-base font-semibold text-white">{poll.title ?? t("Welches Duell wollt ihr sehen?", "Which duel do you want to see?")}</h2>
       {shared && (
@@ -107,34 +141,53 @@ function PollCard({ poll, onChange }: { poll: DuelPoll; onChange: (p: DuelPoll) 
           );
         })}
       </ul>
-      <p className="mt-3 text-xs text-zinc-500">
-        {voted
-          ? t(`${poll.total} ${poll.total === 1 ? "Stimme" : "Stimmen"}`, `${poll.total} ${poll.total === 1 ? "vote" : "votes"}`)
-          : t("Antippen zum Abstimmen — das Ergebnis siehst du danach.", "Tap to vote — you’ll see the result afterwards.")}
-      </p>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className="text-xs text-zinc-500">
+          {voted
+            ? t(`${poll.total} ${poll.total === 1 ? "Stimme" : "Stimmen"}`, `${poll.total} ${poll.total === 1 ? "vote" : "votes"}`)
+            : t("Antippen zum Abstimmen", "Tap to vote")}
+        </p>
+        <button type="button" onClick={() => onOpenComments(poll.id)} className="flex items-center gap-1 text-xs font-semibold text-zinc-300 hover:text-white">
+          <MessageCircle size={14} />
+          {poll.commentCount > 0 ? poll.commentCount : t("Andere Marke?", "Other brand?")}
+        </button>
+      </div>
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
     </section>
   );
 }
 
-export function DuelPolls() {
-  const [polls, setPolls] = useState<DuelPoll[]>([]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const guestId = peekGuestId();
-    fetch("/api/duel-polls", { signal: controller.signal, headers: guestId ? { "x-guest-id": guestId } : {} })
-      .then((r) => (r.ok ? r.json() : { polls: [] }))
-      .then((d: { polls?: DuelPoll[] }) => setPolls(d.polls ?? []))
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
-
+/** Reiter „Umfragen“ auf /pitches. */
+export function DuelPolls({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const t = useT();
+  const { polls, update, bumpComments } = useDuelPolls();
+  const [commentsFor, setCommentsFor] = useState<string | null>(null);
+  if (polls === null) return null;
   return (
     <>
-      {polls.map((p) => (
-        <PollCard key={p.id} poll={p} onChange={(next) => setPolls((prev) => prev.map((x) => (x.id === next.id ? next : x)))} />
-      ))}
+      {polls.length === 0 ? (
+        <p className="text-sm text-zinc-500">{t("Gerade läuft keine Umfrage.", "No poll running right now.")}</p>
+      ) : (
+        <div className="space-y-4">
+          {polls.map((p) => (
+            <PollCard key={p.id} poll={p} onChange={update} onOpenComments={setCommentsFor} />
+          ))}
+        </div>
+      )}
+      {commentsFor && (
+        <CommentSheet target={{ kind: "poll", id: commentsFor }} isLoggedIn={isLoggedIn} onClose={() => setCommentsFor(null)} onCommentPosted={bumpComments} />
+      )}
     </>
+  );
+}
+
+/** Im Feed: eine Umfrage als eigene Wisch-Seite zwischen den Videos. */
+export function FeedPollSlide({ poll, onChange, onOpenComments }: { poll: DuelPoll; onChange: (p: DuelPoll) => void; onOpenComments: (id: string) => void }) {
+  return (
+    <div className="relative flex h-[calc(100dvh-var(--bottom-nav-h))] w-full snap-start snap-always items-center justify-center bg-black px-4">
+      <div className="w-full max-w-md">
+        <PollCard poll={poll} onChange={onChange} onOpenComments={onOpenComments} />
+      </div>
+    </div>
   );
 }

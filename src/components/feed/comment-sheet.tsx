@@ -25,12 +25,14 @@ function threadComments(list: CommentRow[]): CommentRow[] {
     .flatMap((c) => [c, ...(replies.get(c.id) ?? []).sort((a, b) => a.createdAt.localeCompare(b.createdAt))]);
 }
 
-export type CommentTarget = { kind: "battle"; id: string } | { kind: "solo"; id: string } | { kind: "reaction"; id: string };
+export type CommentTarget = { kind: "battle"; id: string } | { kind: "solo"; id: string } | { kind: "reaction"; id: string } | { kind: "poll"; id: string };
 
 const ENDPOINT_BY_KIND: Record<CommentTarget["kind"], { endpoint: string; idParam: string }> = {
   battle: { endpoint: "/api/feed/comments", idParam: "battleId" },
   solo: { endpoint: "/api/pitches/comments", idParam: "soloPitchId" },
   reaction: { endpoint: "/api/pitches/reaction-comments", idParam: "reactionId" },
+  // Luca 17.11. (5.5): Meinungen zu einer Duell-Umfrage.
+  poll: { endpoint: "/api/duel-polls/comments", idParam: "pollId" },
 };
 
 export function CommentSheet({

@@ -24,7 +24,7 @@ export type CommentWithAuthor = {
   authorIsOwner: boolean;
 };
 
-type CommentTarget = { battleId?: string | null; soloPitchId?: string | null; reactionId?: string | null };
+type CommentTarget = { battleId?: string | null; soloPitchId?: string | null; reactionId?: string | null; pollId?: string | null };
 
 /**
  * Phase F: Konten, denen das kommentierte Video gehört — Mitglieder der
@@ -73,7 +73,7 @@ export async function deleteCommentFor(userId: string, commentId: string): Promi
   await db.delete(comments).where(eq(comments.id, commentId));
   return {
     ok: true,
-    target: { battleId: comment.battleId, soloPitchId: comment.soloPitchId, reactionId: comment.reactionId },
+    target: { battleId: comment.battleId, soloPitchId: comment.soloPitchId, reactionId: comment.reactionId, pollId: comment.pollId },
   };
 }
 
@@ -176,6 +176,11 @@ export async function getCommentCountsForReactions(reactionIds: string[]): Promi
   return new Map(rows.map((row) => [row.reactionId as string, row.n]));
 }
 
+/** Luca 17.11. (5.5): Meinungen zu einer Duell-Umfrage. Kein Ersteller → nur eigene löschen. */
+export async function getCommentsForPoll(pollId: string, viewerId: string | null = null): Promise<CommentWithAuthor[]> {
+  return loadComments(eq(comments.pollId, pollId), viewerId, { pollId });
+}
+
 /**
  * Luca 16.11. (Phasen-Map 4.2): Antwort auf eine einzelne Meinung. Die Meinung
  * muss zum selben Video gehören; geantwortet wird immer auf die oberste Ebene
@@ -192,7 +197,8 @@ export async function resolveReplyParent(
     parent &&
     (parent.battleId ?? null) === (target.battleId ?? null) &&
     (parent.soloPitchId ?? null) === (target.soloPitchId ?? null) &&
-    (parent.reactionId ?? null) === (target.reactionId ?? null);
+    (parent.reactionId ?? null) === (target.reactionId ?? null) &&
+    (parent.pollId ?? null) === (target.pollId ?? null);
   if (!parent || !sameTarget) return { ok: false, error: "Diese Meinung gibt es nicht mehr." };
   if (parent.parentId) {
     const [top] = await db.select({ id: comments.id, userId: comments.userId }).from(comments).where(eq(comments.id, parent.parentId)).limit(1);
