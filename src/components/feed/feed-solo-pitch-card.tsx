@@ -1,5 +1,6 @@
 "use client";
 
+import { NameLogo } from "@/components/feed/name-logo";
 import { toggleCleanScreen, useCleanScreen, useResetCleanScreenWhenActive } from "@/lib/clean-screen";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
@@ -257,7 +258,8 @@ export function FeedSoloPitchCard({
       {!uiHidden && (
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 pb-4 pr-20">
         <div className="pointer-events-auto mb-2 flex items-center gap-2">
-          <Link href={`/brands/${pitch.brandSlug}`} className="text-sm font-bold text-white hover:underline">
+          <Link href={`/brands/${pitch.brandSlug}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-white hover:underline">
+            <NameLogo logoUrl={pitch.brandLogoUrl} />
             {pitch.brandName}
           </Link>
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-400">

@@ -1,5 +1,6 @@
 "use client";
 
+import { NameLogo } from "@/components/feed/name-logo";
 import { toggleCleanScreen, useCleanScreen, useResetCleanScreenWhenActive } from "@/lib/clean-screen";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
@@ -602,11 +603,13 @@ export function FeedDuelCard({
               <span key={s2.brandId} className="inline-flex items-center gap-1.5">
                 {pos === 1 && <span className="text-xs text-orange-300">vs.</span>}
                 {i === sideIndex ? (
-                  <Link href={`/brands/${s2.brandSlug}`} className="text-sm font-bold text-white hover:underline">
+                  <Link href={`/brands/${s2.brandSlug}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-white hover:underline">
+                    <NameLogo logoUrl={s2.brandLogoUrl} />
                     {s2.brandName}
                   </Link>
                 ) : (
-                  <button onClick={() => switchSide(i)} className="text-sm text-white/65 hover:text-white">
+                  <button onClick={() => switchSide(i)} className="inline-flex items-center gap-1.5 text-sm text-white/65 hover:text-white">
+                    <NameLogo logoUrl={s2.brandLogoUrl} dimmed />
                     {s2.brandName}
                   </button>
                 )}
