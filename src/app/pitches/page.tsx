@@ -5,7 +5,8 @@ import { getRemindedBattleIds } from "@/lib/reminder";
 import { ReminderButton } from "@/components/pitches/reminder-button";
 import { LiveDuelList } from "@/components/pitches/live-duel-list";
 import { DuelPolls } from "@/components/pitches/duel-polls";
-import { getLiveFeedDuels } from "@/lib/feed";
+import { getLiveAndFinishedFeedDuels } from "@/lib/feed";
+import { FinishedDuelList } from "@/components/pitches/finished-duel-list";
 import { getBrandForUser } from "@/lib/brand";
 import { getT } from "@/lib/lang";
 import { duelCategoryLabel, langOf, type Translate } from "@/lib/i18n";
@@ -45,11 +46,11 @@ function deadlineLabel(deadline: Date | null, t: Translate): string | null {
 export default async function PitchesPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const t = await getT();
   const { tab: rawTab } = await searchParams;
-  const tab = rawTab === "live" ? "live" : rawTab === "polls" ? "polls" : "soon";
+  const tab = rawTab === "live" ? "live" : rawTab === "done" ? "done" : rawTab === "polls" ? "polls" : "soon";
   const viewer = await getOptionalUser();
-  const [upcoming, live, viewerBrand] = await Promise.all([
+  const [upcoming, { live, finished }, viewerBrand] = await Promise.all([
     getUpcomingBattles(),
-    getLiveFeedDuels(viewer?.id ?? null),
+    getLiveAndFinishedFeedDuels(viewer?.id ?? null),
     viewer ? getBrandForUser(viewer.id) : Promise.resolve(null),
   ]);
   const remindedIds = viewer ? new Set(await getRemindedBattleIds(viewer.id)) : new Set<string>();
@@ -62,6 +63,8 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
           ? t("Kommende Duelle — merk dir eins vor, dann sagen wir dir Bescheid, sobald es live geht.", "Upcoming duels — set a reminder and we’ll let you know as soon as one goes live.")
           : tab === "live"
             ? t("Duelle, bei denen gerade abgestimmt wird — antippen und wie im Feed durchwischen.", "Duels open for voting right now — tap one and swipe through like in the feed.")
+            : tab === "done"
+              ? t("Wer hat gewonnen? Antippen und durchwischen.", "Who won? Tap and swipe through.")
             : t("Welches Duell wollt ihr sehen? Stimm ab — MarkItch lädt die Marken ein.", "Which duel do you want to see? Vote — MarkItch invites the brands.")}
       </p>
 
@@ -81,6 +84,7 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
           [
             ["soon", t("Demnächst", "Coming soon"), upcoming.length],
             ["live", "Live", live.length],
+            ["done", t("Beendet", "Ended"), 0],
             // Luca 17.11. (5.5): Umfragen als eigener Reiter, damit viele Umfragen die Liste nicht verdrängen.
             ["polls", t("Umfragen", "Polls"), 0],
           ] as const
@@ -98,6 +102,8 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
 
       {tab === "polls" ? (
         <DuelPolls isLoggedIn={Boolean(viewer)} />
+      ) : tab === "done" ? (
+        <FinishedDuelList duels={finished} isLoggedIn={Boolean(viewer)} />
       ) : tab === "live" ? (
         <LiveDuelList duels={live} isLoggedIn={Boolean(viewer)} />
       ) : upcoming.length === 0 ? (

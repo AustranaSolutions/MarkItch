@@ -2,7 +2,7 @@
 
 import { shortTimeAgo } from "@/lib/i18n";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import type { CommentWithAuthor } from "@/lib/comment";
 import { ReportButton } from "@/components/moderation/report-button";
@@ -17,12 +17,12 @@ type CommentRow = Omit<CommentWithAuthor, "createdAt"> & { createdAt: string };
 // identical components.
 // Phase 40: reactions got the same comment thread — "like/comment/teilen/
 // melden sollen überall gleich sein" (Luca).
-function threadComments(list: CommentRow[]): CommentRow[] {
+/** Luca 16.11. (4.2): Antworten je Meinung, älteste zuerst. */
+function repliesByParent(list: CommentRow[]): Map<string, CommentRow[]> {
   const replies = new Map<string, CommentRow[]>();
   for (const c of list) if (c.parentId) replies.set(c.parentId, [...(replies.get(c.parentId) ?? []), c]);
-  return list
-    .filter((c) => !c.parentId)
-    .flatMap((c) => [c, ...(replies.get(c.id) ?? []).sort((a, b) => a.createdAt.localeCompare(b.createdAt))]);
+  for (const [k, v] of replies) replies.set(k, v.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+  return replies;
 }
 
 export type CommentTarget = { kind: "battle"; id: string } | { kind: "solo"; id: string } | { kind: "reaction"; id: string } | { kind: "poll"; id: string };
@@ -51,6 +51,10 @@ export function CommentSheet({
   const [content, setContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
+  // Wie in der App: Antworten zugeklappt, „Antworten“ setzt die Antwort-Leiste.
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { endpoint, idParam } = ENDPOINT_BY_KIND[target.kind];
 
@@ -79,7 +83,7 @@ export function CommentSheet({
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [idParam]: target.id, content }),
+        body: JSON.stringify({ [idParam]: target.id, content, ...(replyTo ? { parentId: replyTo.id } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -88,6 +92,8 @@ export function CommentSheet({
       }
       setComments(data.comments ?? []);
       setContent("");
+      if (replyTo) setExpanded((prev) => new Set(prev).add(replyTo.id));
+      setReplyTo(null);
       onCommentPosted(target.id);
     } catch {
       setError(t("Meinung konnte nicht gespeichert werden.", "Your comment couldn’t be saved."));
@@ -118,48 +124,102 @@ export function CommentSheet({
             <p className="text-sm text-zinc-600">{t("Noch keine Meinungen — sag als Erste:r, was du denkst.", "No comments yet — be the first to say what you think.")}</p>
           ) : (
             <ul className="space-y-3">
-              {/* Luca 16.11. (4.2): Antworten (aus der App) eingerückt unter ihrer Meinung. */}
-              {threadComments(comments).map((c) => (
-                <li key={c.id} className={`${c.parentId ? "ml-6 border-l-2 border-zinc-800 pl-3" : ""} ${c.authorIsOwner ? "rounded-lg bg-orange-500/10 p-2" : ""}`}>
-                  <div className="flex items-center justify-between">
-                    <Link
-                      href={c.authorBrand ? `/brands/${c.authorBrand.slug}` : `/users/${c.authorId}`}
-                      className="text-sm font-semibold text-white hover:underline"
-                    >
-                      {c.authorName}
-                      {c.authorIsOwner ? (
-                        <span className="ml-1.5 rounded-full border border-orange-500/50 px-1.5 text-[10px] font-bold text-orange-400">{t("Ersteller", "Creator")}</span>
-                      ) : null}
-                    </Link>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-600">{shortTimeAgo(c.createdAt, t)}</span>
-                      {!c.viewerIsAuthor && (
-                        <ReportButton
-                          targetType="comment"
-                          targetId={c.id}
-                          isLoggedIn={isLoggedIn}
-                          variant="text"
-                          blockOptions={[{ name: c.authorName, target: c.authorBrand ? { brandId: c.authorBrand.id } : { userId: c.authorId } }]}
-                        />
-                      )}
+              {/* Luca 16.11. (4.2): Antworten eingerückt unter ihrer Meinung, zugeklappt wie in der App. */}
+              {(() => {
+                const replies = repliesByParent(comments);
+                const row = (c: CommentRow, isReply: boolean) => (
+                  <li key={c.id} className={`${isReply ? "ml-6 border-l-2 border-zinc-800 pl-3" : ""} ${c.authorIsOwner ? "rounded-lg bg-orange-500/10 p-2" : ""}`}>
+                    <div className="flex items-center justify-between">
+                      <Link
+                        href={c.authorBrand ? `/brands/${c.authorBrand.slug}` : `/users/${c.authorId}`}
+                        className="text-sm font-semibold text-white hover:underline"
+                      >
+                        {c.authorName}
+                        {c.authorIsOwner ? (
+                          <span className="ml-1.5 rounded-full border border-orange-500/50 px-1.5 text-[10px] font-bold text-orange-400">{t("Ersteller", "Creator")}</span>
+                        ) : null}
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-600">{shortTimeAgo(c.createdAt, t)}</span>
+                        {!c.viewerIsAuthor && (
+                          <ReportButton
+                            targetType="comment"
+                            targetId={c.id}
+                            isLoggedIn={isLoggedIn}
+                            variant="text"
+                            blockOptions={[{ name: c.authorName, target: c.authorBrand ? { brandId: c.authorBrand.id } : { userId: c.authorId } }]}
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <p className="mt-0.5 text-sm text-zinc-300">{c.content}</p>
-                </li>
-              ))}
+                    <p className="mt-0.5 text-sm text-zinc-300">{c.content}</p>
+                    {isLoggedIn && !c.viewerIsAuthor && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Antwort auf eine Antwort hängt an deren Meinung (Server macht dasselbe).
+                          setReplyTo({ id: c.parentId ?? c.id, name: c.authorName });
+                          inputRef.current?.focus();
+                        }}
+                        className="mt-1 text-xs font-semibold text-zinc-500 hover:text-white"
+                      >
+                        {t("Antworten", "Reply")}
+                      </button>
+                    )}
+                  </li>
+                );
+                return comments
+                  .filter((c) => !c.parentId)
+                  .flatMap((c) => {
+                    const list = replies.get(c.id) ?? [];
+                    const open = expanded.has(c.id);
+                    const toggle =
+                      list.length > 0 ? (
+                        <li key={`${c.id}-toggle`} className="ml-6">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpanded((prev) => {
+                                const next = new Set(prev);
+                                if (open) next.delete(c.id);
+                                else next.add(c.id);
+                                return next;
+                              })
+                            }
+                            className="text-xs font-semibold text-zinc-500 hover:text-white"
+                          >
+                            {open
+                              ? t("Antworten ausblenden", "Hide replies")
+                              : t(`— ${list.length} ${list.length === 1 ? "Antwort" : "Antworten"} anzeigen`, `— View ${list.length} ${list.length === 1 ? "reply" : "replies"}`)}
+                          </button>
+                        </li>
+                      ) : null;
+                    return [row(c, false), ...(open ? list.map((r) => row(r, true)) : []), toggle];
+                  });
+              })()}
             </ul>
           )}
         </div>
 
         <div className="border-t border-zinc-800 p-3">
           {isLoggedIn ? (
+            <>
+            {replyTo && (
+              <div className="mb-2 flex items-center justify-between text-xs text-zinc-400">
+                <span>{t(`Antwort an ${replyTo.name}`, `Replying to ${replyTo.name}`)}</span>
+                <button type="button" onClick={() => setReplyTo(null)} aria-label={t("Antwort abbrechen", "Cancel reply")} className="text-zinc-500 hover:text-white">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
               {error && <p className="sr-only">{error}</p>}
               <input
+                ref={inputRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 maxLength={500}
-                placeholder={t("Was denkst du?", "What do you think?")}
+                placeholder={replyTo ? t("Deine Antwort…", "Your reply…") : t("Was denkst du?", "What do you think?")}
                 className="flex-1 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-orange-500"
               />
               <button
@@ -170,6 +230,7 @@ export function CommentSheet({
                 {posting ? "…" : t("Senden", "Send")}
               </button>
             </form>
+            </>
           ) : (
             <p className="text-center text-sm text-zinc-500">
               <a href="/login" className="text-orange-500 hover:underline">
