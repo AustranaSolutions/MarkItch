@@ -175,6 +175,11 @@ function hashGuestId(guestId: string): string {
   return createHash("sha256").update(`markitch-guest:${guestId}`).digest("hex");
 }
 
+/** Hash einer gültigen Geräte-Kennung, sonst null (auch für Duell-Umfragen). */
+export function guestDeviceHash(guestId: unknown): string | null {
+  return typeof guestId === "string" && GUEST_ID_RE.test(guestId) ? hashGuestId(guestId) : null;
+}
+
 /** Gleiche Regeln wie castVoteForUser, nur pro Gerät statt pro Konto. */
 export async function castGuestVote(guestId: unknown, battleId: string, votedForBrandId: string): Promise<{ error?: string }> {
   if (typeof guestId !== "string" || !GUEST_ID_RE.test(guestId)) return { error: "Bitte melde dich an." };

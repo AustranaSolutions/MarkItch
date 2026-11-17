@@ -81,7 +81,7 @@ export function PrivacyEn() {
         <p>
           <B>Voting without an account:</B> If you vote without an account, the app or your browser stores a random
           identifier on your device and remembers there what you voted for. This is technically necessary so that each
-          device can only vote once per duel. On our side we only store an irreversible hash of this identifier together
+          device can only vote once per duel or duel poll. On our side we only store an irreversible hash of this identifier together
           with the vote — no name, no account; to prevent abuse we also briefly count votes per IP address. Deleting the app
           or the website data removes the identifier. Legal basis: contract or the function you requested (Art. 6(1)(b)
           GDPR, § 165(3) TKG).

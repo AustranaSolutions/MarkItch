@@ -4,6 +4,7 @@ import { getOptionalUser } from "@/lib/session";
 import { getRemindedBattleIds } from "@/lib/reminder";
 import { ReminderButton } from "@/components/pitches/reminder-button";
 import { LiveDuelList } from "@/components/pitches/live-duel-list";
+import { DuelPolls } from "@/components/pitches/duel-polls";
 import { getLiveFeedDuels } from "@/lib/feed";
 import { getBrandForUser } from "@/lib/brand";
 import { getT } from "@/lib/lang";
@@ -71,6 +72,9 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
           <span className="text-zinc-500">›</span>
         </Link>
       )}
+
+      {/* Luca 17.11. (5.5): Duell-Umfragen von MarkItch — über den Reitern, damit man sie immer sieht. */}
+      <DuelPolls />
 
       {/* Wie die Reiter im Profil (Videos · Duelle · Aktionen). */}
       <div className="mb-6 flex border-b border-zinc-800">

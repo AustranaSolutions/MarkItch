@@ -168,6 +168,12 @@ const EXACT: Record<string, string> = {
   "Video nicht gefunden.": "Video not found.",
   "Diese Meinung gibt es nicht mehr.": "This comment no longer exists.",
   "Die Abstimmung ist beendet.": "Voting has ended.",
+  // Luca 17.11. (5.5): Duell-Umfragen
+  "Diese Umfrage gibt es nicht mehr.": "This poll no longer exists.",
+  "Bitte 2 bis 4 Paarungen wählen.": "Please choose 2 to 4 matchups.",
+  "Eine Marke kann nicht gegen sich selbst antreten.": "A brand can’t face itself.",
+  "Eine Paarung ist doppelt.": "One matchup is listed twice.",
+  "Eine der Marken gibt es nicht mehr.": "One of the brands no longer exists.",
   "Code: nur Buchstaben, Ziffern und - _ . % (keine Leerzeichen).": "Code: only letters, digits and - _ . % (no spaces).",
   "Upload konnte nicht vorbereitet werden.": "The upload couldn’t be prepared.",
   "Video fehlt.": "Video is missing.",

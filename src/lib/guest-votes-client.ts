@@ -34,6 +34,15 @@ export function getGuestId(): string | null {
   }
 }
 
+/** Vorhandene Kennung lesen, ohne eine neue anzulegen (nur zum Anzeigen eigener Stimmen). */
+export function peekGuestId(): string | null {
+  try {
+    return localStorage.getItem(ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function rememberGuestVote(battleId: string, brandId: string) {
   const entries = Object.entries({ ...readVotes(), [battleId]: brandId }).slice(-300);
   cache = Object.fromEntries(entries);
