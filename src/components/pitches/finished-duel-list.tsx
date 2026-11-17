@@ -49,16 +49,16 @@ export function FinishedDuelList({ duels, isLoggedIn }: { duels: FeedDuel[]; isL
                 aria-label={t(`Duell ${duel.sides[0].brandName} gegen ${duel.sides[1].brandName}`, `Duel ${duel.sides[0].brandName} vs. ${duel.sides[1].brandName}`)}
               >
                 {sides.map((side, pos) => (
-                  <span
-                    key={side.brandId}
-                    className="relative h-full flex-1 bg-zinc-900"
-                    style={pos === 0 && winnerSide !== null ? { boxShadow: `inset 0 0 0 2px ${GOLD}` } : undefined}
-                  >
+                  <span key={side.brandId} className="relative h-full flex-1 bg-zinc-900">
                     {side.thumbnailUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary source
                       <img src={side.thumbnailUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <video src={`${side.videoUrl}#t=0.1`} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                    )}
+                    {pos === 0 && winnerSide !== null && (
+                      // Goldener Rand als eigene Ebene über dem Bild (sonst verdeckt es ihn).
+                      <span className="pointer-events-none absolute inset-0 rounded-l-xl border-2" style={{ borderColor: GOLD }} />
                     )}
                     {pos === 0 && winnerSide !== null && (
                       <span className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60">
