@@ -198,6 +198,7 @@ export function FeedDuelCard({
   onOpenComments,
   onShare,
   onActive,
+  onHidden,
 }: {
   duel: FeedDuel;
   isLoggedIn: boolean;
@@ -209,6 +210,8 @@ export function FeedDuelCard({
   onShare: (duel: FeedDuel) => void;
   /** Phase 43: tells FeedClient this card is the one on screen now, so it can keep only nearby cards' videos mounted. */
   onActive?: () => void;
+  /** Luca 17.11.: „Nicht interessiert“ → Karte entfernen. */
+  onHidden?: () => void;
 }) {
   const t = useT();
   // Luca 24.10.: aus einem Profil geöffnet → dessen Video zuerst und links,
@@ -679,6 +682,8 @@ export function FeedDuelCard({
           blockOptions={(sideIndex === 0 ? duel.sides : [duel.sides[1], duel.sides[0]])
             .filter((side) => !side.viewerOwnsThisBrand)
             .map((side) => ({ name: side.brandName, target: { brandId: side.brandId } }))}
+          contentTarget={duel.viewerOwnsThisBattle ? undefined : { targetType: "battle", targetId: duel.battleId }}
+          onHidden={onHidden}
         />
       </div>
       )}

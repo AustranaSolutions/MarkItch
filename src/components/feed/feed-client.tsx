@@ -433,6 +433,7 @@ export function FeedClient({
               onToggleMute={() => setMuted((m) => !m)}
               onToggleLike={handleToggleLike}
               onVote={handleVote}
+              onHidden={() => setItems((prev) => prev.filter((x) => x.key !== item.key))}
               onOpenComments={(battleId) => setCommentTarget({ kind: "battle", id: battleId })}
               onShare={handleShare}
               onActive={() => handleActive(item.key)}
@@ -451,6 +452,7 @@ export function FeedClient({
               onShare={handleShareSolo}
               onUpdated={(patch) => patchSolo(item.soloPitchId, patch)}
               onDeleted={() => handleSoloPitchDeleted(item.soloPitchId)}
+              onHidden={() => handleSoloPitchDeleted(item.soloPitchId)}
               onActive={() => handleActive(item.key)}
             />
           );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Flag, X } from "lucide-react";
+import { Clock, EyeOff, Flag, MoreHorizontal, X } from "lucide-react";
 import type { ReportTargetType } from "@/lib/moderation";
 import { confirmAndBlock, type BlockTarget } from "@/lib/block-client";
 import { useT } from "@/components/i18n/lang-provider";
@@ -28,6 +28,8 @@ export function ReportButton({
   isLoggedIn,
   variant = "icon",
   blockOptions = [],
+  contentTarget,
+  onHidden,
 }: {
   targetType: ReportTargetType;
   targetId: string;
@@ -35,12 +37,39 @@ export function ReportButton({
   variant?: "icon" | "text";
   /** Luca 25.10.: wie in der App — im selben Blatt „<Name> blockieren“. Eigene Konten nicht übergeben. */
   blockOptions?: { name: string; target: BlockTarget }[];
+  /**
+   * Luca 17.11. (Web wie App 3.1/3.2): Video → ⋯ statt Fahne, oben
+   * „Für später merken“ und „Nicht interessiert“, darunter Melden/Blockieren.
+   */
+  contentTarget?: { targetType: "pitch" | "battle"; targetId: string };
+  /** Nach „Nicht interessiert“: Karte aus der Liste nehmen. */
+  onHidden?: () => void;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [done, setDone] = useState<string | null>(null);
+
+  async function contentAction(kind: "save" | "hide") {
+    if (!contentTarget) return;
+    const res = await fetch(kind === "save" ? "/api/mobile/saved-videos" : "/api/mobile/hidden", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(contentTarget),
+    }).catch(() => null);
+    if (!res?.ok) {
+      setStatus("error");
+      return;
+    }
+    if (kind === "hide") {
+      setOpen(false);
+      onHidden?.();
+      return;
+    }
+    setDone(t("Gemerkt — unter Einstellungen › Für später.", "Saved — under Settings › Saved for later."));
+  }
 
   function openSheet() {
     if (!isLoggedIn) {
@@ -50,6 +79,7 @@ export function ReportButton({
     setReason(null);
     setNote("");
     setStatus("idle");
+    setDone(null);
     setOpen(true);
   }
 
@@ -70,7 +100,11 @@ export function ReportButton({
 
   return (
     <>
-      {variant === "icon" ? (
+      {variant === "icon" && contentTarget ? (
+        <button onClick={openSheet} className="pointer-events-auto flex flex-col items-center gap-1 text-white" aria-label={t("Mehr", "More")}>
+          <MoreHorizontal size={28} />
+        </button>
+      ) : variant === "icon" ? (
         <button onClick={openSheet} className="pointer-events-auto flex flex-col items-center gap-1 text-white" aria-label={t("Melden", "Report")}>
           <Flag size={28} />
           <span className="text-xs font-medium">{t("Melden", "Report")}</span>
@@ -106,6 +140,17 @@ export function ReportButton({
               </div>
             ) : (
               <>
+                {contentTarget && (
+                  <div className="mb-3 space-y-1.5 border-b border-zinc-800 pb-3">
+                    <button onClick={() => contentAction("save")} className="flex w-full items-center gap-2 rounded-lg border border-zinc-800 px-3 py-2 text-left text-sm text-white">
+                      <Clock size={16} /> {t("Für später merken", "Save for later")}
+                    </button>
+                    <button onClick={() => contentAction("hide")} className="flex w-full items-center gap-2 rounded-lg border border-zinc-800 px-3 py-2 text-left text-sm text-white">
+                      <EyeOff size={16} /> {t("Nicht interessiert", "Not interested")}
+                    </button>
+                    {done && <p className="text-xs text-emerald-400">{done}</p>}
+                  </div>
+                )}
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-white">{t("Inhalt melden", "Report content")}</h2>
                   <button onClick={() => setOpen(false)} aria-label={t("Schließen", "Close")} className="text-zinc-500 hover:text-white">

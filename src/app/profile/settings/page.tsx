@@ -182,12 +182,12 @@ export default async function ProfileSettingsPage() {
         <LanguageSwitcher setting={await getLangSetting()} />
       </div>
 
-      {/* Luca 13.11. (Phase 3): Rabattcodes aus angetippten Links. */}
+      {/* Luca 13.11. (Phase 3): Rabattcodes aus angetippten Links. 17.11.: dazu gemerkte Videos. */}
       <Link
         href="/profile/settings/codes"
         className="mb-4 flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-950 px-6 py-4 text-sm text-white hover:bg-zinc-900"
       >
-        {t("Meine Codes", "My codes")}
+        {t("Für später (Videos & Codes)", "Saved for later (videos & codes)")}
         <ChevronRight size={16} className="text-zinc-500" />
       </Link>
 

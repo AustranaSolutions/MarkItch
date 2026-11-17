@@ -36,6 +36,7 @@ export function FeedSoloPitchCard({
   onClose,
   onUpdated,
   onDeleted,
+  onHidden,
   onActive,
 }: {
   pitch: FeedSoloPitch;
@@ -53,6 +54,8 @@ export function FeedSoloPitchCard({
   /** Phase 32: owner-only edit (via the "⋮" menu) needs to patch the card's data in whatever list/state renders it. */
   onUpdated?: (patch: Partial<FeedSoloPitch>) => void;
   onDeleted?: () => void;
+  /** Luca 17.11.: „Nicht interessiert“ → Karte entfernen. */
+  onHidden?: () => void;
   /** Phase 43: tells FeedClient this card is the one on screen now, so it can keep only nearby cards' videos mounted. */
   onActive?: () => void;
 }) {
@@ -346,6 +349,8 @@ export function FeedSoloPitchCard({
             targetId={pitch.soloPitchId}
             isLoggedIn={isLoggedIn}
             blockOptions={[{ name: pitch.brandName, target: { brandId: pitch.brandId } }]}
+            contentTarget={{ targetType: "pitch", targetId: pitch.soloPitchId }}
+            onHidden={onHidden}
           />
         )}
       </div>
