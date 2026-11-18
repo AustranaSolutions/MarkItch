@@ -1,0 +1,1 @@
+ALTER TABLE "partner_castings" ADD COLUMN "voting_notified_at" timestamp with time zone;
