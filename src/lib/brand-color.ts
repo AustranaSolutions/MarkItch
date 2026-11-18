@@ -81,8 +81,3 @@ export async function brandAccent(brand: { id: string; slug: string; logoUrl: st
   await db.update(brands).set({ accentColor: color }).where(eq(brands.id, brand.id)).catch(() => {});
   return color;
 }
-
-/** Nach neuem Logo: alte Farbe verwerfen, beim nächsten Aufruf neu berechnen. */
-export async function resetBrandAccent(brandId: string): Promise<void> {
-  await db.update(brands).set({ accentColor: null }).where(eq(brands.id, brandId));
-}

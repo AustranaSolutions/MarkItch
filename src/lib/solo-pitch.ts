@@ -47,16 +47,6 @@ export async function getAllSoloPitches(where?: SQL): Promise<SoloPitchWithBrand
   return rows.map((r) => ({ ...r.pitch, brand: r.brand }));
 }
 
-export async function getSoloPitchById(id: string): Promise<SoloPitchWithBrand | null> {
-  const [row] = await db
-    .select({ pitch: soloPitches, brand: brandCols })
-    .from(soloPitches)
-    .innerJoin(brands, eq(soloPitches.brandId, brands.id))
-    .where(eq(soloPitches.id, id))
-    .limit(1);
-  return row ? { ...row.pitch, brand: row.brand } : null;
-}
-
 export async function getSoloPitchesForBrand(brandId: string): Promise<SoloPitch[]> {
   return db.select().from(soloPitches).where(eq(soloPitches.brandId, brandId)).orderBy(desc(soloPitches.createdAt));
 }

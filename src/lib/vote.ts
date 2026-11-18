@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { and, count, eq, inArray, lte, or } from "drizzle-orm";
+import { and, count, eq, lte, or } from "drizzle-orm";
 import { db } from "@/db";
 import { battles, brandMembers, guestVotes, votes } from "@/db/schema";
 
@@ -91,17 +91,6 @@ export async function getUserVote(battleId: string, userId: string): Promise<str
     .where(and(eq(votes.battleId, battleId), eq(votes.userId, userId)))
     .limit(1);
   return row?.votedForBrandId ?? null;
-}
-
-/** Total vote count per battle, for list views (e.g. /pitches cards). */
-export async function getVoteTotals(battleIds: string[]): Promise<Map<string, number>> {
-  if (battleIds.length === 0) return new Map();
-  const rows = await db
-    .select({ battleId: votes.battleId, n: count() })
-    .from(votes)
-    .where(inArray(votes.battleId, battleIds))
-    .groupBy(votes.battleId);
-  return new Map(rows.map((r) => [r.battleId, r.n]));
 }
 
 /**
@@ -200,14 +189,4 @@ export async function castGuestVote(guestId: unknown, battleId: string, votedFor
     .returning({ id: guestVotes.id });
   if (inserted.length === 0) return { error: "Du hast bereits abgestimmt." };
   return {};
-}
-
-/** Für welche Seite dieses Gerät schon gestimmt hat (je Duell). */
-export async function getGuestVotes(guestId: unknown, battleIds: string[]): Promise<Map<string, string>> {
-  if (typeof guestId !== "string" || !GUEST_ID_RE.test(guestId) || battleIds.length === 0) return new Map();
-  const rows = await db
-    .select({ battleId: guestVotes.battleId, votedForBrandId: guestVotes.votedForBrandId })
-    .from(guestVotes)
-    .where(and(eq(guestVotes.deviceHash, hashGuestId(guestId)), inArray(guestVotes.battleId, battleIds)));
-  return new Map(rows.map((r) => [r.battleId, r.votedForBrandId]));
 }

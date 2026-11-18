@@ -123,11 +123,6 @@ export async function getReactionCounts(soloPitchIds: string[]): Promise<Map<str
   return new Map(rows.flatMap((r) => (r.soloPitchId ? [[r.soloPitchId, r.n] as const] : [])));
 }
 
-export async function getReactionById(id: string): Promise<Reaction | null> {
-  const [row] = await db.select().from(reactions).where(eq(reactions.id, id)).limit(1);
-  return row ?? null;
-}
-
 /**
  * The original brand upgrades an already-posted, already-liked reaction
  * straight to an official Duell — both videos exist already, so this just

@@ -10,7 +10,6 @@ import { useT } from "@/components/i18n/lang-provider";
 type AccountType = "acro" | "assent";
 
 function RoleCard({
-  value,
   title,
   description,
   selected,

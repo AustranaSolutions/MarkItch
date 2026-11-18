@@ -216,31 +216,6 @@ export async function checkCastingSubmission(castingId: string, brandId: string)
   return {};
 }
 
-export async function submitToCasting(
-  castingId: string,
-  brandId: string,
-  videoUrl: string,
-  description: string,
-  ctaLabel: string,
-  ctaUrl: string,
-  containsAiContent: boolean,
-): Promise<{ error?: string }> {
-  const [casting] = await db.select().from(partnerCastings).where(eq(partnerCastings.id, castingId)).limit(1);
-  if (!casting) return { error: "Dieses Casting existiert nicht." };
-  if (casting.hostBrandId === brandId) return { error: "Du kannst nicht bei deinem eigenen Casting mitmachen." };
-  if (casting.submissionDeadline.getTime() < Date.now()) return { error: "Die Einreichungsfrist ist abgelaufen." };
-
-  const [existing] = await db
-    .select({ id: castingSubmissions.id })
-    .from(castingSubmissions)
-    .where(and(eq(castingSubmissions.castingId, castingId), eq(castingSubmissions.brandId, brandId)))
-    .limit(1);
-  if (existing) return { error: "Du hast für dieses Casting bereits eingereicht." };
-
-  await db.insert(castingSubmissions).values({ castingId, brandId, videoUrl, description, ctaLabel, ctaUrl, containsAiContent });
-  return {};
-}
-
 export async function castCastingVote(userId: string, castingId: string, submissionId: string): Promise<{ error?: string }> {
   const [casting] = await db.select().from(partnerCastings).where(eq(partnerCastings.id, castingId)).limit(1);
   if (!casting) return { error: "Dieses Casting existiert nicht." };

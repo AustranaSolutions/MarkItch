@@ -18,17 +18,6 @@ export type AnalyticsEventKind = "view" | "share" | "cta_click" | "vote_click" |
 // Luca 14.11.: 'shared_open' = geteilter Link geöffnet (ohne Gerätekennung, anonId '-').
 export type VisitorEventKind = "session_start" | "register_started" | "shared_open";
 
-/** Fire-and-forget event log — see schema.ts for why this is a log, not a counter. */
-export async function recordAnalyticsEvent(
-  brandId: string,
-  kind: AnalyticsEventKind,
-  target?: { soloPitchId?: string; battleId?: string; anonId?: string },
-): Promise<void> {
-  await db
-    .insert(brandAnalyticsEvents)
-    .values({ brandId, kind, soloPitchId: target?.soloPitchId, battleId: target?.battleId, anonId: target?.anonId });
-}
-
 export type AnalyticsEventInput = {
   brandId: string;
   kind: AnalyticsEventKind;

@@ -95,28 +95,6 @@ export async function getChartPeriodsForBrand(brandId: string): Promise<string[]
   return rows.map((r) => r.period).sort((a, b) => (a < b ? 1 : -1));
 }
 
-export async function postCreatorSubmission(
-  creatorBrandId: string,
-  targetBrandId: string,
-  videoUrl: string,
-  description: string,
-  ctaLabel: string,
-  ctaUrl: string,
-  containsAiContent: boolean,
-): Promise<{ error?: string }> {
-  if (creatorBrandId === targetBrandId) {
-    return { error: "Du kannst kein Video für deine eigene Marke posten." };
-  }
-  const [targetBrand] = await db.select({ id: brands.id }).from(brands).where(eq(brands.id, targetBrandId)).limit(1);
-  if (!targetBrand) {
-    return { error: "Diese Marke existiert nicht." };
-  }
-  await db
-    .insert(creatorSubmissions)
-    .values({ brandId: targetBrandId, creatorBrandId, videoUrl, description, ctaLabel, ctaUrl, containsAiContent, period: currentPeriod() });
-  return {};
-}
-
 export async function castCreatorVote(userId: string, submissionId: string): Promise<{ error?: string }> {
   const [submission] = await db.select().from(creatorSubmissions).where(eq(creatorSubmissions.id, submissionId)).limit(1);
   if (!submission) return { error: "Dieses Video existiert nicht." };

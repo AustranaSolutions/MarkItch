@@ -4,18 +4,9 @@ import { localizeResult } from "@/lib/lang";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { requireUser } from "@/lib/session";
-import { openChallengeFor, submitToChallengeFor } from "@/lib/creator-challenge";
+import { submitToChallengeFor } from "@/lib/creator-challenge";
 
 // RN-7: Creator-Challenge im Web — Logik in lib/creator-challenge.ts, gemeinsam mit der App.
-
-export type OpenChallengeFormState = { error?: string } | undefined;
-
-async function openChallengeImpl(_prevState: OpenChallengeFormState, formData: FormData): Promise<OpenChallengeFormState> {
-  const user = await requireUser();
-  const result = await openChallengeFor(user, { period: formData.get("period"), prompt: formData.get("prompt") });
-  if (!result.ok) return { error: result.error };
-  redirect(`/challenges/${result.challengeId}`);
-}
 
 export type ChallengeEntryFormState = { errors?: Record<string, string[]> } | undefined;
 
@@ -32,10 +23,6 @@ async function submitChallengeEntryImpl(
   redirect(`/challenges/${challengeId}`);
 }
 
-// Luca 12.11.: Ergebnisse in der Sprache der Person (siehe lib/lang.ts).
-export async function openChallenge(...args: Parameters<typeof openChallengeImpl>) {
-  return localizeResult(await openChallengeImpl(...args));
-}
 export async function submitChallengeEntry(...args: Parameters<typeof submitChallengeEntryImpl>) {
   return localizeResult(await submitChallengeEntryImpl(...args));
 }

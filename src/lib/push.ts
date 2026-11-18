@@ -21,10 +21,6 @@ if (configured) {
   webpush.setVapidDetails(SUBJECT, PUBLIC_KEY!, PRIVATE_KEY!);
 }
 
-export function isPushConfigured(): boolean {
-  return configured;
-}
-
 /** Upsert by endpoint — re-subscribing the same browser replaces its keys instead of duplicating the row. */
 export async function saveSubscription(sub: NewPushSubscription): Promise<void> {
   await db

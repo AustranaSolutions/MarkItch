@@ -694,11 +694,6 @@ export async function getFeedDuelById(viewerId: string | null, battleId: string)
   return duel ?? null;
 }
 
-/** Luca 26.10.: Reiter „Live“ im Web (/pitches) — siehe getLiveAndFinishedFeedDuels. */
-export async function getLiveFeedDuels(viewerId: string | null): Promise<FeedDuel[]> {
-  return (await getLiveAndFinishedFeedDuels(viewerId, 0)).live;
-}
-
 /** Same deep-link purpose as getFeedDuelById, for a solo pitch's share link. */
 export async function getFeedSoloPitchById(viewerId: string | null, soloPitchId: string): Promise<FeedSoloPitch | null> {
   if (!isUuid(soloPitchId)) return null;
