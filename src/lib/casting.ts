@@ -1,5 +1,7 @@
 import "server-only";
-import { and, asc, count, desc, eq, gt, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, lt, notExists, sql } from "drizzle-orm";
+import { getBrandMemberUserIds } from "@/lib/brand";
+import { notifyUsers } from "@/lib/notification";
 import { db } from "@/db";
 import { partnerCastings, castingSubmissions, castingVotes, brands, brandMembers, type PartnerCasting } from "@/db/schema";
 import { getAutoHiddenTargetIds } from "@/lib/moderation";
@@ -77,6 +79,7 @@ export type CastingWithDetails = PartnerCasting & {
 const brandCols = { id: brands.id, name: brands.name, slug: brands.slug, logoUrl: brands.logoUrl };
 
 export async function getCastingById(id: string, viewerId: string | null): Promise<CastingWithDetails | null> {
+  await extendEmptyCastings().catch((err) => console.error("[casting] extendEmptyCastings", err));
   const [casting] = await db.select().from(partnerCastings).where(eq(partnerCastings.id, id)).limit(1);
   if (!casting) return null;
 
@@ -295,6 +298,7 @@ export type OpenCasting = {
  * Abstimmung fehlte.)
  */
 export async function getOpenCastings(blockedBrandIds: Set<string> = new Set()): Promise<OpenCasting[]> {
+  await extendEmptyCastings().catch((err) => console.error("[casting] extendEmptyCastings", err));
   const rows = await db
     .select({ casting: partnerCastings, brand: brandCols })
     .from(partnerCastings)
@@ -326,4 +330,48 @@ export async function getOpenCastings(blockedBrandIds: Set<string> = new Set()):
     };
   });
   return [...list.filter((c) => c.stage === "open"), ...list.filter((c) => c.stage === "voting").sort((a, b) => a.deadline.getTime() - b.deadline.getTime())];
+}
+
+const EXTEND_DAYS = 7;
+/** Nur Castings, die jünger als 60 Tage sind, werden weiter verlängert. */
+const EXTEND_MAX_AGE_MS = 60 * 24 * 60 * 60 * 1000;
+
+/**
+ * Luca 18.11.: Endet die Einreichfrist ohne ein einziges Video, läuft das
+ * Casting nicht leer in die Abstimmung, sondern die Einreichfrist wird um
+ * 7 Tage verlängert (Abstimmung danach wieder 7 Tage) und die Marke bekommt
+ * Bescheid. Nach 60 Tagen ohne Einreichung endet es ohne Gewinner.
+ * Läuft beim Laden von Casting-Listen/-Seiten und im täglichen Cron; das
+ * UPDATE trifft jede Casting-Zeile nur einmal (danach liegt die Frist in der
+ * Zukunft), also gibt es keine doppelten Hinweise.
+ */
+export async function extendEmptyCastings(): Promise<number> {
+  const now = new Date();
+  const extended = await db
+    .update(partnerCastings)
+    .set({
+      submissionDeadline: sql`now() + interval '${sql.raw(String(EXTEND_DAYS))} days'`,
+      votingEndsAt: sql`now() + interval '${sql.raw(String(EXTEND_DAYS + CASTING_VOTING_WINDOW_MS / 86_400_000))} days'`,
+    })
+    .where(
+      and(
+        lt(partnerCastings.submissionDeadline, now),
+        gt(partnerCastings.votingEndsAt, now),
+        gt(partnerCastings.createdAt, new Date(now.getTime() - EXTEND_MAX_AGE_MS)),
+        notExists(db.select({ one: sql`1` }).from(castingSubmissions).where(eq(castingSubmissions.castingId, partnerCastings.id))),
+      ),
+    )
+    .returning({ id: partnerCastings.id, hostBrandId: partnerCastings.hostBrandId, prompt: partnerCastings.prompt });
+  for (const c of extended) {
+    const short = c.prompt.length > 60 ? `${c.prompt.slice(0, 57)}…` : c.prompt;
+    await notifyUsers(
+      await getBrandMemberUserIds(c.hostBrandId),
+      {
+        de: `Bei deinem Casting „${short}“ hat noch niemand eingereicht – wir haben die Einreichfrist um ${EXTEND_DAYS} Tage verlängert. Tipp: Teile das Casting mit deinen Followern.`,
+        en: `No one has submitted to your casting “${short}” yet – we extended the submission period by ${EXTEND_DAYS} days. Tip: share the casting with your followers.`,
+      },
+      `/castings/${c.id}`,
+    );
+  }
+  return extended.length;
 }

@@ -11,7 +11,8 @@ import { type Translate } from "@/lib/i18n";
 export const dynamic = "force-dynamic";
 
 function leftLabel(date: Date, t: Translate): string {
-  const hours = Math.max(0, (date.getTime() - Date.now()) / 3_600_000);
+  const hours = (date.getTime() - Date.now()) / 3_600_000;
+  if (hours <= 0) return t("endet gerade", "ending now");
   return hours >= 24 ? t(`noch ${Math.ceil(hours / 24)} Tage`, `${Math.ceil(hours / 24)} days left`) : t(`noch ${Math.max(1, Math.ceil(hours))} Std.`, `${Math.max(1, Math.ceil(hours))} hrs left`);
 }
 

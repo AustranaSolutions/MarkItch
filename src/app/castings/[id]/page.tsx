@@ -22,7 +22,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 function timeLeftLabel(date: Date, t: Translate): string {
-  const hoursLeft = Math.max(0, (date.getTime() - Date.now()) / (60 * 60 * 1000));
+  const hoursLeft = (date.getTime() - Date.now()) / (60 * 60 * 1000);
+  // Luca 18.11.: vergangene Frist nie als „noch 1h“ zeigen.
+  if (hoursLeft <= 0) return t("endet gerade", "ending now");
   if (hoursLeft >= 24) return t(`noch ${Math.ceil(hoursLeft / 24)} Tage`, `${Math.ceil(hoursLeft / 24)} days left`);
   return t(`noch ${Math.max(1, Math.ceil(hoursLeft))}h`, `${Math.max(1, Math.ceil(hoursLeft))}h left`);
 }
