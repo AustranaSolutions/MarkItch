@@ -181,6 +181,16 @@ export async function getRunningChallengesForBrands(brandIds: string[]) {
     .where(and(inArray(creatorChallenges.brandId, brandIds), eq(creatorChallenges.period, currentPeriod())));
 }
 
+/** Luca 18.11. (4.3): laufende Creator-Challenges aller Marken für „Castings & Challenges“. */
+export async function getAllRunningChallenges() {
+  return db
+    .select({ id: creatorChallenges.id, prompt: creatorChallenges.prompt, period: creatorChallenges.period, brandId: brands.id, brandName: brands.name, brandSlug: brands.slug, brandLogoUrl: brands.logoUrl })
+    .from(creatorChallenges)
+    .innerJoin(brands, eq(creatorChallenges.brandId, brands.id))
+    .where(eq(creatorChallenges.period, currentPeriod()))
+    .limit(100);
+}
+
 /** Einreichen: ein normaler Solo-Pitch mit Verweis auf die Challenge (dieselben Pflichtfelder). */
 export async function submitToChallengeFor(
   user: { id: string },

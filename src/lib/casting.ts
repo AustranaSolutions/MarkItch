@@ -278,22 +278,28 @@ export async function castCastingVote(userId: string, castingId: string, submiss
 export type OpenCasting = {
   id: string;
   prompt: string;
+  /** „open“ = Einreichen läuft, „voting“ = Abstimmung läuft. */
+  stage: "open" | "voting";
+  /** Ende der aktuellen Phase. */
+  deadline: Date;
   submissionDeadline: Date;
   submissionCount: number;
   hostBrand: { id: string; name: string; slug: string; logoUrl: string | null };
 };
 
 /**
- * Luca 17.11. (Phasen-Map 4.3): alle Castings, bei denen man gerade noch
- * einreichen kann — von allen Marken, nicht nur gefolgten. Frist zuerst,
- * die bald endet. Blockierte Marken fehlen.
+ * Luca 17.11. (Phasen-Map 4.3): alle laufenden Castings — von allen Marken,
+ * nicht nur gefolgten. Erst die, bei denen man noch einreichen kann, dann die
+ * in der Abstimmung; jeweils die Frist zuerst, die bald endet. Blockierte
+ * Marken fehlen. (18.11.: vorher nur Einreichphase → Lucas Casting in der
+ * Abstimmung fehlte.)
  */
 export async function getOpenCastings(blockedBrandIds: Set<string> = new Set()): Promise<OpenCasting[]> {
   const rows = await db
     .select({ casting: partnerCastings, brand: brandCols })
     .from(partnerCastings)
     .innerJoin(brands, eq(partnerCastings.hostBrandId, brands.id))
-    .where(gt(partnerCastings.submissionDeadline, new Date()))
+    .where(gt(partnerCastings.votingEndsAt, new Date()))
     .orderBy(asc(partnerCastings.submissionDeadline))
     .limit(100);
   const visible = rows.filter((r) => !blockedBrandIds.has(r.brand.id));
@@ -306,11 +312,18 @@ export async function getOpenCastings(blockedBrandIds: Set<string> = new Set()):
         .groupBy(castingSubmissions.castingId)
     : [];
   const byId = new Map(counts.map((c) => [c.castingId, Number(c.n)]));
-  return visible.map((r) => ({
-    id: r.casting.id,
-    prompt: r.casting.prompt,
-    submissionDeadline: r.casting.submissionDeadline,
-    submissionCount: byId.get(r.casting.id) ?? 0,
-    hostBrand: r.brand,
-  }));
+  const now = Date.now();
+  const list = visible.map((r) => {
+    const open = r.casting.submissionDeadline.getTime() > now;
+    return {
+      id: r.casting.id,
+      prompt: r.casting.prompt,
+      stage: open ? ("open" as const) : ("voting" as const),
+      deadline: open ? r.casting.submissionDeadline : r.casting.votingEndsAt,
+      submissionDeadline: r.casting.submissionDeadline,
+      submissionCount: byId.get(r.casting.id) ?? 0,
+      hostBrand: r.brand,
+    };
+  });
+  return [...list.filter((c) => c.stage === "open"), ...list.filter((c) => c.stage === "voting").sort((a, b) => a.deadline.getTime() - b.deadline.getTime())];
 }
