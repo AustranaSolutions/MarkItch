@@ -1,0 +1,1 @@
+ALTER TABLE "partner_castings" ADD COLUMN "reminder_sent_at" timestamp with time zone;
