@@ -5,6 +5,7 @@ import { getBlockedIds } from "@/lib/block";
 import { getOpenCastings } from "@/lib/casting";
 import { getAllRunningChallenges } from "@/lib/creator-challenge";
 import { periodLabel } from "@/lib/creator-charts";
+import { getFollowedBrandIds } from "@/lib/follow";
 import { getT } from "@/lib/lang";
 import { type Translate } from "@/lib/i18n";
 
@@ -48,9 +49,11 @@ function Row({ href, logo, meta, text }: { href: string; logo: { name: string; l
 export default async function CastingsAndChallengesPage() {
   const t = await getT();
   const viewer = await getOptionalUser();
-  const blocked = (await getBlockedIds(viewer?.id ?? null)).brandIds;
-  const [castings, challenges] = await Promise.all([getOpenCastings(blocked), getAllRunningChallenges()]);
-  const visibleChallenges = challenges.filter((c) => !blocked.has(c.brandId));
+  const [{ brandIds: blocked }, followedIds] = await Promise.all([getBlockedIds(viewer?.id ?? null), viewer ? getFollowedBrandIds(viewer.id) : Promise.resolve([] as string[])]);
+  const followed = new Set(followedIds);
+  // Luca 18.11.: gefolgte Marken zuerst, sonst begrenzt (bei sehr vielen Marken).
+  const [castings, challenges] = await Promise.all([getOpenCastings(blocked, followed), getAllRunningChallenges(followedIds)]);
+  const visibleChallenges = challenges.filter((c) => !blocked.has(c.brandId)).sort((a, b) => Number(followed.has(b.brandId)) - Number(followed.has(a.brandId)));
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
       <h1 className="mb-1 text-2xl font-bold text-white">{t("Castings & Challenges", "Castings & challenges")}</h1>
@@ -66,7 +69,7 @@ export default async function CastingsAndChallengesPage() {
               key={c.id}
               href={`/castings/${c.id}`}
               logo={c.hostBrand}
-              meta={`${c.hostBrand.name} · ${c.stage === "open" ? t("Einreichen", "Submit") : t("Abstimmung", "Voting")} ${leftLabel(c.deadline, t)}${c.submissionCount > 0 ? ` · ${c.submissionCount} ${c.submissionCount === 1 ? t("Video", "video") : t("Videos", "videos")}` : ""}`}
+              meta={`${c.followed ? "★ " : ""}${c.hostBrand.name} · ${c.stage === "open" ? t("Einreichen", "Submit") : t("Abstimmung", "Voting")} ${leftLabel(c.deadline, t)}${c.submissionCount > 0 ? ` · ${c.submissionCount} ${c.submissionCount === 1 ? t("Video", "video") : t("Videos", "videos")}` : ""}`}
               text={c.prompt}
             />
           ))}
@@ -79,7 +82,7 @@ export default async function CastingsAndChallengesPage() {
       ) : (
         <ul className="space-y-3">
           {visibleChallenges.map((c) => (
-            <Row key={c.id} href={`/challenges/${c.id}`} logo={{ name: c.brandName, logoUrl: c.brandLogoUrl }} meta={`${c.brandName} · ${periodLabel(c.period)}`} text={c.prompt} />
+            <Row key={c.id} href={`/challenges/${c.id}`} logo={{ name: c.brandName, logoUrl: c.brandLogoUrl }} meta={`${followed.has(c.brandId) ? "★ " : ""}${c.brandName} · ${periodLabel(c.period)}`} text={c.prompt} />
           ))}
         </ul>
       )}

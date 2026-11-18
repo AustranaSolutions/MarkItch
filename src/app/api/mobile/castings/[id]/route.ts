@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { getCastingById } from "@/lib/casting";
-import { isUuid, unauthorized } from "@/lib/mobile-auth";
-import { deleteCastingFor } from "@/lib/casting-manage";
+import { isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
+import { deleteCastingFor, updateCastingPromptFor } from "@/lib/casting-manage";
 import { apiError } from "@/lib/api-error";
 
 /**
@@ -35,6 +35,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     submissions: casting.submissions,
     viewerVotedSubmissionId: casting.viewerVotedSubmissionId,
     isHost,
+    // Luca 18.11.: Marke darf verlängern (siehe extendCastingFor) — Abstimmung ohne Einreichung zählt mit.
+    canExtend: isHost && (stage.stage === "open" || (stage.stage === "voting" && casting.submissions.length === 0)),
     canSubmit: Boolean(viewerBrand) && !isHost && !hasSubmitted && stage.stage === "open",
     canVote: Boolean(viewer) && !isHost && !hasSubmitted && (stage.stage === "open" || stage.stage === "voting"),
   });
@@ -48,5 +50,17 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!isUuid(id)) return await apiError({ error: "Nicht gefunden." }, { status: 404 });
   const result = await deleteCastingFor(viewer, id);
   if (!result.ok) return await apiError({ error: result.error }, { status: 403 });
+  return NextResponse.json({ ok: true });
+}
+
+/** Luca 18.11.: Text des eigenen Castings ändern. Body `{ prompt }`. */
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const viewer = await getOptionalUser();
+  if (!viewer) return unauthorized();
+  const { id } = await params;
+  if (!isUuid(id)) return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
+  const { prompt } = await readJsonBody(request);
+  const result = await updateCastingPromptFor(viewer, id, prompt);
+  if (!result.ok) return await apiError({ error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

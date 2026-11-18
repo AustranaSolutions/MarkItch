@@ -6,6 +6,7 @@ import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { SubmissionUploadForm } from "@/components/casting/submission-upload-form";
 import { CastingVoteList } from "@/components/casting/casting-vote-list";
+import { CastingHostTools } from "@/components/casting/casting-host-tools";
 import { getT } from "@/lib/lang";
 import { type Translate } from "@/lib/i18n";
 
@@ -99,6 +100,13 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
           <h2 className="mb-3 text-sm font-semibold text-white">{t("Dein Video einreichen", "Submit your video")}</h2>
           <SubmissionUploadForm castingId={casting.id} />
         </div>
+      )}
+      {isHost && casting.stage.stage !== "finished" && (
+        <CastingHostTools
+          castingId={casting.id}
+          prompt={casting.prompt}
+          canExtend={casting.stage.stage === "open" || casting.submissions.length === 0}
+        />
       )}
       {isHost && casting.stage.stage !== "finished" && (
         <p className="mt-6 text-center text-xs text-zinc-500">{t("Das ist dein eigenes Casting — du kannst nicht selbst mitmachen oder abstimmen.", "This is your own casting — you can’t take part or vote yourself.")}</p>

@@ -181,14 +181,23 @@ export async function getRunningChallengesForBrands(brandIds: string[]) {
     .where(and(inArray(creatorChallenges.brandId, brandIds), eq(creatorChallenges.period, currentPeriod())));
 }
 
-/** Luca 18.11. (4.3): laufende Creator-Challenges aller Marken für „Castings & Challenges“. */
-export async function getAllRunningChallenges() {
-  return db
-    .select({ id: creatorChallenges.id, prompt: creatorChallenges.prompt, period: creatorChallenges.period, brandId: brands.id, brandName: brands.name, brandSlug: brands.slug, brandLogoUrl: brands.logoUrl })
-    .from(creatorChallenges)
-    .innerJoin(brands, eq(creatorChallenges.brandId, brands.id))
-    .where(eq(creatorChallenges.period, currentPeriod()))
-    .limit(100);
+/**
+ * Luca 18.11. (4.3): laufende Creator-Challenges für „Castings & Challenges“ —
+ * die gefolgter Marken vollständig (getrennt geladen), dazu bis zu 50 weitere.
+ */
+export async function getAllRunningChallenges(followedBrandIds: string[] = []) {
+  const base = () =>
+    db
+      .select({ id: creatorChallenges.id, prompt: creatorChallenges.prompt, period: creatorChallenges.period, brandId: brands.id, brandName: brands.name, brandSlug: brands.slug, brandLogoUrl: brands.logoUrl })
+      .from(creatorChallenges)
+      .innerJoin(brands, eq(creatorChallenges.brandId, brands.id));
+  const period = eq(creatorChallenges.period, currentPeriod());
+  const [followed, others] = await Promise.all([
+    followedBrandIds.length ? base().where(and(period, inArray(creatorChallenges.brandId, followedBrandIds))).limit(50) : Promise.resolve([]),
+    base().where(period).orderBy(desc(creatorChallenges.createdAt)).limit(50),
+  ]);
+  const seen = new Set<string>();
+  return [...followed, ...others].filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
 }
 
 /** Einreichen: ein normaler Solo-Pitch mit Verweis auf die Challenge (dieselben Pflichtfelder). */

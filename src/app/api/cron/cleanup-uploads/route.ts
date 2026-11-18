@@ -3,7 +3,7 @@ import { checkAdminKey } from "@/lib/admin-key";
 import { cleanupOrphanedUploads } from "@/lib/upload-cleanup";
 import { applyRetention } from "@/lib/retention";
 import { finalizeDueBattles } from "@/lib/battle-notify";
-import { extendEmptyCastings } from "@/lib/casting";
+import { remindCastingsEndingSoon } from "@/lib/casting";
 import { apiError } from "@/lib/api-error";
 
 // Audit 04.10. (H5): verwaiste Uploads aufräumen (siehe lib/upload-cleanup.ts).
@@ -22,9 +22,9 @@ export async function GET(request: NextRequest) {
     const retention = await applyRetention();
     // Luca 22.10.: beendete Duelle abschließen, die kein Feed-Aufruf ausgelöst hat.
     const finalizedBattles = await finalizeDueBattles();
-    // Luca 18.11.: Castings ohne Einreichung verlängern.
-    const extendedCastings = await extendEmptyCastings();
-    return NextResponse.json({ checked: result.checked, deleted: result.deleted, retention, finalizedBattles, extendedCastings });
+    // Luca 18.11.: Marken einen Tag vor Ende der Casting-Einreichfrist erinnern.
+    const castingReminders = await remindCastingsEndingSoon();
+    return NextResponse.json({ checked: result.checked, deleted: result.deleted, retention, finalizedBattles, castingReminders });
   } catch (err) {
     console.error("[cron/cleanup-uploads]", err);
     return await apiError({ error: "Aufräumen fehlgeschlagen." }, { status: 500 });

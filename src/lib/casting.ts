@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, desc, eq, gt, inArray, lt, notExists, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, isNull, lt } from "drizzle-orm";
 import { getBrandMemberUserIds } from "@/lib/brand";
 import { notifyUsers } from "@/lib/notification";
 import { db } from "@/db";
@@ -79,7 +79,7 @@ export type CastingWithDetails = PartnerCasting & {
 const brandCols = { id: brands.id, name: brands.name, slug: brands.slug, logoUrl: brands.logoUrl };
 
 export async function getCastingById(id: string, viewerId: string | null): Promise<CastingWithDetails | null> {
-  await extendEmptyCastings().catch((err) => console.error("[casting] extendEmptyCastings", err));
+  await runReminders();
   const [casting] = await db.select().from(partnerCastings).where(eq(partnerCastings.id, id)).limit(1);
   if (!casting) return null;
 
@@ -139,6 +139,7 @@ export async function getCastingById(id: string, viewerId: string | null): Promi
 
 /** A brand's own, still-relevant (open or voting) casting, if any — used to cap one active casting per brand at a time. */
 export async function getActiveCastingForBrand(brandId: string): Promise<PartnerCasting | null> {
+  await runReminders();
   const rows = await db
     .select()
     .from(partnerCastings)
@@ -278,6 +279,9 @@ export async function castCastingVote(userId: string, castingId: string, submiss
   return {};
 }
 
+/** Luca 18.11.: bei vielen Marken nicht endlos — gefolgte zuerst, dann die nächsten Fristen. */
+export const OPEN_CASTINGS_LIMIT = 50;
+
 export type OpenCasting = {
   id: string;
   prompt: string;
@@ -288,6 +292,8 @@ export type OpenCasting = {
   submissionDeadline: Date;
   submissionCount: number;
   hostBrand: { id: string; name: string; slug: string; logoUrl: string | null };
+  /** Luca 18.11.: Marke, der man folgt → steht oben und zählt für die Zahl am Eingang. */
+  followed: boolean;
 };
 
 /**
@@ -297,15 +303,18 @@ export type OpenCasting = {
  * Marken fehlen. (18.11.: vorher nur Einreichphase → Lucas Casting in der
  * Abstimmung fehlte.)
  */
-export async function getOpenCastings(blockedBrandIds: Set<string> = new Set()): Promise<OpenCasting[]> {
-  await extendEmptyCastings().catch((err) => console.error("[casting] extendEmptyCastings", err));
-  const rows = await db
-    .select({ casting: partnerCastings, brand: brandCols })
-    .from(partnerCastings)
-    .innerJoin(brands, eq(partnerCastings.hostBrandId, brands.id))
-    .where(gt(partnerCastings.votingEndsAt, new Date()))
-    .orderBy(asc(partnerCastings.submissionDeadline))
-    .limit(100);
+export async function getOpenCastings(blockedBrandIds: Set<string> = new Set(), followedBrandIds: Set<string> = new Set()): Promise<OpenCasting[]> {
+  await runReminders();
+  const running = gt(partnerCastings.votingEndsAt, new Date());
+  const base = () =>
+    db.select({ casting: partnerCastings, brand: brandCols }).from(partnerCastings).innerJoin(brands, eq(partnerCastings.hostBrandId, brands.id));
+  // Gefolgte Marken getrennt laden, damit sie bei vielen Marken nicht hinter dem Limit verschwinden.
+  const [followedRows, nextRows] = await Promise.all([
+    followedBrandIds.size ? base().where(and(running, inArray(partnerCastings.hostBrandId, [...followedBrandIds]))).limit(OPEN_CASTINGS_LIMIT) : Promise.resolve([]),
+    base().where(running).orderBy(asc(partnerCastings.submissionDeadline)).limit(OPEN_CASTINGS_LIMIT * 2),
+  ]);
+  const seen = new Set<string>();
+  const rows = [...followedRows, ...nextRows].filter((r) => (seen.has(r.casting.id) ? false : (seen.add(r.casting.id), true)));
   const visible = rows.filter((r) => !blockedBrandIds.has(r.brand.id));
   const ids = visible.map((r) => r.casting.id);
   const counts = ids.length
@@ -327,51 +336,50 @@ export async function getOpenCastings(blockedBrandIds: Set<string> = new Set()):
       submissionDeadline: r.casting.submissionDeadline,
       submissionCount: byId.get(r.casting.id) ?? 0,
       hostBrand: r.brand,
+      followed: followedBrandIds.has(r.brand.id),
     };
   });
-  return [...list.filter((c) => c.stage === "open"), ...list.filter((c) => c.stage === "voting").sort((a, b) => a.deadline.getTime() - b.deadline.getTime())];
+  // Gefolgte Marken zuerst, darin: Einreichen vor Abstimmung, jeweils Frist zuerst.
+  const rank = (c: OpenCasting) => (c.followed ? 0 : 2) + (c.stage === "open" ? 0 : 1);
+  return list.sort((a, b) => rank(a) - rank(b) || a.deadline.getTime() - b.deadline.getTime()).slice(0, OPEN_CASTINGS_LIMIT);
 }
 
-const EXTEND_DAYS = 7;
-/** Nur Castings, die jünger als 60 Tage sind, werden weiter verlängert. */
-const EXTEND_MAX_AGE_MS = 60 * 24 * 60 * 60 * 1000;
-
 /**
- * Luca 18.11.: Endet die Einreichfrist ohne ein einziges Video, läuft das
- * Casting nicht leer in die Abstimmung, sondern die Einreichfrist wird um
- * 7 Tage verlängert (Abstimmung danach wieder 7 Tage) und die Marke bekommt
- * Bescheid. Nach 60 Tagen ohne Einreichung endet es ohne Gewinner.
- * Läuft beim Laden von Casting-Listen/-Seiten und im täglichen Cron; das
- * UPDATE trifft jede Casting-Zeile nur einmal (danach liegt die Frist in der
- * Zukunft), also gibt es keine doppelten Hinweise.
+ * Luca 18.11.: nicht automatisch verlängern, sondern einen Tag vor Ende der
+ * Einreichfrist die Marke erinnern — „Einreichen endet morgen (N Videos).
+ * Verlängern?“. Antippen öffnet das Casting, dort kann sie bearbeiten und
+ * verlängern. Einmal je Frist (reminder_sent_at; Verlängern setzt es zurück).
+ * Läuft beim Laden von Casting-Listen/-Seiten/-Profilen und im täglichen Cron.
  */
-export async function extendEmptyCastings(): Promise<number> {
+export async function remindCastingsEndingSoon(): Promise<number> {
   const now = new Date();
-  const extended = await db
+  const due = await db
     .update(partnerCastings)
-    .set({
-      submissionDeadline: sql`now() + interval '${sql.raw(String(EXTEND_DAYS))} days'`,
-      votingEndsAt: sql`now() + interval '${sql.raw(String(EXTEND_DAYS + CASTING_VOTING_WINDOW_MS / 86_400_000))} days'`,
-    })
+    .set({ reminderSentAt: now })
     .where(
       and(
-        lt(partnerCastings.submissionDeadline, now),
-        gt(partnerCastings.votingEndsAt, now),
-        gt(partnerCastings.createdAt, new Date(now.getTime() - EXTEND_MAX_AGE_MS)),
-        notExists(db.select({ one: sql`1` }).from(castingSubmissions).where(eq(castingSubmissions.castingId, partnerCastings.id))),
+        isNull(partnerCastings.reminderSentAt),
+        gt(partnerCastings.submissionDeadline, now),
+        lt(partnerCastings.submissionDeadline, new Date(now.getTime() + 24 * 60 * 60 * 1000)),
       ),
     )
     .returning({ id: partnerCastings.id, hostBrandId: partnerCastings.hostBrandId, prompt: partnerCastings.prompt });
-  for (const c of extended) {
+  for (const c of due) {
+    const [{ n }] = await db.select({ n: count() }).from(castingSubmissions).where(eq(castingSubmissions.castingId, c.id));
     const short = c.prompt.length > 60 ? `${c.prompt.slice(0, 57)}…` : c.prompt;
+    const videos = Number(n);
     await notifyUsers(
       await getBrandMemberUserIds(c.hostBrandId),
       {
-        de: `Bei deinem Casting „${short}“ hat noch niemand eingereicht – wir haben die Einreichfrist um ${EXTEND_DAYS} Tage verlängert. Tipp: Teile das Casting mit deinen Followern.`,
-        en: `No one has submitted to your casting “${short}” yet – we extended the submission period by ${EXTEND_DAYS} days. Tip: share the casting with your followers.`,
+        de: `Dein Casting „${short}“: Einreichen endet morgen (${videos === 1 ? "1 Video" : `${videos} Videos`}). Verlängern? Tippe hier.`,
+        en: `Your casting “${short}”: submissions close tomorrow (${videos === 1 ? "1 video" : `${videos} videos`}). Extend? Tap here.`,
       },
       `/castings/${c.id}`,
     );
   }
-  return extended.length;
+  return due.length;
+}
+
+function runReminders() {
+  return remindCastingsEndingSoon().catch((err) => console.error("[casting] remindCastingsEndingSoon", err));
 }

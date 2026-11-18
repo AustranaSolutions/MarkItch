@@ -10,6 +10,8 @@ import Link from "next/link";
 import { ChevronRight, Clapperboard } from "lucide-react";
 import { getOpenCastings } from "@/lib/casting";
 import { getAllRunningChallenges } from "@/lib/creator-challenge";
+import { getOptionalUser } from "@/lib/session";
+import { getFollowedBrandIds } from "@/lib/follow";
 
 // Always live data — same reasoning as /pitches: no dynamic API is used
 // here otherwise, so Next would prerender this once at build time and
@@ -23,14 +25,18 @@ export const dynamic = "force-dynamic";
  */
 export default async function BrandsPage() {
   const t = await getT();
+  const viewer = await getOptionalUser();
+  const followedIds = viewer ? await getFollowedBrandIds(viewer.id) : [];
+  const followed = new Set(followedIds);
   const [allBrands, trending, castings, challenges] = await Promise.all([
     // Luca 13.11. (Phase 4): 60 Tage inaktive Unternehmen nicht mehr vorschlagen.
     db.select().from(brands).where(brandIsDiscoverable()).orderBy(desc(brands.createdAt)),
     getTrendingSoloPitches(),
-    getOpenCastings(),
-    getAllRunningChallenges(),
+    getOpenCastings(new Set(), followed),
+    getAllRunningChallenges(followedIds),
   ]);
-  const joinCount = castings.length + challenges.length;
+  // Luca 18.11.: Zahl nur für Marken, denen man folgt — bei vielen Marken sonst riesig.
+  const joinCount = castings.filter((c) => c.followed).length + challenges.filter((c) => followed.has(c.brandId)).length;
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-4 py-16">

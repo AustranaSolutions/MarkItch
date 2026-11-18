@@ -1,10 +1,10 @@
 import "server-only";
 import { getBrandForUser } from "@/lib/brand";
-import { CASTING_SUBMISSION_DAYS, checkCastingSubmission, createCasting, getActiveCastingForBrand } from "@/lib/casting";
+import { CASTING_SUBMISSION_DAYS, CASTING_VOTING_WINDOW_MS, checkCastingSubmission, createCasting, getActiveCastingForBrand } from "@/lib/casting";
 import { createSoloPitchForUser, deleteOwnSoloPitch } from "@/lib/solo-pitch";
 import { db } from "@/db";
 import { castingSubmissions, partnerCastings } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { notifyFollowersOfNewCall } from "@/lib/follower-calls";
 
@@ -121,5 +121,57 @@ export async function deleteCastingFor(user: { id: string }, castingId: string):
     return { ok: false, error: "Nur die Marke selbst kann ihr Casting löschen." };
   }
   await db.delete(partnerCastings).where(eq(partnerCastings.id, castingId));
+  return { ok: true, castingId };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** Luca 18.11.: Verlängern um 7 oder 14 Tage; insgesamt höchstens 90 Tage Einreichfrist ab Start. */
+export const CASTING_EXTEND_DAYS = [7, 14] as const;
+const CASTING_MAX_SUBMISSION_MS = 90 * DAY_MS;
+
+async function hostCasting(userId: string, castingId: string) {
+  const myBrand = await getBrandForUser(userId);
+  const [casting] = await db.select().from(partnerCastings).where(eq(partnerCastings.id, castingId)).limit(1);
+  if (!casting || !myBrand || casting.hostBrandId !== myBrand.id) return null;
+  return casting;
+}
+
+/** Luca 18.11.: die Marke ändert den Text ihres laufenden Castings. */
+export async function updateCastingPromptFor(user: { id: string }, castingId: string, rawPrompt: unknown): Promise<CastingResult> {
+  const casting = await hostCasting(user.id, castingId);
+  if (!casting) return { ok: false, error: "Nur die Marke selbst kann ihr Casting bearbeiten." };
+  if (casting.votingEndsAt.getTime() <= Date.now()) return { ok: false, error: "Dieses Casting ist beendet." };
+  const prompt = typeof rawPrompt === "string" ? rawPrompt.trim() : "";
+  if (!prompt) return { ok: false, error: "Bitte beschreibe kurz, wen du suchst." };
+  if (prompt.length > MAX_PROMPT_LENGTH) return { ok: false, error: `Maximal ${MAX_PROMPT_LENGTH} Zeichen.` };
+  await db.update(partnerCastings).set({ prompt }).where(eq(partnerCastings.id, castingId));
+  return { ok: true, castingId };
+}
+
+/**
+ * Luca 18.11.: Einreichfrist verlängern (statt automatisch). Geht, solange
+ * eingereicht werden kann — oder in der Abstimmung, wenn noch niemand
+ * eingereicht hat. Abstimmung läuft danach wieder 7 Tage; die Erinnerung
+ * kommt für die neue Frist erneut.
+ */
+export async function extendCastingFor(user: { id: string }, castingId: string, rawDays: unknown): Promise<CastingResult> {
+  const casting = await hostCasting(user.id, castingId);
+  if (!casting) return { ok: false, error: "Nur die Marke selbst kann ihr Casting verlängern." };
+  const days = Number(rawDays);
+  if (!CASTING_EXTEND_DAYS.includes(days as (typeof CASTING_EXTEND_DAYS)[number])) return { ok: false, error: "Bitte 7 oder 14 Tage wählen." };
+  const now = Date.now();
+  if (casting.votingEndsAt.getTime() <= now) return { ok: false, error: "Dieses Casting ist beendet." };
+  if (casting.submissionDeadline.getTime() <= now) {
+    const [{ n }] = await db.select({ n: count() }).from(castingSubmissions).where(eq(castingSubmissions.castingId, castingId));
+    if (Number(n) > 0) return { ok: false, error: "Die Abstimmung läuft schon – verlängern geht nur vor Ende der Einreichfrist." };
+  }
+  const submissionDeadline = new Date(Math.max(now, casting.submissionDeadline.getTime()) + days * DAY_MS);
+  if (submissionDeadline.getTime() - casting.createdAt.getTime() > CASTING_MAX_SUBMISSION_MS) {
+    return { ok: false, error: "Länger als 90 Tage geht nicht – starte lieber ein neues Casting." };
+  }
+  await db
+    .update(partnerCastings)
+    .set({ submissionDeadline, votingEndsAt: new Date(submissionDeadline.getTime() + CASTING_VOTING_WINDOW_MS), reminderSentAt: null })
+    .where(eq(partnerCastings.id, castingId));
   return { ok: true, castingId };
 }
