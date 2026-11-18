@@ -76,7 +76,7 @@ export function CastingVoteList({
                 <AdLabel />
                 {s.containsAiContent && <AiContentLabel />}
               </div>
-              {isWinner && <span className="text-xs font-semibold text-orange-400">🏆 Partner</span>}
+              {isWinner && <span className="text-xs font-semibold text-orange-400">⭐ Community-Favorit</span>}
             </div>
             <video src={s.videoUrl} className="mb-2 max-h-64 w-full rounded-lg bg-black object-contain" controls playsInline preload="metadata" />
             {s.description && <p className="mb-2 text-sm text-white/90">{s.description}</p>}

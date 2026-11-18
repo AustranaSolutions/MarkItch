@@ -380,6 +380,52 @@ export async function remindCastingsEndingSoon(): Promise<number> {
   return due.length;
 }
 
+/**
+ * Luca 18.11.: Einreichfrist vorbei → alle Bewerber erfahren, dass die
+ * Abstimmung läuft (damit sie ihre Follower holen), die Marke bekommt die Zahl
+ * der Videos — oder, wenn niemand eingereicht hat, den Hinweis aufs Verlängern.
+ * Einmal je Frist (voting_notified_at; Verlängern setzt es zurück).
+ */
+export async function notifyCastingVotingStarted(): Promise<number> {
+  const now = new Date();
+  const due = await db
+    .update(partnerCastings)
+    .set({ votingNotifiedAt: now })
+    .where(and(isNull(partnerCastings.votingNotifiedAt), lt(partnerCastings.submissionDeadline, now), gt(partnerCastings.votingEndsAt, now)))
+    .returning({ id: partnerCastings.id, hostBrandId: partnerCastings.hostBrandId, prompt: partnerCastings.prompt });
+  for (const c of due) {
+    const short = c.prompt.length > 60 ? `${c.prompt.slice(0, 57)}…` : c.prompt;
+    const [host] = await db.select({ name: brands.name }).from(brands).where(eq(brands.id, c.hostBrandId)).limit(1);
+    const entries = await db.select({ brandId: castingSubmissions.brandId }).from(castingSubmissions).where(eq(castingSubmissions.castingId, c.id));
+    const applicantUserIds = (await Promise.all(entries.map((e) => getBrandMemberUserIds(e.brandId)))).flat();
+    if (applicantUserIds.length) {
+      await notifyUsers(
+        applicantUserIds,
+        {
+          de: `Die Abstimmung im Casting von ${host?.name ?? "der Marke"} läuft! Teile dein Video, damit deine Follower für dich stimmen.`,
+          en: `Voting in ${host?.name ?? "the brand"}’s casting is open! Share your video so your followers vote for you.`,
+        },
+        `/castings/${c.id}`,
+      );
+    }
+    const n = entries.length;
+    await notifyUsers(
+      await getBrandMemberUserIds(c.hostBrandId),
+      n > 0
+        ? {
+            de: `Dein Casting „${short}“: ${n === 1 ? "1 Bewerbung" : `${n} Bewerbungen`} – jetzt stimmt die Community ab. Am Ende entscheidest du, mit wem du zusammenarbeitest.`,
+            en: `Your casting “${short}”: ${n === 1 ? "1 application" : `${n} applications`} – the community is voting now. In the end, you decide who you work with.`,
+          }
+        : {
+            de: `Bei deinem Casting „${short}“ hat niemand eingereicht. Du kannst es verlängern – tippe hier.`,
+            en: `No one applied to your casting “${short}”. You can extend it – tap here.`,
+          },
+      `/castings/${c.id}`,
+    );
+  }
+  return due.length;
+}
+
 function runReminders() {
-  return remindCastingsEndingSoon().catch((err) => console.error("[casting] remindCastingsEndingSoon", err));
+  return Promise.all([remindCastingsEndingSoon(), notifyCastingVotingStarted()]).catch((err) => console.error("[casting] reminders", err));
 }

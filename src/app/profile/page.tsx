@@ -37,9 +37,7 @@ import { getT, getLang } from "@/lib/lang";
  * getBrandProfileExtras and the same ProfileContentTabs (including its
  * "Info" tab) with that page instead of a second, drifting copy.
  */
-export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ create?: string; back?: string }> }) {
-  // Luca 18.11.: /profile?create=creator&back=/castings/<id> — Zuschauer legen ein Creator-Profil an, um sich zu bewerben.
-  const { create, back } = await searchParams;
+export default async function ProfilePage() {
   const t = await getT();
   const sessionUser = await requireUser();
   // Phase 42: brand lookup only needs the id already on hand from
@@ -127,13 +125,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <div>
           <p className="mb-4 text-sm text-zinc-400">{t("Leg zuerst deine Marke an, dann bekommst du ein eigenes Profil.", "Create your brand first, then you’ll get your own profile.")}</p>
           <CreateBrandForm />
-        </div>
-      ) : create === "creator" ? (
-        <div>
-          <p className="mb-4 text-sm text-zinc-400">
-            {t("Leg in einem Schritt dein Creator-Profil an — danach kannst du dich bewerben.", "Create your creator profile in one step — then you can apply.")}
-          </p>
-          <CreateBrandForm creatorOnly returnTo={back} />
         </div>
       ) : (
         <div className="py-8 text-center">

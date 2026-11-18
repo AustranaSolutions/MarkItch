@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { desc } from "drizzle-orm";
 import { db } from "@/db";
 import { brands } from "@/db/schema";
-import { getTrendingSoloPitches, searchSoloPitches } from "@/lib/feed";
+import { getFeedItemsByKeys, getTrendingSoloPitches, searchSoloPitches } from "@/lib/feed";
 import { getOptionalUser } from "@/lib/session";
 import { brandIsDiscoverable } from "@/lib/brand-trust";
 
@@ -34,8 +34,15 @@ export async function GET(request: NextRequest) {
       .orderBy(desc(brands.createdAt)),
     getTrendingSoloPitches(12, viewer?.id ?? null),
   ]);
+  // Luca 18.11.: Antippen in Trending öffnet einen Feed zum Weiterwischen — dafür
+  // die vollständigen Karten in derselben Reihenfolge (ältere Apps ignorieren das Feld).
+  const trendingItems = await getFeedItemsByKeys(
+    viewer?.id ?? null,
+    trending.map((p) => ({ type: "pitch" as const, id: p.soloPitchId })),
+  );
   return NextResponse.json({
     brands: allBrands.map(({ verifiedAt, ...b }) => ({ ...b, verified: verifiedAt !== null })),
     trending,
+    trendingItems,
   });
 }

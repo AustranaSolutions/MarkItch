@@ -148,7 +148,7 @@ export function ProfileContentTabs({
           {!info.activeCasting && info.castingWinner && info.latestFinishedCastingId && (
             <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 text-center">
               <p className="text-sm text-orange-300">
-                🏆 {t("Offizieller Partner", "Official partner")}:{" "}
+                ⭐ {t("Community-Favorit im letzten Casting", "Community favorite in the last casting")}:{" "}
                 <Link href={`/brands/${info.castingWinner.brandSlug}`} className="font-semibold hover:underline">
                   {info.castingWinner.brandName}
                 </Link>

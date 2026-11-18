@@ -4,7 +4,6 @@ import Link from "next/link";
 import { getCastingById } from "@/lib/casting";
 import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
-import { SubmissionUploadForm } from "@/components/casting/submission-upload-form";
 import { CastingVoteList } from "@/components/casting/casting-vote-list";
 import { CastingHostTools } from "@/components/casting/casting-host-tools";
 import { getT } from "@/lib/lang";
@@ -48,8 +47,6 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
   const viewerBrand = viewer ? await getBrandForUser(viewer.id) : null;
   const isHost = viewerBrand?.id === casting.hostBrandId;
   const hasSubmitted = viewerBrand ? casting.submissions.some((s) => s.brandId === viewerBrand.id) : false;
-  const canSubmit =
-    Boolean(viewerBrand) && !isHost && !hasSubmitted && casting.stage.stage === "open";
   const canVote =
     Boolean(viewer) &&
     !isHost &&
@@ -75,7 +72,7 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
       {casting.stage.stage === "finished" && (
         <p className="mb-6 rounded-lg border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-sm text-orange-300">
           {winnerBrandId
-            ? t("Das Casting ist entschieden — die Community hat gewählt.", "The casting is decided — the community has voted.")
+            ? t("Die Community hat abgestimmt — der Favorit ist markiert. Ob und mit wem die Marke zusammenarbeitet, entscheidet sie selbst.", "The community has voted — the favorite is marked. Whether and with whom the brand works is up to the brand.")
             : casting.submissions.length === 0
               ? t("Niemand hat eingereicht — dieses Casting kam nicht zustande.", "Nobody submitted — this casting didn’t happen.")
               : t("Unentschieden — keine Marke hat die meisten Stimmen für sich allein.", "Tie — no brand has the most votes on its own.")}
@@ -95,21 +92,14 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
         />
       )}
 
-      {canSubmit && (
-        <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-          <h2 className="mb-3 text-sm font-semibold text-white">{t("Dein Video einreichen", "Submit your video")}</h2>
-          <SubmissionUploadForm castingId={casting.id} />
-        </div>
-      )}
-      {/* Luca 18.11.: jeder kann sich bewerben — ohne Profil erst ein Creator-Profil anlegen. */}
-      {!viewerBrand && casting.stage.stage === "open" && (
+      {/* Luca 18.11.: Bewerben (Video einreichen, bei Bedarf Creator-Profil anlegen) läuft in der App — dieselbe Maske wie beim Posten. */}
+      {!isHost && !hasSubmitted && casting.stage.stage === "open" && (
         <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-center">
-          <p className="mb-3 text-sm text-zinc-400">{t("Du willst Partner werden? Bewirb dich mit einem Video — dafür legst du in einem Schritt ein Creator-Profil an.", "Want to become the partner? Apply with a video — you’ll create a creator profile in one step.")}</p>
-          <Link
-            href={viewer ? `/profile?create=creator&back=${encodeURIComponent(`/castings/${casting.id}`)}` : "/login"}
-            className="inline-block rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-500"
-          >
-            {viewer ? t("Bewerben", "Apply") : t("Anmelden zum Bewerben", "Log in to apply")}
+          <p className="mb-3 text-sm text-zinc-400">
+            {t("Du willst Partner werden? Bewirb dich in der MarkItch-App mit einem Video — auch ohne Creator-Profil, das legst du dort in einem Schritt an.", "Want to become the partner? Apply with a video in the MarkItch app — even without a creator profile, you can create one there in one step.")}
+          </p>
+          <Link href="/app" className="inline-block rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-500">
+            {t("In der App bewerben", "Apply in the app")}
           </Link>
         </div>
       )}

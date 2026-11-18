@@ -761,6 +761,8 @@ export const partnerCastings = pgTable("partner_castings", {
   votingEndsAt: timestamp("voting_ends_at", { withTimezone: true }).notNull(),
   // Luca 18.11.: Erinnerung „Einreichen endet morgen — verlängern?“ an die Marke (einmal je Frist).
   reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
+  // Luca 18.11.: Bewerber wurden informiert, dass die Abstimmung läuft (einmal).
+  votingNotifiedAt: timestamp("voting_notified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

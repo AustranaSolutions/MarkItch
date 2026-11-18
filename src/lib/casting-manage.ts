@@ -171,7 +171,7 @@ export async function extendCastingFor(user: { id: string }, castingId: string, 
   }
   await db
     .update(partnerCastings)
-    .set({ submissionDeadline, votingEndsAt: new Date(submissionDeadline.getTime() + CASTING_VOTING_WINDOW_MS), reminderSentAt: null })
+    .set({ submissionDeadline, votingEndsAt: new Date(submissionDeadline.getTime() + CASTING_VOTING_WINDOW_MS), reminderSentAt: null, votingNotifiedAt: null })
     .where(eq(partnerCastings.id, castingId));
   return { ok: true, castingId };
 }
