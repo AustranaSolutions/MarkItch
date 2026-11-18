@@ -12,3 +12,8 @@ export const BOOST_ENABLED = false;
 export const APP_STORE_ID = "6823294434";
 export const APP_STORE_LIVE = false;
 export const APP_STORE_URL = `https://apps.apple.com/app/id${APP_STORE_ID}`;
+
+// Luca 18.11.: Creator-Challenges vorerst ausgeblendet (MVP schlank halten) —
+// keine neuen eröffnen, im Profil nicht mehr zeigen. Bestehende Challenge-
+// Seiten und Einreichungen im Feed bleiben erreichbar. Später auf true.
+export const CHALLENGES_ENABLED = false;

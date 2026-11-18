@@ -100,7 +100,7 @@ export function ProfileContentTabs({
         <div className="space-y-4">
           {/* Luca 24.10.: Kategorie/Website stehen jetzt oben bzw. unter ⋯ → Info. */}
           {!info.challenges.length && !info.challengeWinners && !info.activeCasting && !info.castingWinner && (
-            <p className="py-8 text-center text-sm text-zinc-500">{t("Gerade keine Challenges oder Castings.", "No challenges or castings right now.")}</p>
+            <p className="py-8 text-center text-sm text-zinc-500">{t("Gerade kein Casting.", "No casting right now.")}</p>
           )}
 
           {/* RN-7: Creator-Challenges eröffnet nur die Marke selbst (statt offener Monats-Charts). */}

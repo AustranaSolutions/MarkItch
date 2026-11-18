@@ -1,4 +1,5 @@
 import "server-only";
+import { CHALLENGES_ENABLED } from "@/lib/feature-flags";
 import { requestLang } from "@/lib/lang";
 import { getActiveCastingForBrand, getLatestFinishedCastingForBrand } from "@/lib/casting";
 import { periodLabel } from "@/lib/creator-charts";
@@ -45,8 +46,9 @@ export async function getBrandProfileExtras(
   const [activeCasting, livePending, openChallenges, finishedChallenge] = await Promise.all([
     getActiveCastingForBrand(brand.id),
     viewerBrandId && !isOwnBrand ? getLivePendingChallengeBetween(viewerBrandId, brand.id) : Promise.resolve(null),
-    getOpenChallengesForBrand(brand.id),
-    getLatestFinishedChallengeForBrand(brand.id),
+    // Luca 18.11.: Creator-Challenges vorerst ausgeblendet (feature-flags.ts).
+    CHALLENGES_ENABLED ? getOpenChallengesForBrand(brand.id) : Promise.resolve([]),
+    CHALLENGES_ENABLED ? getLatestFinishedChallengeForBrand(brand.id) : Promise.resolve(null),
   ]);
   // Top 3 nur für die zuletzt beendete Challenge laden (eine Abfrage mehr, nur wenn es eine gibt).
   const finishedDetails = finishedChallenge ? await getChallengeDetails(finishedChallenge.id, null) : null;

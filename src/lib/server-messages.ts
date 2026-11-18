@@ -168,6 +168,7 @@ const EXACT: Record<string, string> = {
   "Video nicht gefunden.": "Video not found.",
   "Diese Meinung gibt es nicht mehr.": "This comment no longer exists.",
   "Die Abstimmung ist beendet.": "Voting has ended.",
+  "Creator-Challenges kommen später wieder.": "Creator challenges are coming back later.",
   // Luca 17.11. (5.5): Duell-Umfragen
   "Diese Umfrage gibt es nicht mehr.": "This poll no longer exists.",
   "Bitte 2 bis 4 Paarungen wählen.": "Please choose 2 to 4 matchups.",

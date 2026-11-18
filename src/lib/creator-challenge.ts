@@ -1,4 +1,5 @@
 import "server-only";
+import { CHALLENGES_ENABLED } from "@/lib/feature-flags";
 import { requestLang } from "@/lib/lang";
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { db } from "@/db";
@@ -44,6 +45,8 @@ export function openablePeriods(): { period: string; label: string }[] {
 export type ChallengeResult = { ok: true; challengeId: string } | { ok: false; error: string };
 
 export async function openChallengeFor(user: { id: string }, input: { period: unknown; prompt: unknown }): Promise<ChallengeResult> {
+  // Luca 18.11.: vorerst keine neuen Creator-Challenges (feature-flags.ts).
+  if (!CHALLENGES_ENABLED) return { ok: false, error: "Creator-Challenges kommen später wieder." };
   const myBrand = await getBrandForUser(user.id);
   if (!myBrand) return { ok: false, error: "Du musst zuerst eine Marke erstellen." };
 

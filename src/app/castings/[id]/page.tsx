@@ -101,6 +101,18 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
           <SubmissionUploadForm castingId={casting.id} />
         </div>
       )}
+      {/* Luca 18.11.: jeder kann sich bewerben — ohne Profil erst ein Creator-Profil anlegen. */}
+      {!viewerBrand && casting.stage.stage === "open" && (
+        <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-center">
+          <p className="mb-3 text-sm text-zinc-400">{t("Du willst Partner werden? Bewirb dich mit einem Video — dafür legst du in einem Schritt ein Creator-Profil an.", "Want to become the partner? Apply with a video — you’ll create a creator profile in one step.")}</p>
+          <Link
+            href={viewer ? `/profile?create=creator&back=${encodeURIComponent(`/castings/${casting.id}`)}` : "/login"}
+            className="inline-block rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-500"
+          >
+            {viewer ? t("Bewerben", "Apply") : t("Anmelden zum Bewerben", "Log in to apply")}
+          </Link>
+        </div>
+      )}
       {isHost && casting.stage.stage !== "finished" && (
         <CastingHostTools
           castingId={casting.id}

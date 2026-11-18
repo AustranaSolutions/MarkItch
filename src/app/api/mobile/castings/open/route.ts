@@ -8,6 +8,9 @@ import { getFollowedBrandIds } from "@/lib/follow";
 
 // Luca 17.11. (Phasen-Map 4.3): alle laufenden Partner-Castings und (18.11.)
 // Creator-Challenges für die App-Liste „Castings & Challenges“.
+// 18.11. abends wieder ausgebaut (Luca: fürs MVP zu voll) — die Route bleibt
+// nur, damit App-Versionen mit dieser Liste nicht ins Leere laufen. Entfernen,
+// sobald alle Geräte das nächste Update haben.
 export async function GET() {
   const viewer = await getOptionalUser();
   const [blocked, followedIds] = await Promise.all([getBlockedIds(viewer?.id ?? null), viewer ? getFollowedBrandIds(viewer.id) : Promise.resolve([] as string[])]);

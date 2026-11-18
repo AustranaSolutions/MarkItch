@@ -112,8 +112,12 @@ export async function createBrandForUser(
 ): Promise<{ ok: true; slug: string } | { ok: false; errors: FieldErrors }> {
   // Phase 8: nur Acro-Accounts besitzen eine Marke — das ist die eine
   // Schranke, alles Weitere (Posten, Einladen) verlangt ohnehin eine Marke.
+  // Luca 18.11.: Zuschauer dürfen ein Creator-Profil anlegen (z. B. um sich bei
+  // einem Partner-Casting zu bewerben) — das Konto wird dabei zum Acro-Konto.
+  // Ein Unternehmens-Profil bleibt Acro-Konten vorbehalten.
   const [dbUser] = await db.select({ accountType: users.accountType }).from(users).where(eq(users.id, userId)).limit(1);
-  if (dbUser?.accountType !== "acro") {
+  const upgradesViewer = dbUser?.accountType !== "acro" && parseBrandKind(input.kind) === "creator";
+  if (dbUser?.accountType !== "acro" && !upgradesViewer) {
     return { ok: false, errors: { _form: ["Nur Acro-Accounts können eine Marke erstellen."] } };
   }
   const [existing] = await db.select({ id: brandMembers.id }).from(brandMembers).where(eq(brandMembers.userId, userId)).limit(1);
@@ -169,6 +173,7 @@ export async function createBrandForUser(
     })
     .returning({ id: brands.id, slug: brands.slug });
   await db.insert(brandMembers).values({ brandId: brand.id, userId, role: "owner" });
+  if (upgradesViewer) await db.update(users).set({ accountType: "acro" }).where(eq(users.id, userId));
   await autoVerifyBrandsForUser(userId).catch(() => {});
   return { ok: true, slug: brand.slug };
 }

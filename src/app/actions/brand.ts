@@ -40,6 +40,9 @@ async function createBrandImpl(_prevState: BrandFormState, formData: FormData): 
     address: formData.get("address") ?? undefined,
   });
   if (!result.ok) return { errors: result.errors };
+  // Luca 18.11.: nach dem Anlegen zurück zum Casting, bei dem man sich bewerben wollte.
+  const returnTo = formData.get("returnTo");
+  if (typeof returnTo === "string" && /^\/castings\/[0-9a-f-]{36}$/.test(returnTo)) redirect(returnTo);
   redirect(`/brands/${result.slug}`);
 }
 

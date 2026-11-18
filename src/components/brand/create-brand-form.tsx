@@ -9,14 +9,18 @@ import { categoryLabel } from "@/lib/brand-details";
 import { countryLabel, langOf } from "@/lib/i18n";
 
 
-export function CreateBrandForm() {
+/**
+ * Luca 18.11.: `creatorOnly` — Zuschauer legen ein Creator-Profil an (z. B. um
+ * sich bei einem Casting zu bewerben), `returnTo` führt danach dorthin zurück.
+ */
+export function CreateBrandForm({ creatorOnly = false, returnTo }: { creatorOnly?: boolean; returnTo?: string } = {}) {
   const t = useT();
   const [state, action] = useActionState<BrandFormState, FormData>(createBrand, undefined);
   // Phase 23: controlled, same reason as register-form.tsx — this form has
   // enough fields that a single rejected one (e.g. missing category)
   // wiping everything else typed so far would be genuinely painful.
   // Luca 18.10.: Marke oder Creator — andere Texte und Kategorien.
-  const [kind, setKind] = useState<"brand" | "creator">("brand");
+  const [kind, setKind] = useState<"brand" | "creator">(creatorOnly ? "creator" : "brand");
   const categories: readonly string[] = kind === "creator" ? CreatorCategories : BrandCategories;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -32,7 +36,8 @@ export function CreateBrandForm() {
       <FormError message={state?.errors?._form?.[0]} />
 
       <input type="hidden" name="kind" value={kind} />
-      <div className="mb-4 flex gap-2">
+      {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
+      <div className={`mb-4 flex gap-2 ${creatorOnly ? "hidden" : ""}`}>
         {(
           [
             ["brand", t("Unternehmen", "Business"), t("Friseur, Lokal, Nagelstudio, Shop oder Marke", "Salon, restaurant, nail studio, shop or brand")],
