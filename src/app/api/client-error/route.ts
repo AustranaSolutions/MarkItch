@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { reportError } from "@/lib/error-alerts";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Luca 07.10.: Fehler aus dem Browser landen hier und damit in den
 // Vercel-Logs („[client-error]“).
@@ -24,6 +25,8 @@ export async function POST(request: NextRequest) {
   }
   const line = message.replace(/\s+/g, " ").slice(0, 600);
   if (!line) return new NextResponse(null, { status: 204 });
+  // Sicherheits-Check 19.11.: pro IP gedeckelt — darüber still verwerfen.
+  if (!(await checkRateLimit("client-error", await getClientIp(request))).allowed) return new NextResponse(null, { status: 204 });
   console.error(`[client-error] ${source} ${line} | ${ua}`);
   // Website-Text hat die Form „/pfad :: Meldung“ — für die Zusammenfassung zählt nur die Meldung.
   const [path, ...rest] = line.split(" :: ");

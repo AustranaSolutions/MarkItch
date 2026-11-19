@@ -2,10 +2,10 @@
 
 import { localizeResult } from "@/lib/lang";
 import { eq } from "drizzle-orm";
-import { AuthError } from "next-auth";
+import { AuthError, CredentialsSignin } from "next-auth";
 import { db } from "@/db";
 import { users, passwordResetTokens } from "@/db/schema";
-import { signIn, signOut } from "@/auth";
+import { LOGIN_RATE_LIMITED, signIn, signOut } from "@/auth";
 import { requireUser } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
 import { hashToken } from "@/lib/tokens";
@@ -77,6 +77,10 @@ async function loginUserImpl(_prevState: FormState, formData: FormData): Promise
       redirectTo: "/",
     });
   } catch (error) {
+    // Sicherheits-Check 19.11.: Limit greift in authorize() (auth.ts) — auch für direkte Aufrufe.
+    if (error instanceof CredentialsSignin && error.code === LOGIN_RATE_LIMITED) {
+      return { errors: { _form: [RATE_LIMIT_MESSAGE] } };
+    }
     if (error instanceof AuthError) {
       return { errors: { _form: ["E-Mail oder Passwort ist falsch."] } };
     }
@@ -94,7 +98,8 @@ async function requestPasswordResetImpl(_prevState: FormState, formData: FormDat
     return { errors: parsed.error.flatten().fieldErrors };
   }
 
-  await requestPasswordResetFor(parsed.data.email);
+  const { limited } = await requestPasswordResetFor(parsed.data.email, await getClientIp());
+  if (limited) return { errors: { _form: [RATE_LIMIT_MESSAGE] } };
 
   // Same response whether or not the account exists, so the form can't be
   // used to check which emails are registered.
@@ -129,6 +134,7 @@ async function resetPasswordImpl(_prevState: FormState, formData: FormData): Pro
 async function resendVerificationEmailImpl(): Promise<FormState> {
   const sessionUser = await requireUser();
   const result = await resendVerificationFor(sessionUser.id);
+  if (result.limited) return { errors: { _form: [RATE_LIMIT_MESSAGE] } };
   if (!result.ok) return { errors: { _form: ["Account nicht gefunden."] } };
   return { success: true };
 }

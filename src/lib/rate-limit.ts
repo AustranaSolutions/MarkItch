@@ -30,7 +30,12 @@ export type RateLimitBucket =
   | "analytics"
   | "upload-prepare"
   | "upload-prepare-day"
-  | "comment";
+  | "comment"
+  | "login-email"
+  | "password-reset-ip"
+  | "password-reset-email"
+  | "verify-resend"
+  | "client-error";
 
 const LIMITS: Record<RateLimitBucket, { max: number; windowMs: number }> = {
   register: { max: 5, windowMs: 60 * 60 * 1000 }, // 5 Registrierungen/Stunde pro IP
@@ -58,6 +63,14 @@ const LIMITS: Record<RateLimitBucket, { max: number; windowMs: number }> = {
   "upload-prepare-day": { max: 60, windowMs: 24 * 60 * 60 * 1000 }, // 60 Upload-Adressen/Tag pro Nutzer
   // Phase F: Kommentarfilter — gegen Spam-Fluten.
   comment: { max: 30, windowMs: 60 * 60 * 1000 }, // 30 Kommentare/Stunde pro Nutzer
+  // Sicherheits-Check 19.11.: Passwort-Raten auch über viele IPs bremsen (gilt für App und Web).
+  "login-email": { max: 10, windowMs: 60 * 60 * 1000 }, // 10 Login-Versuche/Stunde pro E-Mail
+  // Sicherheits-Check 19.11.: Mails kosten Kontingent und Absender-Ruf — keine Mail-Fluten an fremde Adressen.
+  "password-reset-ip": { max: 10, windowMs: 60 * 60 * 1000 }, // 10 Reset-Anfragen/Stunde pro IP
+  "password-reset-email": { max: 3, windowMs: 60 * 60 * 1000 }, // 3 Reset-Mails/Stunde pro Adresse
+  "verify-resend": { max: 3, windowMs: 60 * 60 * 1000 }, // 3 Bestätigungsmails/Stunde pro Konto
+  // Sicherheits-Check 19.11.: Fehlermeldungen ohne Login — nicht die Fehler-Tabelle fluten lassen.
+  "client-error": { max: 30, windowMs: 60 * 60 * 1000 }, // 30 Fehlermeldungen/Stunde pro IP
 };
 
 /**

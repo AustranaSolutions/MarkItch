@@ -19,6 +19,10 @@ export async function POST(request: NextRequest) {
 
   const parsed = LoginSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return validationErrorResponse(parsed.error);
+  // Sicherheits-Check 19.11.: zusätzlich pro E-Mail (Raten über viele IPs).
+  if (!(await checkRateLimit("login-email", parsed.data.email.trim().toLowerCase())).allowed) {
+    return await apiError({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+  }
 
   const [user] = await db.select().from(users).where(eq(users.email, parsed.data.email)).limit(1);
   // Gesperrt → dieselbe generische Meldung wie im Web (Phase 24: Sperrstatus nicht verraten).

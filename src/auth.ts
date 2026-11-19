@@ -1,10 +1,18 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { verifyPassword } from "@/lib/password";
 import { LoginSchema } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+export const LOGIN_RATE_LIMITED = "rate_limited";
+
+/** Sicherheits-Check 19.11.: zu viele Login-Versuche (pro IP oder pro E-Mail, wie in der App). */
+class LoginRateLimited extends CredentialsSignin {
+  code = LOGIN_RATE_LIMITED;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -16,10 +24,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "E-Mail", type: "email" },
         password: { label: "Passwort", type: "password" },
       },
-      authorize: async (rawCredentials) => {
+      authorize: async (rawCredentials, request) => {
         const parsed = LoginSchema.safeParse(rawCredentials);
         if (!parsed.success) return null;
         const { email, password } = parsed.data;
+
+        // Gilt auch für direkte Aufrufe von /api/auth/callback/credentials (nicht nur das Formular).
+        const ip = request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+        if (!(await checkRateLimit("login", ip)).allowed) throw new LoginRateLimited();
+        if (!(await checkRateLimit("login-email", email.trim().toLowerCase())).allowed) throw new LoginRateLimited();
 
         const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
         if (!user) return null;

@@ -7,6 +7,7 @@ import { uploadImage, ALLOWED_IMAGE_TYPES } from "@/lib/storage";
 import { ChangePasswordSchema, DeleteAccountSchema, NameSchema, UpdateProfileSchema } from "@/lib/validation";
 import { generateRawToken, hashToken, expiresInHours } from "@/lib/tokens";
 import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { TERMS_VERSION } from "@/lib/legal";
 
 // RN-2: aus app/actions/auth.ts herausgelöst, damit die Web-Formulare (Server
@@ -56,10 +57,15 @@ export async function createAccount(input: {
   return user;
 }
 
-/** Verschickt einen Reset-Link, falls es den Account gibt — Aufrufer antworten immer gleich, damit nicht abfragbar ist, welche E-Mails registriert sind. */
-export async function requestPasswordResetFor(email: string) {
+/**
+ * Verschickt einen Reset-Link, falls es den Account gibt — Aufrufer antworten immer gleich, damit nicht abfragbar ist, welche E-Mails registriert sind.
+ * Sicherheits-Check 19.11.: Limit pro IP (dann Meldung „zu viele Versuche“) und pro Adresse (dann still keine weitere Mail).
+ */
+export async function requestPasswordResetFor(email: string, ip: string): Promise<{ limited: boolean }> {
+  if (!(await checkRateLimit("password-reset-ip", ip)).allowed) return { limited: true };
+  if (!(await checkRateLimit("password-reset-email", email.trim().toLowerCase())).allowed) return { limited: false };
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  if (!user) return;
+  if (!user) return { limited: false };
   const rawToken = generateRawToken();
   await db.insert(passwordResetTokens).values({
     userId: user.id,
@@ -67,6 +73,7 @@ export async function requestPasswordResetFor(email: string) {
     expiresAt: expiresInHours(1),
   });
   await sendPasswordResetEmail(user.email, `${appUrl()}/reset-password?token=${rawToken}`);
+  return { limited: false };
 }
 
 // RN-4: Profil, Passwort, Account löschen — gemeinsam für Web-Actions
@@ -176,10 +183,12 @@ export async function deleteAccountForUser(
   return { ok: true };
 }
 
-export async function resendVerificationFor(userId: string): Promise<{ ok: boolean }> {
+export async function resendVerificationFor(userId: string): Promise<{ ok: boolean; limited?: boolean }> {
   const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!dbUser) return { ok: false };
   if (dbUser.emailVerifiedAt) return { ok: true };
+  // Sicherheits-Check 19.11.: höchstens 3 Bestätigungsmails pro Stunde.
+  if (!(await checkRateLimit("verify-resend", dbUser.id)).allowed) return { ok: false, limited: true };
   await db.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, dbUser.id));
   await issueVerificationToken(dbUser.id, dbUser.email);
   return { ok: true };

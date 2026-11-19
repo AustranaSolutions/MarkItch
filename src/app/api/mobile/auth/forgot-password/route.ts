@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { ForgotPasswordSchema } from "@/lib/validation";
 import { requestPasswordResetFor } from "@/lib/account";
 import { readJsonBody, validationErrorResponse } from "@/lib/mobile-auth";
+import { getClientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
+import { apiError } from "@/lib/api-error";
 
 /**
  * RN-2: "Passwort vergessen" aus der App. Der Link in der Mail führt vorerst
@@ -13,6 +15,7 @@ export async function POST(request: NextRequest) {
   const parsed = ForgotPasswordSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return validationErrorResponse(parsed.error);
 
-  await requestPasswordResetFor(parsed.data.email);
+  const { limited } = await requestPasswordResetFor(parsed.data.email, await getClientIp(request));
+  if (limited) return await apiError({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
   return NextResponse.json({ ok: true });
 }
