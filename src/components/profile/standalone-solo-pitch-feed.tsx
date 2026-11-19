@@ -161,6 +161,7 @@ export function StandaloneSoloPitchFeed({
               canPostReaction={Boolean(viewerBrandId && pitch && viewerBrandId !== pitch.brandId)}
               canPromote={Boolean(viewerBrandId && pitch && viewerBrandId === pitch.brandId)}
               viewerBrandId={viewerBrandId}
+              originalBrand={pitch ? { id: pitch.brandId, name: pitch.brandName } : null}
               onClose={() => setReactionsSoloPitchId(null)}
               onReactionCountChange={(id, count) => patch(id, { reactionCount: count })}
             />

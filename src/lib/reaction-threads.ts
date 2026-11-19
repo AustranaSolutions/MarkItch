@@ -57,3 +57,37 @@ export function buildReactionThreads(reactions: ReactionRow[]) {
 
   return { flattened, topLevel, startIndexById, replyCountById };
 }
+
+/** Luca 19.11.: eine Serie — die Reaktion und alle Antworten darauf, chronologisch. */
+export type ReactionSeries = { root: ReactionRow; chain: ReactionRow[] };
+
+/**
+ * Luca 19.11. (wie in der App): Serie = Reaktion, auf die der Ersteller des
+ * Originals geantwortet hat. Sie wandert in den Reiter „Serie“; alle übrigen
+ * Reaktionen bleiben samt alter Antwortketten unter „Reaktionen“.
+ */
+export function splitReactionSeries(reactions: ReactionRow[], originalBrandId: string | null | undefined) {
+  const byTime = (a: ReactionRow, b: ReactionRow) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  const childrenByParent = new Map<string, ReactionRow[]>();
+  for (const r of reactions) {
+    if (!r.parentReactionId) continue;
+    const list = childrenByParent.get(r.parentReactionId) ?? [];
+    list.push(r);
+    childrenByParent.set(r.parentReactionId, list);
+  }
+  const descendants = (r: ReactionRow): ReactionRow[] => (childrenByParent.get(r.id) ?? []).flatMap((c) => [c, ...descendants(c)]);
+
+  const series: ReactionSeries[] = [];
+  const rootIdById = new Map<string, string>();
+  for (const top of reactions.filter((r) => !r.parentReactionId)) {
+    const below = descendants(top);
+    rootIdById.set(top.id, top.id);
+    for (const d of below) rootIdById.set(d.id, top.id);
+    if (originalBrandId && below.some((d) => d.brandId === originalBrandId)) series.push({ root: top, chain: [top, ...below.sort(byTime)] });
+  }
+  const lastAt = (x: ReactionSeries) => new Date(x.chain[x.chain.length - 1].createdAt).getTime();
+  series.sort((a, b) => lastAt(b) - lastAt(a));
+  const seriesRootIds = new Set(series.map((x) => x.root.id));
+  const rest = reactions.filter((r) => !seriesRootIds.has(rootIdById.get(r.id) ?? r.id));
+  return { series, rest, rootIdById };
+}

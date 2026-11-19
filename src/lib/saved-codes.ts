@@ -1,7 +1,7 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { battles, brands, savedCodes, soloPitches } from "@/db/schema";
+import { battles, brands, reactions, savedCodes, soloPitches } from "@/db/schema";
 import { getThumbnailMap } from "@/lib/video-thumbnails";
 
 // Luca 13.11. (Phase 3): „Meine Codes“ — wer auf den Link-Knopf eines Videos
@@ -12,7 +12,7 @@ import { getThumbnailMap } from "@/lib/video-thumbnails";
 const MAX_SAVED = 200;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export type SavedCodeTarget = "pitch" | "battle";
+export type SavedCodeTarget = "pitch" | "battle" | "reaction";
 
 export type SavedCodeView = {
   id: string;
@@ -36,6 +36,12 @@ export type SavedCodeView = {
 type CodeSource = { brandId: string; code: string; ctaUrl: string; ctaLabel: string | null; videoUrl: string };
 
 async function findCodeSource(targetType: SavedCodeTarget, targetId: string, brandId: string): Promise<CodeSource | null> {
+  // Luca 19.11.: Antworten in einer Serie haben eigene Links/Codes.
+  if (targetType === "reaction") {
+    const [r] = await db.select().from(reactions).where(eq(reactions.id, targetId)).limit(1);
+    if (!r || !r.brandId || r.brandId !== brandId || !r.ctaCode || !r.ctaUrl) return null;
+    return { brandId: r.brandId, code: r.ctaCode, ctaUrl: r.ctaUrl, ctaLabel: r.ctaLabel, videoUrl: r.videoUrl };
+  }
   if (targetType === "pitch") {
     const [p] = await db.select().from(soloPitches).where(eq(soloPitches.id, targetId)).limit(1);
     if (!p || !p.ctaCode || !p.ctaUrl) return null;
@@ -54,7 +60,7 @@ async function findCodeSource(targetType: SavedCodeTarget, targetId: string, bra
 
 /** Speichert (oder frischt auf) den Code eines Videos. Stilles Nein, wenn das Video keinen Code hat. */
 export async function saveCode(userId: string, input: { targetType?: unknown; targetId?: unknown; brandId?: unknown }): Promise<{ ok: boolean }> {
-  const targetType = input.targetType === "pitch" || input.targetType === "battle" ? input.targetType : null;
+  const targetType = input.targetType === "pitch" || input.targetType === "battle" || input.targetType === "reaction" ? input.targetType : null;
   const targetId = typeof input.targetId === "string" && UUID_RE.test(input.targetId) ? input.targetId : null;
   const brandId = typeof input.brandId === "string" && UUID_RE.test(input.brandId) ? input.brandId : null;
   if (!targetType || !targetId || !brandId) return { ok: false };
@@ -82,6 +88,13 @@ export async function listSavedCodes(userId: string): Promise<SavedCodeView[]> {
     .orderBy(desc(savedCodes.createdAt))
     .limit(MAX_SAVED);
   const thumbnails = await getThumbnailMap(rows.map((r) => r.c.videoUrl));
+  // Reaktions-Codes: Link zum Original mit geöffneter Serie.
+  const reactionIds = rows.filter((r) => r.c.targetType === "reaction").map((r) => r.c.targetId);
+  const reactionPitch = new Map(
+    reactionIds.length
+      ? (await db.select({ id: reactions.id, soloPitchId: reactions.soloPitchId }).from(reactions).where(inArray(reactions.id, reactionIds))).map((r) => [r.id, r.soloPitchId])
+      : [],
+  );
   return rows.map(({ c, brand }) => ({
     id: c.id,
     code: c.code,
@@ -89,8 +102,13 @@ export async function listSavedCodes(userId: string): Promise<SavedCodeView[]> {
     ctaLabel: c.ctaLabel,
     videoUrl: c.videoUrl,
     thumbnailUrl: thumbnails.get(c.videoUrl) ?? null,
-    href: c.targetType === "battle" ? `/?battle=${c.targetId}&lead=${c.brandId}` : `/?pitch=${c.targetId}`,
-    targetType: c.targetType === "battle" ? "battle" : "pitch",
+    href:
+      c.targetType === "battle"
+        ? `/?battle=${c.targetId}&lead=${c.brandId}`
+        : c.targetType === "reaction"
+          ? `/?pitch=${reactionPitch.get(c.targetId) ?? ""}&reaction=${c.targetId}`
+          : `/?pitch=${c.targetId}`,
+    targetType: c.targetType === "battle" ? "battle" : c.targetType === "reaction" ? "reaction" : "pitch",
     targetId: c.targetId,
     brandId: c.brandId,
     brandName: brand.name,

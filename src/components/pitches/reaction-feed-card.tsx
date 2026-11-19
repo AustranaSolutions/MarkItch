@@ -4,6 +4,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { CornerUpLeft, Heart, MessageCircle, MessageSquareShare, Play, Share2, Volume2, VolumeX } from "lucide-react";
 import { PromoteReactionButton } from "@/components/pitches/promote-reaction-button";
+import { NameLogo } from "@/components/feed/name-logo";
+import { CtaLink } from "@/components/feed/cta-link";
+import { MentionText } from "@/components/feed/mention-text";
 import { ReportButton } from "@/components/moderation/report-button";
 import { AdLabel, AiContentLabel } from "@/components/ui";
 import type { ReactionRow } from "@/lib/reaction-threads";
@@ -187,7 +190,8 @@ export function ReactionFeedCard({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 pb-24 pr-20">
         <div className="pointer-events-auto mb-2 flex items-center gap-2">
           {reaction.brand ? (
-            <Link href={`/brands/${reaction.brand.slug}`} className="text-sm font-bold text-white hover:underline">
+            <Link href={`/brands/${reaction.brand.slug}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-white hover:underline">
+              <NameLogo logoUrl={reaction.brand.logoUrl} />
               {reaction.brand.name}
             </Link>
           ) : (
@@ -198,7 +202,7 @@ export function ReactionFeedCard({
             )
           )}
           <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
-            {feedContext ? feedContext.label : reaction.parentReactionId ? t("Antwort im Thread", "Reply in thread") : t("Reaktion", "Reaction")}
+            {feedContext ? feedContext.label : reaction.parentReactionId ? t("Antwort in der Serie", "Reply in series") : t("Reaktion", "Reaction")}
           </span>
           {reaction.brand ? (
             <AdLabel />
@@ -207,6 +211,15 @@ export function ReactionFeedCard({
           )}
           {reaction.containsAiContent && <AiContentLabel />}
         </div>
+        {/* Luca 19.11.: Beschreibung (alle) und Link/Code (Antworten in einer Serie) wie bei Posts. */}
+        {reaction.description && (
+          <p className="mb-2 text-sm text-white/90">
+            <MentionText text={reaction.description} mentions={[]} />
+          </p>
+        )}
+        {reaction.ctaUrl && reaction.ctaLabel && reaction.brand && (
+          <CtaLink url={reaction.ctaUrl} label={reaction.ctaLabel} code={reaction.ctaCode} target={{ targetType: "reaction", targetId: reaction.id, brandId: reaction.brand.id }} />
+        )}
         {feedContext && (
           <Link
             href={feedContext.href}

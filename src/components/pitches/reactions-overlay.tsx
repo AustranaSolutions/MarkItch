@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
-import { buildReactionThreads, type ReactionRow } from "@/lib/reaction-threads";
+import { buildReactionThreads, splitReactionSeries, type ReactionRow } from "@/lib/reaction-threads";
 import { ReactionsGrid } from "@/components/pitches/reactions-grid";
 import { ReactionsFeed } from "@/components/pitches/reactions-feed";
 import { ReactionUploadForm } from "@/components/pitches/reaction-upload-form";
@@ -24,9 +24,12 @@ export function ReactionsOverlay({
   canPostReaction,
   canPromote,
   viewerBrandId,
+  originalBrand,
   onClose,
   onReactionCountChange,
 }: {
+  /** Luca 19.11.: Marke des Originals — antwortet sie auf eine Reaktion, entsteht eine Serie. */
+  originalBrand?: { id: string; name: string } | null;
   soloPitchId: string;
   isLoggedIn: boolean;
   canPostReaction: boolean;
@@ -39,6 +42,8 @@ export function ReactionsOverlay({
   const [reactions, setReactions] = useState<ReactionRow[] | null>(null);
   const [view, setView] = useState<"grid" | "feed">("grid");
   const [feedStartIndex, setFeedStartIndex] = useState(0);
+  // null = alle Reaktionen ohne Serie, sonst genau diese Serie (Wurzel-ID).
+  const [feedSeriesId, setFeedSeriesId] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
   // undefined = closed, null = new top-level reaction, string = reply to that reaction id
   const [uploadParentId, setUploadParentId] = useState<string | null | undefined>(undefined);
@@ -60,7 +65,19 @@ export function ReactionsOverlay({
     load();
   }, [load]);
 
-  const threads = useMemo(() => buildReactionThreads(reactions ?? []), [reactions]);
+  const split = useMemo(() => splitReactionSeries(reactions ?? [], originalBrand?.id), [reactions, originalBrand?.id]);
+  const threads = useMemo(() => buildReactionThreads(split.rest), [split.rest]);
+  const feedSeries = feedSeriesId ? split.series.find((x) => x.root.id === feedSeriesId) ?? null : null;
+  const byId = useMemo(() => new Map((reactions ?? []).map((r) => [r.id, r])), [reactions]);
+
+  // Luca 19.11.: antworten darf der Ersteller des Originals (startet die Serie)
+  // und danach der Autor der Reaktion, die die Serie trägt — nie auf sich selbst.
+  function canReplyTo(r: ReactionRow): boolean {
+    if (!viewerBrandId || r.brandId === viewerBrandId) return false;
+    if (originalBrand && viewerBrandId === originalBrand.id) return true;
+    const root = byId.get(split.rootIdById.get(r.id) ?? r.id);
+    return Boolean(root && root.id !== r.id && root.brandId === viewerBrandId);
+  }
 
   async function handleToggleLike(reactionId: string) {
     setReactions((prev) =>
@@ -109,17 +126,25 @@ export function ReactionsOverlay({
           canPostReaction={canPostReaction}
           onClose={onClose}
           onOpenReaction={(reactionId) => {
+            setFeedSeriesId(null);
             setFeedStartIndex(threads.startIndexById.get(reactionId) ?? 0);
+            setView("feed");
+          }}
+          series={split.series}
+          originalBrandName={originalBrand?.name}
+          onOpenSeries={(rootId, index) => {
+            setFeedSeriesId(rootId);
+            setFeedStartIndex(index);
             setView("feed");
           }}
           onPostNew={() => setUploadParentId(null)}
         />
       ) : (
         <ReactionsFeed
-          reactions={threads.flattened}
+          reactions={feedSeries ? feedSeries.chain : threads.flattened}
           isLoggedIn={isLoggedIn}
           canPromote={canPromote}
-          viewerBrandId={viewerBrandId}
+          canReplyTo={canReplyTo}
           muted={muted}
           onToggleMute={() => setMuted((m) => !m)}
           onToggleLike={handleToggleLike}

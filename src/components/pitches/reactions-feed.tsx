@@ -26,7 +26,7 @@ export function ReactionsFeed({
   reactions,
   isLoggedIn,
   canPromote,
-  viewerBrandId,
+  canReplyTo,
   muted,
   onToggleMute,
   onToggleLike,
@@ -40,7 +40,8 @@ export function ReactionsFeed({
   reactions: ReactionRow[];
   isLoggedIn: boolean;
   canPromote: boolean;
-  viewerBrandId?: string | null;
+  /** Luca 19.11.: antworten nur Ersteller des Originals bzw. danach die Person der Serie. */
+  canReplyTo: (reaction: ReactionRow) => boolean;
   muted: boolean;
   onToggleMute: () => void;
   onToggleLike: (reactionId: string) => void;
@@ -106,7 +107,7 @@ export function ReactionsFeed({
               reaction={r}
               isLoggedIn={isLoggedIn}
               canPromote={canPromote && !r.parentReactionId}
-              canReply={Boolean(viewerBrandId) && r.brandId !== viewerBrandId}
+              canReply={canReplyTo(r)}
               muted={muted}
               onToggleMute={onToggleMute}
               onToggleLike={onToggleLike}

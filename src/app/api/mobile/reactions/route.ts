@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { postReactionFor } from "@/lib/reaction-manage";
-import { isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
+import { fieldErrorResponse, isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
 import { apiError } from "@/lib/api-error";
 
 // RN-5c: Reaktion (oder Antwort auf eine Reaktion) aus der App posten —
@@ -24,8 +24,14 @@ export async function POST(request: NextRequest) {
   form.set("videoUrl", text(body.videoUrl));
   if (body.audioRightsConfirmed === true) form.set("audioRightsConfirmed", "on");
   if (body.containsAiContent === true) form.set("containsAiContent", "on");
+  // Luca 19.11.: Beschreibung (alle) und Link/Code (Antworten in einer Serie).
+  form.set("description", text(body.description));
+  form.set("ctaLabel", text(body.ctaLabel));
+  form.set("ctaUrl", text(body.ctaUrl));
+  form.set("ctaCode", text(body.ctaCode));
+  if (body.paidPartnership === true) form.set("paidPartnership", "on");
 
   const result = await postReactionFor(viewer, form);
-  if (!result.ok) return await apiError({ error: result.error }, { status: 400 });
+  if (!result.ok) return result.errors ? fieldErrorResponse(result.errors) : await apiError({ error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true }, { status: 201 });
 }

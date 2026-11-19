@@ -8,12 +8,12 @@ import { postReactionFor, promoteReactionFor } from "@/lib/reaction-manage";
 
 // RN-5c: Logik in lib/reaction-manage.ts, gemeinsam mit den App-Routen.
 
-export type ReactionFormState = { error?: string } | undefined;
+export type ReactionFormState = { error?: string; errors?: Record<string, string[]> } | undefined;
 
 async function postReactionImpl(_prevState: ReactionFormState, formData: FormData): Promise<ReactionFormState> {
   const user = await requireUser();
   const result = await postReactionFor(user, formData);
-  if (!result.ok) return { error: result.error };
+  if (!result.ok) return { error: result.error, errors: result.errors };
   refresh();
   return undefined;
 }

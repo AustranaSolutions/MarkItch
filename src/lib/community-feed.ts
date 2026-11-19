@@ -41,6 +41,8 @@ export type FeedReaction = {
   viewerIsAuthor: boolean;
   commentCount: number;
   containsAiContent: boolean;
+  /** Luca 19.11.: Beschreibung der Reaktion (Zuschauer haben keinen Link). */
+  description: string | null;
   createdAt: string; // ISO
 };
 
@@ -150,6 +152,7 @@ export async function enrichCommunityReactions(viewerId: string | null, rows: Co
     viewerIsAuthor: viewerId === r.reaction.userId,
     commentCount: commentCounts.get(r.reaction.id) ?? 0,
     containsAiContent: r.reaction.containsAiContent,
+    description: r.reaction.description,
     createdAt: r.reaction.createdAt.toISOString(),
   }));
 }

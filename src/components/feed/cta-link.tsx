@@ -21,7 +21,7 @@ export function CtaLink({
   url: string;
   label: string;
   code: string | null;
-  target: { targetType: "pitch" | "battle"; targetId: string; brandId: string };
+  target: { targetType: "pitch" | "battle" | "reaction"; targetId: string; brandId: string };
   onClick?: () => void;
   className?: string;
 }) {

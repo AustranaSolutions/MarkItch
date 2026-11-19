@@ -621,6 +621,13 @@ export const reactions = pgTable(
     userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     parentReactionId: uuid("parent_reaction_id").references((): AnyPgColumn => reactions.id, { onDelete: "cascade" }),
     videoUrl: text("video_url").notNull(),
+    // Luca 19.11.: Reaktionen mit Beschreibung; Antworten in einer Serie
+    // (Original-Ersteller antwortet) zusätzlich mit Link/Code wie ein Post.
+    description: text("description"),
+    ctaLabel: text("cta_label"),
+    ctaUrl: text("cta_url"),
+    ctaCode: text("cta_code"),
+    paidPartnership: boolean("paid_partnership").notNull().default(false),
     promotedToBattleId: uuid("promoted_to_battle_id").references(() => battles.id, { onDelete: "set null" }),
     // Phase 46: siehe soloPitches.containsAiContent.
     containsAiContent: boolean("contains_ai_content").notNull().default(false),
