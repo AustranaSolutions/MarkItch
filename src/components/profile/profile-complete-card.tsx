@@ -24,7 +24,7 @@ export type ProfileCompleteInput = {
 
 function profileSteps(p: ProfileCompleteInput, t: Translate): Step[] {
   return [
-    { label: "Logo", done: Boolean(p.logoUrl), action: t("Hinzufügen", "Add"), href: "/profile/settings" },
+    { label: "Logo", done: Boolean(p.logoUrl), action: t("Hinzufügen", "Add"), href: "/profile/settings/brand" },
     {
       label: t("Button im Profil & Standort", "Profile button & location"),
       done: Boolean(p.profileButtonType) && (p.creator || Boolean(p.locationType)),

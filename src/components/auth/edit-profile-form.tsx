@@ -9,10 +9,13 @@ export function EditProfileForm({
   initialName,
   initialEmail,
   initialAvatarUrl,
+  brandAccount = false,
 }: {
   initialName: string;
   initialEmail: string;
   initialAvatarUrl: string | null;
+  /** Luca 20.11.: mit Marke erscheint man öffentlich nur mit deren Logo → kein zweites Bild hier. */
+  brandAccount?: boolean;
 }) {
   const t = useT();
   const [state, action] = useActionState<FormState, FormData>(updateProfile, undefined);
@@ -29,6 +32,14 @@ export function EditProfileForm({
           message={emailChanged ? t("Gespeichert — bestätige deine neue E-Mail-Adresse, der Link wurde verschickt.", "Saved — confirm your new email address, the link has been sent.") : t("Gespeichert.", "Saved.")}
         />
       )}
+      {brandAccount ? (
+        <p className="mb-4 text-xs text-zinc-400">
+          {t(
+            "Öffentlich erscheinst du immer mit Name und Logo deiner Marke — die änderst du unter „Name, Logo & Beschreibung“. Name und E-Mail hier sind nur für dein Konto.",
+            "Publicly you always appear with your brand’s name and logo — change them under “Name, logo & description”. Name and email here are only for your account.",
+          )}
+        </p>
+      ) : (
       <div className="mb-4">
         <label htmlFor="avatar" className="mb-1 block text-sm font-medium text-zinc-300">
           {t("Profilbild (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)", "Profile picture (optional, PNG/JPEG/WEBP/SVG, max. 2 MB)")}
@@ -60,7 +71,8 @@ export function EditProfileForm({
           </p>
         ))}
       </div>
-      <Field label="Name" name="name" errors={state?.errors?.name} value={name} onChange={setName} />
+      )}
+      <Field label={brandAccount ? t("Dein Name (nicht öffentlich)", "Your name (not public)") : "Name"} name="name" errors={state?.errors?.name} value={name} onChange={setName} />
       <Field
         label={t("E-Mail", "Email")}
         name="email"

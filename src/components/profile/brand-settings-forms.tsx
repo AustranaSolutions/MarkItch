@@ -38,7 +38,9 @@ function useSaveAndBack() {
     setFieldErrors({});
     const result = await saveDetails(form, t);
     if ("ok" in result) {
-      router.push("/profile/settings");
+      // Luca 20.11.: zurück, woher man kam (Profil bearbeiten oder Einstellungen).
+      if (document.referrer.startsWith(window.location.origin) && window.history.length > 1) router.back();
+      else router.push("/profile/edit");
       router.refresh();
       return;
     }

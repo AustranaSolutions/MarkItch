@@ -70,7 +70,7 @@ export default async function PitchesPage({ searchParams }: { searchParams: Prom
 
       {viewerBrand && (
         <Link
-          href="/profile/settings"
+          href="/profile/settings/invites"
           className="mb-6 flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-900"
         >
           {t("✉️ Duell-Einladungen", "✉️ Duel invites")}

@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { requireUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
-import { getT } from "@/lib/lang";
+import { SettingsPage } from "@/components/settings/settings-list";
 
 /** Luca 25.10.: gemeinsamer Rahmen der Profil-Einstellungen im Web (wie die Screens in der App). */
 export async function requireOwnBrand() {
@@ -15,16 +13,5 @@ export async function requireOwnBrand() {
 }
 
 export async function BrandSettingsPage({ title, children }: { title: string; children: ReactNode }) {
-  const t = await getT();
-  return (
-    <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
-      <div className="mb-6 flex items-center gap-2">
-        <Link href="/profile/settings" aria-label={t("Zurück zu den Einstellungen", "Back to settings")} className="text-zinc-400 hover:text-white">
-          <ChevronLeft size={24} />
-        </Link>
-        <h1 className="text-2xl font-bold text-white">{title}</h1>
-      </div>
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">{children}</div>
-    </div>
-  );
+  return <SettingsPage title={title} back="/profile/edit">{children}</SettingsPage>;
 }

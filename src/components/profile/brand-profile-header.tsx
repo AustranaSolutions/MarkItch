@@ -393,7 +393,7 @@ export function BrandProfileHeader({
           {own ? (
             <div className="flex gap-2">
               <Link
-                href="/profile/settings"
+                href="/profile/edit"
                 className="flex h-10 flex-1 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-sm font-bold text-white hover:bg-zinc-900"
               >
                 {t("Profil bearbeiten", "Edit profile")}

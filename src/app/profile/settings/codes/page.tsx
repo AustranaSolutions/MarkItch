@@ -3,7 +3,7 @@ import { listSavedCodes } from "@/lib/saved-codes";
 import { getSavedFeedItems } from "@/lib/saved-videos";
 import { SavedCodeList } from "@/components/profile/saved-code-list";
 import { SavedVideoGrid } from "@/components/profile/saved-video-grid";
-import { BrandSettingsPage } from "@/components/profile/brand-settings-page";
+import { SettingsPage } from "@/components/settings/settings-list";
 import { getT } from "@/lib/lang";
 
 // Luca 13.11. (Phase 3): Rabattcodes aus Videos, deren Link man geöffnet hat.
@@ -13,11 +13,11 @@ export default async function SavedForLaterPage() {
   const user = await requireUser();
   const [items, codes] = await Promise.all([getSavedFeedItems(user.id), listSavedCodes(user.id)]);
   return (
-    <BrandSettingsPage title={t("Für später", "Saved for later")}>
+    <SettingsPage title={t("Für später", "Saved for later")}>
       <h2 className="mb-3 text-sm font-semibold text-white">{t("Videos", "Videos")}</h2>
       <SavedVideoGrid items={items} />
       <h2 className="mb-3 mt-8 text-sm font-semibold text-white">{t("Codes", "Codes")}</h2>
       <SavedCodeList codes={codes} />
-    </BrandSettingsPage>
+    </SettingsPage>
   );
 }

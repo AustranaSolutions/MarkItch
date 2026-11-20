@@ -4,7 +4,7 @@ import { BrandSettingsPage, requireOwnBrand } from "@/components/profile/brand-s
 export default async function AppearanceSettingsPage() {
   const brand = await requireOwnBrand();
   return (
-    <BrandSettingsPage title="Banner & Vorstellung">
+    <BrandSettingsPage title="Banner & Vorstellungsvideo">
       <AppearanceForm bannerUrl={brand.bannerUrl} introVideoUrl={brand.videoUrl} />
     </BrandSettingsPage>
   );
