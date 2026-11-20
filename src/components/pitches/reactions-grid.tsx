@@ -44,7 +44,7 @@ export function ReactionsGrid({
   const [tab, setTab] = useState<"reactions" | "series">("reactions");
   const hasSeries = series.length > 0;
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black">
+    <div className="fixed inset-0 z-[60] mx-auto flex max-w-[480px] flex-col bg-black md:border-x md:border-zinc-900">
       <div
         className="flex items-center justify-between px-4 pb-3"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 14px)" }}

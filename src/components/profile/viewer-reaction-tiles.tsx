@@ -53,7 +53,7 @@ export function ViewerReactionTiles({ reactions, own }: { reactions: ViewerReact
         ))}
       </ul>
       {open && (
-        <div className="fixed inset-0 z-[120] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label={t("Reaktion", "Reaction")}>
+        <div className="fixed inset-0 z-[120] mx-auto flex max-w-[480px] flex-col bg-black md:border-x md:border-zinc-900" role="dialog" aria-modal="true" aria-label={t("Reaktion", "Reaction")}>
           <div className="flex items-center justify-between px-4 pb-3" style={{ paddingTop: "calc(env(safe-area-inset-top) + 14px)" }}>
             <span className="text-sm font-semibold text-white">
               {open.soloPitchId ? t("Reaktion auf", "Reaction to") : t("Challenge von", "Challenge by")} {open.originalBrandName}

@@ -76,7 +76,7 @@ export function BoostButton({ soloPitchId }: { soloPitchId: string }) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setOpen(false)}>
           <div
-            className="w-full rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"
+            className="mx-auto w-full max-w-[480px] rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">

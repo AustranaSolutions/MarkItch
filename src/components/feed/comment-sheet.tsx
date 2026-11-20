@@ -105,7 +105,7 @@ export function CommentSheet({
   return (
     <div className="absolute inset-0 z-30 flex items-end bg-black/60" onClick={onClose}>
       <div
-        className="flex max-h-[70%] w-full flex-col rounded-t-2xl bg-zinc-950 pb-[env(safe-area-inset-bottom)]"
+        className="flex max-h-[70%] mx-auto w-full max-w-[480px] flex-col rounded-t-2xl bg-zinc-950 pb-[env(safe-area-inset-bottom)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">

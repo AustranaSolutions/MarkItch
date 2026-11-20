@@ -126,7 +126,7 @@ export function SoloPitchOwnerMenuButton({
         createPortal(
           <div className="fixed inset-0 z-[60] flex items-end bg-black/60" onClick={() => setScreen("closed")}>
           <div
-            className="w-full rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"
+            className="mx-auto w-full max-w-[480px] rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"
             onClick={(e) => e.stopPropagation()}
           >
             {screen === "menu" && (

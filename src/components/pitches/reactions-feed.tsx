@@ -78,7 +78,7 @@ export function ReactionsFeed({
     // z-[60]: sits above other fixed overlays (StandaloneSoloPitchView,
     // CommentSheet, etc. all use z-50) since this can be opened from within
     // the profile grid's own full-screen post view.
-    <div className="fixed inset-0 z-[60] bg-black">
+    <div className="fixed inset-0 z-[60] mx-auto max-w-[480px] bg-black md:border-x md:border-zinc-900">
       <button
         onClick={onBackToGrid}
         aria-label={t("Zurück zur Übersicht", "Back to overview")}

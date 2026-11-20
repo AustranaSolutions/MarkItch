@@ -63,7 +63,7 @@ export function ReactionOwnerMenu({ reaction }: { reaction: ReactionRow }) {
       {(screen === "menu" || screen === "delete") &&
         createPortal(
           <div className="fixed inset-0 z-[60] flex items-end bg-black/60" onClick={() => setScreen("closed")}>
-            <div className="w-full rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto w-full max-w-[480px] rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]" onClick={(e) => e.stopPropagation()}>
               {screen === "menu" ? (
                 <div className="space-y-1.5">
                   <button onClick={() => setScreen("thumbnail")} className="w-full rounded-lg border border-zinc-800 px-3 py-2.5 text-left text-sm text-white">

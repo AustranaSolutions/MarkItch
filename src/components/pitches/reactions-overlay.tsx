@@ -111,7 +111,7 @@ export function ReactionsOverlay({
 
   if (reactions === null) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
+      <div className="fixed inset-0 z-[60] mx-auto flex max-w-[480px] items-center justify-center bg-black">
         <p className="text-sm text-zinc-500">{t("Lädt…", "Loading…")}</p>
       </div>
     );
@@ -177,7 +177,7 @@ export function ReactionsOverlay({
 
       {uploadParentId !== undefined && (
         <div className="fixed inset-0 z-[70] flex items-end bg-black/60" onClick={() => setUploadParentId(undefined)}>
-          <div className="w-full rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]" onClick={(e) => e.stopPropagation()}>
+          <div className="mx-auto w-full max-w-[480px] rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">{uploadParentId ? t("Antworten", "Reply") : t("Reaktion posten", "Post reaction")}</h2>
               <button onClick={() => setUploadParentId(undefined)} aria-label={t("Schließen", "Close")} className="text-zinc-500 hover:text-white">
