@@ -435,6 +435,13 @@
       "when": 1795108291996,
       "tag": "0061_reaktion_beschreibung_link",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1795206303125,
+      "tag": "0062_partner_abzeichen",
+      "breakpoints": true
     }
   ]
 }
