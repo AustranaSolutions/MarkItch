@@ -10,6 +10,8 @@ import { useT } from "@/components/i18n/lang-provider";
 import { duelCategoryLabel, langOf } from "@/lib/i18n";
 
 /**
+ * Luca 20.11.: wie in der App im ⋯-Menü der Karte, hier nur noch das Blatt.
+ *
  * "Duell einladen" — direct invite off a solo pitch, see
  * CLAUDE-CODE-UEBERGABE.md §6. Same label/action everywhere a brand can be
  * invited to a duel (this button, ChallengeButton on a profile) — Phase 40:
@@ -31,76 +33,59 @@ import { duelCategoryLabel, langOf } from "@/lib/i18n";
  * doesn't reliably win against another `position: fixed` ancestor across
  * every browser engine).
  */
-export function PitchChallengeButton({ soloPitchId }: { soloPitchId: string }) {
+export function PitchChallengeSheet({ soloPitchId, onClose }: { soloPitchId: string; onClose: () => void }) {
   const t = useT();
   const [state, action, isPending] = useActionState<ChallengeFormState, FormData>(sendChallengeFromSoloPitch, undefined);
   const wasPending = useRef(false);
   const [sent, setSent] = useState(false);
-  const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<string>(DEFAULT_DUEL_CATEGORY);
 
   useEffect(() => {
     if (wasPending.current && !isPending && !state?.error) {
       setSent(true);
-      setOpen(false);
+      const timer = setTimeout(onClose, 1200);
+      wasPending.current = isPending;
+      return () => clearTimeout(timer);
     }
     wasPending.current = isPending;
-  }, [isPending, state]);
+  }, [isPending, state, onClose]);
 
-  if (sent) {
-    return (
-      <button type="button" disabled className="w-full rounded-lg bg-zinc-800 px-4 py-2 font-semibold text-zinc-400">
-        <Check size={14} className="inline -mt-0.5 mr-1" /> {t("Eingeladen", "Invited")}
-      </button>
-    );
-  }
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full rounded-lg bg-orange-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-orange-500"
-      >
-        <Send size={14} className="inline -mt-0.5 mr-1" /> {t("Duell einladen", "Invite to duel")}
-      </button>
-
-      {open &&
-        createPortal(
-          <div className="fixed inset-0 z-[60] flex items-end bg-black/60" onClick={() => setOpen(false)}>
-            <div
-              className="w-full rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <form action={action}>
-                <input type="hidden" name="soloPitchId" value={soloPitchId} />
-                <div className="mb-3">
-                  <label htmlFor={`category-${soloPitchId}`} className="mb-1 block text-sm font-medium text-zinc-300">
-                    {t("Kategorie", "Category")}
-                  </label>
-                  <select
-                    id={`category-${soloPitchId}`}
-                    name="category"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-orange-500"
-                  >
-                    {DUEL_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {duelCategoryLabel(cat, langOf(t))}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <FormError message={state?.error} />
-                <SubmitButton>
-                  <Send size={14} className="inline -mt-0.5 mr-1" /> {t("Duell einladen", "Invite to duel")}
-                </SubmitButton>
-              </form>
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-end bg-black/60" onClick={onClose}>
+      <div className="mx-auto w-full max-w-lg rounded-t-2xl bg-zinc-950 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]" onClick={(e) => e.stopPropagation()}>
+        {sent ? (
+          <p className="py-4 text-center text-sm font-semibold text-emerald-400">
+            <Check size={16} className="inline -mt-0.5 mr-1" /> {t("Eingeladen", "Invited")}
+          </p>
+        ) : (
+          <form action={action}>
+            <input type="hidden" name="soloPitchId" value={soloPitchId} />
+            <div className="mb-3">
+              <label htmlFor={`category-${soloPitchId}`} className="mb-1 block text-sm font-medium text-zinc-300">
+                {t("Kategorie", "Category")}
+              </label>
+              <select
+                id={`category-${soloPitchId}`}
+                name="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-orange-500"
+              >
+                {DUEL_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {duelCategoryLabel(cat, langOf(t))}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>,
-          document.body,
+            <FormError message={state?.error} />
+            <SubmitButton>
+              <Send size={14} className="inline -mt-0.5 mr-1" /> {t("Duell einladen", "Invite to duel")}
+            </SubmitButton>
+          </form>
         )}
-    </>
+      </div>
+    </div>,
+    document.body,
   );
 }

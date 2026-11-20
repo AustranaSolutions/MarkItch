@@ -114,6 +114,8 @@ export function StandaloneDuelFeed({
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
+      {/* Luca 20.11.: am Computer so schmal wie der Feed, nicht über die ganze Breite. */}
+      <div className="relative mx-auto h-full w-full max-w-[480px] md:border-x md:border-zinc-900">
       <button
         onClick={onClose}
         aria-label={t("Schließen", "Close")}
@@ -161,6 +163,7 @@ export function StandaloneDuelFeed({
         />
       )}
 
+      </div>
       {/* Phase 41: same fix as StandaloneSoloPitchView — this overlay's own
           bg-black sat visually on top of the root layout's BottomNav even
           though it was still mounted underneath. */}

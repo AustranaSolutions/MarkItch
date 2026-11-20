@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Clock, EyeOff, Flag, MoreHorizontal, X } from "lucide-react";
@@ -30,6 +31,7 @@ export function ReportButton({
   blockOptions = [],
   contentTarget,
   onHidden,
+  extraItems = [],
 }: {
   targetType: ReportTargetType;
   targetId: string;
@@ -44,6 +46,8 @@ export function ReportButton({
   contentTarget?: { targetType: "pitch" | "battle"; targetId: string };
   /** Nach „Nicht interessiert“: Karte aus der Liste nehmen. */
   onHidden?: () => void;
+  /** Luca 20.11.: weitere Einträge oben im Blatt (z. B. „… zum Duell einladen“). */
+  extraItems?: { label: string; icon: ReactNode; onSelect: () => void }[];
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -142,6 +146,18 @@ export function ReportButton({
               <>
                 {contentTarget && (
                   <div className="mb-3 space-y-1.5 border-b border-zinc-800 pb-3">
+                    {extraItems.map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => {
+                          setOpen(false);
+                          item.onSelect();
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg border border-zinc-800 px-3 py-2 text-left text-sm text-white"
+                      >
+                        {item.icon} {item.label}
+                      </button>
+                    ))}
                     <button onClick={() => contentAction("save")} className="flex w-full items-center gap-2 rounded-lg border border-zinc-800 px-3 py-2 text-left text-sm text-white">
                       <Clock size={16} /> {t("Für später merken", "Save for later")}
                     </button>

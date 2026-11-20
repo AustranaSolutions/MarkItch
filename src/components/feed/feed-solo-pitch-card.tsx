@@ -4,11 +4,11 @@ import { NameLogo } from "@/components/feed/name-logo";
 import { toggleCleanScreen, useCleanScreen, useResetCleanScreenWhenActive } from "@/lib/clean-screen";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Heart, MessageCircle, Repeat2, Rocket, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
+import { Eye, EyeOff, Heart, MessageCircle, Repeat2, Rocket, Send, Share2, Play, Volume2, VolumeX, X } from "lucide-react";
 import { RailFollowButton } from "@/components/brand/follow-button";
 import { CtaLink } from "@/components/feed/cta-link";
 import { MentionText } from "@/components/feed/mention-text";
-import { PitchChallengeButton } from "@/components/pitches/pitch-challenge-button";
+import { PitchChallengeSheet } from "@/components/pitches/pitch-challenge-button";
 import { BoostButton } from "@/components/pitches/boost-button";
 import { ReportButton } from "@/components/moderation/report-button";
 import { SoloPitchOwnerMenuButton } from "@/components/pitches/solo-pitch-owner-menu-button";
@@ -60,6 +60,9 @@ export function FeedSoloPitchCard({
   onActive?: () => void;
 }) {
   const t = useT();
+  // Luca 20.11.: „Duell einladen“ wie in der App im ⋯-Menü, Blatt erst beim Antippen.
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const closeInvite = useCallback(() => setInviteOpen(false), []);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [inView, setInView] = useState(false);
@@ -297,10 +300,11 @@ export function FeedSoloPitchCard({
             {pitch.context.kind === "challenge" ? "🏆" : "🎬"} {pitch.context.label} →
           </Link>
         )}
-        <div className="pointer-events-auto inline-block">
-          {viewerHasOtherBrand && <PitchChallengeButton soloPitchId={pitch.soloPitchId} />}
-          {BOOST_ENABLED && pitch.viewerOwnsThisBrand && <BoostButton soloPitchId={pitch.soloPitchId} />}
-        </div>
+        {BOOST_ENABLED && pitch.viewerOwnsThisBrand && (
+          <div className="pointer-events-auto inline-block">
+            <BoostButton soloPitchId={pitch.soloPitchId} />
+          </div>
+        )}
       </div>
       )}
 
@@ -351,10 +355,16 @@ export function FeedSoloPitchCard({
             blockOptions={[{ name: pitch.brandName, target: { brandId: pitch.brandId } }]}
             contentTarget={{ targetType: "pitch", targetId: pitch.soloPitchId }}
             onHidden={onHidden}
+            extraItems={
+              viewerHasOtherBrand
+                ? [{ label: t(`${pitch.brandName} zum Duell einladen`, `Invite ${pitch.brandName} to a duel`), icon: <Send size={16} />, onSelect: () => setInviteOpen(true) }]
+                : []
+            }
           />
         )}
       </div>
       )}
+      {inviteOpen && <PitchChallengeSheet soloPitchId={pitch.soloPitchId} onClose={closeInvite} />}
       {/* Luca 25.10.: Spulleiste wie in der App. */}
       <SeekBar getVideo={getVideo} active={inView} trim={pitch.trim} />
     </div>
