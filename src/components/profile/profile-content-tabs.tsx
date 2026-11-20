@@ -18,6 +18,8 @@ export type ProfileInfo = {
   isOwnBrand: boolean;
   activeCasting: { id: string; prompt: string } | null;
   castingWinner: { brandName: string; brandSlug: string } | null;
+  /** Luca 20.11. (7.5): von der Marke bestätigter Partner (nur mit Schalter). */
+  castingPartner?: { brandName: string; brandSlug: string } | null;
   latestFinishedCastingId: string | null;
 };
 
@@ -147,6 +149,14 @@ export function ProfileContentTabs({
 
           {!info.activeCasting && info.castingWinner && info.latestFinishedCastingId && (
             <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 text-center">
+              {info.castingPartner && (
+                <p className="mb-1 text-sm text-orange-200">
+                  🤝 {t("Offizieller Partner", "Official partner")}:{" "}
+                  <Link href={`/brands/${info.castingPartner.brandSlug}`} className="font-semibold hover:underline">
+                    {info.castingPartner.brandName}
+                  </Link>
+                </p>
+              )}
               <p className="text-sm text-orange-300">
                 ⭐ {t("Community-Favorit im letzten Casting", "Community favorite in the last casting")}:{" "}
                 <Link href={`/brands/${info.castingWinner.brandSlug}`} className="font-semibold hover:underline">

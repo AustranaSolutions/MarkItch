@@ -203,6 +203,7 @@ export function BrandProfileHeader({
   action,
   duelAction,
   blockControl,
+  partnerOf = [],
 }: {
   brand: HeaderBrand;
   details: PublicBrandDetails;
@@ -219,6 +220,8 @@ export function BrandProfileHeader({
   duelAction?: ReactNode;
   /** Luca 25.10.: fremdes Profil, angemeldet — ⋯ → Blockieren / Freigeben (wie in der App). */
   blockControl?: { brandId: string; blocked: boolean };
+  /** Luca 20.11. (7.5): „Offizieller Partner von …“ (nur mit PARTNER_BADGE_ENABLED=1 befüllt). */
+  partnerOf?: { castingId: string; hostBrand: { name: string; slug: string } }[];
 }) {
   const t = useT();
   const [introOpen, setIntroOpen] = useState(false);
@@ -367,6 +370,20 @@ export function BrandProfileHeader({
             </>
           )}
         </button>
+
+        {partnerOf.length > 0 && (
+          <p className="mt-2 flex flex-wrap items-center gap-x-1 text-sm text-orange-300">
+            🤝 {t("Offizieller Partner von", "Official partner of")}{" "}
+            {partnerOf.map((p, i) => (
+              <span key={p.castingId}>
+                {i > 0 ? ", " : ""}
+                <Link href={`/brands/${p.hostBrand.slug}`} className="font-semibold text-white hover:underline">
+                  {p.hostBrand.name}
+                </Link>
+              </span>
+            ))}
+          </p>
+        )}
 
         <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-zinc-500">
           <Link href={followersHref} className="hover:opacity-80">

@@ -770,6 +770,15 @@ export const partnerCastings = pgTable("partner_castings", {
   reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
   // Luca 18.11.: Bewerber wurden informiert, dass die Abstimmung läuft (einmal).
   votingNotifiedAt: timestamp("voting_notified_at", { withTimezone: true }),
+  // Luca 20.11. (7.5): die Marke bestätigt selbst ihren offiziellen Partner
+  // (der Community-Favorit ist nur ein Vorschlag). Entfernen nur über
+  // MarkItch: Antrag (requested_at + Notiz), Admin entscheidet.
+  // Kein FK auf casting_submissions (deren Tabelle steht weiter unten) —
+  // fehlt die Einreichung, gilt das Abzeichen einfach als weg.
+  partnerSubmissionId: uuid("partner_submission_id"),
+  partnerConfirmedAt: timestamp("partner_confirmed_at", { withTimezone: true }),
+  partnerRemovalRequestedAt: timestamp("partner_removal_requested_at", { withTimezone: true }),
+  partnerRemovalNote: text("partner_removal_note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

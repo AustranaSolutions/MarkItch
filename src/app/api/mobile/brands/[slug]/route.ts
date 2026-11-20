@@ -94,6 +94,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       activeCasting: extras.activeCasting ? { id: extras.activeCasting.id, prompt: extras.activeCasting.prompt } : null,
       castingWinner: extras.castingWinner,
       latestFinishedCastingId: extras.latestFinishedCastingId,
+      // Luca 20.11. (7.5): nur befüllt, wenn PARTNER_BADGE_ENABLED=1.
+      castingPartner: extras.castingPartner,
+      partnerOf: extras.partnerOf.map((b) => ({ castingId: b.castingId, hostBrand: b.hostBrand })),
     },
     // RN-5b: offene Einladung zwischen eigener und dieser Marke (für den „Duell einladen“-Knopf).
     viewerHasBrand: Boolean(viewerBrand),

@@ -6,6 +6,9 @@ import { getOptionalUser } from "@/lib/session";
 import { getBrandForUser } from "@/lib/brand";
 import { CastingVoteList } from "@/components/casting/casting-vote-list";
 import { CastingHostTools } from "@/components/casting/casting-host-tools";
+import { CastingPartnerPanel } from "@/components/casting/casting-partner-panel";
+import { getCastingPartner, partnerBadgeEnabled } from "@/lib/partner-badge";
+import { isAdminEmail } from "@/lib/moderation";
 import { getT } from "@/lib/lang";
 import { type Translate } from "@/lib/i18n";
 
@@ -53,6 +56,9 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
     !hasSubmitted &&
     (casting.stage.stage === "open" || casting.stage.stage === "voting");
   const winnerBrandId = casting.stage.stage === "finished" ? casting.stage.winnerBrandId : null;
+  // Luca 20.11. (7.5): Partner-Abzeichen (nur mit PARTNER_BADGE_ENABLED=1).
+  const partner = await getCastingPartner(casting.id);
+  const canChoosePartner = partnerBadgeEnabled() && isHost && casting.stage.stage === "finished" && !partner && casting.submissions.length > 0;
 
   return (
     <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
@@ -78,6 +84,16 @@ export default async function CastingPage({ params }: { params: Promise<{ id: st
               : t("Unentschieden — keine Marke hat die meisten Stimmen für sich allein.", "Tie — no brand has the most votes on its own.")}
         </p>
       )}
+
+      <CastingPartnerPanel
+        castingId={casting.id}
+        hostName={casting.hostBrand.name}
+        partner={partner}
+        submissions={[...casting.submissions].sort((a, b) => b.voteCount - a.voteCount).map((s) => ({ id: s.id, brandName: s.brandName, voteCount: s.voteCount }))}
+        canChoose={canChoosePartner}
+        canRequestRemoval={Boolean(partner) && !partner?.removalRequested && (isHost || viewerBrand?.id === partner?.brandId)}
+        canDecide={Boolean(partner?.removalRequested) && isAdminEmail(viewer?.email)}
+      />
 
       {casting.submissions.length === 0 ? (
         <p className="mb-6 text-sm text-zinc-500">{t("Noch keine Einreichungen.", "No submissions yet.")}</p>

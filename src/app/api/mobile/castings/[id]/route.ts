@@ -5,6 +5,8 @@ import { getCastingById } from "@/lib/casting";
 import { isUuid, readJsonBody, unauthorized } from "@/lib/mobile-auth";
 import { deleteCastingFor, updateCastingPromptFor } from "@/lib/casting-manage";
 import { apiError } from "@/lib/api-error";
+import { isAdminEmail } from "@/lib/moderation";
+import { getCastingPartner, partnerBadgeEnabled } from "@/lib/partner-badge";
 
 /**
  * RN-5d: ein Partner-Casting für die App — dieselben Daten und Regeln wie
@@ -21,6 +23,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const isHost = viewerBrand?.id === casting.hostBrandId;
   const hasSubmitted = viewerBrand ? casting.submissions.some((s) => s.brandId === viewerBrand.id) : false;
   const { stage } = casting;
+  // Luca 20.11. (7.5): Partner-Abzeichen — alles leer, solange PARTNER_BADGE_ENABLED nicht gesetzt ist.
+  const partner = await getCastingPartner(casting.id);
+  const badgeOn = partnerBadgeEnabled();
 
   return NextResponse.json({
     id: casting.id,
@@ -39,6 +44,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     canExtend: isHost && (stage.stage === "open" || (stage.stage === "voting" && casting.submissions.length === 0)),
     canSubmit: Boolean(viewerBrand) && !isHost && !hasSubmitted && stage.stage === "open",
     canVote: Boolean(viewer) && !isHost && !hasSubmitted && (stage.stage === "open" || stage.stage === "voting"),
+    partner,
+    canChoosePartner: badgeOn && isHost && stage.stage === "finished" && !partner && casting.submissions.length > 0,
+    canRequestPartnerRemoval: Boolean(partner) && !partner?.removalRequested && (isHost || viewerBrand?.id === partner?.brandId),
+    canDecidePartnerRemoval: Boolean(partner?.removalRequested) && isAdminEmail(viewer?.email),
   });
 }
 

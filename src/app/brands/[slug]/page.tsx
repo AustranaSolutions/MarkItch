@@ -56,6 +56,7 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
         {...profileHeaderOf(brand, accentColor, await getLang())}
         followerCount={followerCount}
         followingCount={followingCount}
+        partnerOf={extras.partnerOf}
         record={duelRecord(duels, brand.id)}
         followersHref={`/brands/${brand.slug}/followers`}
         followingHref={`/brands/${brand.slug}/following`}
@@ -105,6 +106,7 @@ export default async function BrandProfilePage({ params }: { params: Promise<{ s
           isOwnBrand,
           activeCasting: extras.activeCasting,
           castingWinner: extras.castingWinner,
+          castingPartner: extras.castingPartner,
           latestFinishedCastingId: extras.latestFinishedCastingId,
         }}
       />

@@ -11,6 +11,7 @@ import {
   getOpenChallengesForBrand,
 } from "@/lib/creator-challenge";
 import type { PartnerCasting } from "@/db/schema";
+import { getCastingPartner, getPartnerBadgesForBrand, type PartnerBadge } from "@/lib/partner-badge";
 
 /** RN-7: laufende/kommende Creator-Challenge einer Marke fürs Profil. */
 export type ProfileChallenge = { id: string; periodLabel: string; prompt: string; stage: "running" | "upcoming" };
@@ -26,6 +27,10 @@ export type BrandProfileExtras = {
   activeCasting: PartnerCasting | null;
   castingWinner: { brandName: string; brandSlug: string } | null;
   latestFinishedCastingId: string | null;
+  /** Luca 20.11. (7.5): von der Marke bestätigter Partner des letzten Castings. */
+  castingPartner: { brandName: string; brandSlug: string } | null;
+  /** Luca 20.11. (7.5): „Offizieller Partner von …“ — Abzeichen dieser Marke. */
+  partnerOf: PartnerBadge[];
   livePending: Awaited<ReturnType<typeof getLivePendingChallengeBetween>>;
 };
 
@@ -62,6 +67,11 @@ export async function getBrandProfileExtras(
     ? latestFinishedCasting?.submissions.find((s) => s.brandId === winnerBrandId)
     : null;
 
+  const [castingPartner, partnerOf] = await Promise.all([
+    latestFinishedCasting ? getCastingPartner(latestFinishedCasting.id) : Promise.resolve(null),
+    getPartnerBadgesForBrand(brand.id),
+  ]);
+
   const lang = await requestLang();
   return {
     category: brand.category,
@@ -86,6 +96,8 @@ export async function getBrandProfileExtras(
       ? { brandName: castingWinnerSubmission.brandName, brandSlug: castingWinnerSubmission.brandSlug }
       : null,
     latestFinishedCastingId: latestFinishedCasting?.id ?? null,
+    castingPartner: castingPartner ? { brandName: castingPartner.brandName, brandSlug: castingPartner.brandSlug } : null,
+    partnerOf,
     livePending,
   };
 }

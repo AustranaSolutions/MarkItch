@@ -106,7 +106,7 @@ export async function getVerificationStatus(brandId: string): Promise<Verificati
   };
 }
 
-async function adminUserIds(): Promise<string[]> {
+export async function adminUserIds(): Promise<string[]> {
   const emails = (process.env.ADMIN_EMAILS ?? "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
