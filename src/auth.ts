@@ -3,7 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { verifyPassword } from "@/lib/password";
+import { verifyPasswordOrDummy } from "@/lib/password";
 import { LoginSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -35,10 +35,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!(await checkRateLimit("login-email", email.trim().toLowerCase())).allowed) throw new LoginRateLimited();
 
         const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-        if (!user) return null;
-
-        const valid = await verifyPassword(password, user.passwordHash);
-        if (!valid) return null;
+        // Auch ohne Konto rechnen (gleiche Antwortzeit, siehe verifyPasswordOrDummy).
+        const valid = await verifyPasswordOrDummy(password, user?.passwordHash);
+        if (!user || !valid) return null;
 
         // Phase 24: a banned account can't log back in — the generic
         // "E-Mail oder Passwort ist falsch" message loginUser shows for any

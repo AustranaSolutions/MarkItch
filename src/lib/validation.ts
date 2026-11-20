@@ -19,6 +19,8 @@ export const RegisterSchema = z.object({
   email: z.email("Ungültige E-Mail-Adresse.").trim().toLowerCase(),
   password: passwordSchema,
   accountType: z.enum(AccountTypes, "Bitte wähle Acro oder Assent."),
+  // Luca 20.11.: Alter als eigene Pflicht-Bestätigung (Checkbox), nicht nur im Fließtext.
+  ageConfirmed: z.preprocess((v) => v === true || v === "on" || v === "true", z.boolean().refine((v) => v, "Bitte bestätige, dass du mindestens 16 Jahre alt bist.")),
 });
 
 /** Luca 02.11.: einmalige Namens-Abfrage für ältere Konten ohne Namen. */

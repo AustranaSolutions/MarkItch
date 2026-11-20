@@ -110,9 +110,18 @@ export function RegisterForm() {
         autoComplete="new-password"
         errors={state?.errors?.password}
       />
+      <label className="mb-4 flex items-start gap-2 text-sm text-zinc-300">
+        <input type="checkbox" name="ageConfirmed" className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500" />
+        {t("Ich bin mindestens 16 Jahre alt.", "I am at least 16 years old.")}
+      </label>
+      {state?.errors?.ageConfirmed?.map((err) => (
+        <p key={err} className="-mt-3 mb-4 text-sm text-red-400">
+          {err}
+        </p>
+      ))}
       <SubmitButton>{t("Account erstellen", "Create account")}</SubmitButton>
       <p className="mt-3 text-center text-xs text-zinc-500">
-        {t("Mit der Registrierung bestätigst du, dass du mindestens 16 Jahre alt bist, und akzeptierst die", "By signing up you confirm that you’re at least 16 years old and accept the")}{" "}
+        {t("Mit der Registrierung akzeptierst du die", "By signing up you accept the")}{" "}
         <Link href="/nutzungsbedingungen" className="text-orange-400 hover:underline">
           {t("Nutzungsbedingungen", "Terms of Use")}
         </Link>{" "}

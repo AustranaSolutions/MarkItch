@@ -43,6 +43,7 @@ const EXACT: Record<string, string> = {
   "Bitte einen Monat wählen.": "Please choose a month.",
   "Bitte einen gültigen Link eingeben (z. B. meinsalon.at/termin).": "Please enter a valid link (e.g. mysalon.com/booking).",
   "Bitte gib deinen Namen an (mind. 2 Zeichen).": "Please enter your name (at least 2 characters).",
+  "Bitte bestätige, dass du mindestens 16 Jahre alt bist.": "Please confirm that you are at least 16 years old.",
   "Bitte melde dich an.": "Please log in.",
   "Bitte wähle Acro oder Assent.": "Please choose Acro or Assent.",
   "Bitte wähle einen Grund.": "Please choose a reason.",

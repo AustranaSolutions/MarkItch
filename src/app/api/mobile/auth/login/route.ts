@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { verifyPassword } from "@/lib/password";
+import { verifyPasswordOrDummy } from "@/lib/password";
 import { LoginSchema } from "@/lib/validation";
 import { checkRateLimit, getClientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { readJsonBody, sessionResponse, validationErrorResponse } from "@/lib/mobile-auth";
@@ -26,7 +26,9 @@ export async function POST(request: NextRequest) {
 
   const [user] = await db.select().from(users).where(eq(users.email, parsed.data.email)).limit(1);
   // Gesperrt → dieselbe generische Meldung wie im Web (Phase 24: Sperrstatus nicht verraten).
-  if (!user || user.bannedAt || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+  // Luca 20.11.: immer rechnen, auch ohne Konto (gleiche Antwortzeit).
+  const valid = await verifyPasswordOrDummy(parsed.data.password, user?.passwordHash);
+  if (!user || user.bannedAt || !valid) {
     return await apiError({ error: INVALID_CREDENTIALS }, { status: 401 });
   }
 

@@ -8,7 +8,7 @@ import type { FeedDuel } from "@/lib/feed";
 import { useT } from "@/components/i18n/lang-provider";
 
 // Luca 16.11. (3.3): Reiter „Beendet“ wie in der App — Kacheln in 2 Spalten,
-// Sieger links mit Pokal und goldenem Rand, darunter „Name · 90 %“. Antippen
+// Sieger links mit Pokal (Luca 20.11.: ohne goldenen Rand), darunter „Name · 90 %“. Antippen
 // öffnet das Duell beim Sieger, Wischen zeigt die nächsten beendeten Duelle.
 
 const GOLD = "#f5c542";
@@ -55,10 +55,6 @@ export function FinishedDuelList({ duels, isLoggedIn }: { duels: FeedDuel[]; isL
                       <img src={side.thumbnailUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <video src={`${side.videoUrl}#t=0.1`} muted playsInline preload="metadata" className="h-full w-full object-cover" />
-                    )}
-                    {pos === 0 && winnerSide !== null && (
-                      // Goldener Rand als eigene Ebene über dem Bild (sonst verdeckt es ihn).
-                      <span className="pointer-events-none absolute inset-0 rounded-l-xl border-2" style={{ borderColor: GOLD }} />
                     )}
                     {pos === 0 && winnerSide !== null && (
                       <span className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60">
