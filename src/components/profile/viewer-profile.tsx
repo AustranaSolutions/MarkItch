@@ -97,7 +97,7 @@ export async function ViewerProfile({
 
       <div className="flex justify-center gap-4 pt-3 text-sm">
         <Link href="/pitches" className="text-orange-500 hover:underline">
-          {t("Pitches ansehen →", "View pitches →")}
+          {t("Duelle ansehen →", "View duels →")}
         </Link>
         <Link href="/brands" className="text-orange-500 hover:underline">
           {t("Marken entdecken →", "Discover brands →")}
