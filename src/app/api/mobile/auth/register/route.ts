@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   const body = await readJsonBody(request);
   // Luca 20.11.: neue Apps schicken das Alters-Häkchen. Ältere Versionen
   // kennen es nicht — dort gilt wie bisher der Satz unter dem Knopf
-  // („… bestätigst du, dass du mindestens 16 bist“), sonst wäre Registrieren kaputt.
+  // („… bestätigst du, dass du mindestens 14 bist“), sonst wäre Registrieren kaputt.
   if (body && typeof body === "object" && !("ageConfirmed" in body)) (body as Record<string, unknown>).ageConfirmed = true;
   const parsed = RegisterSchema.safeParse(body);
   if (!parsed.success) return validationErrorResponse(parsed.error);

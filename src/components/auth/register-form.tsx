@@ -112,7 +112,7 @@ export function RegisterForm() {
       />
       <label className="mb-4 flex items-start gap-2 text-sm text-zinc-300">
         <input type="checkbox" name="ageConfirmed" className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500" />
-        {t("Ich bin mindestens 16 Jahre alt.", "I am at least 16 years old.")}
+        {t("Ich bin mindestens 14 Jahre alt.", "I am at least 14 years old.")}
       </label>
       {state?.errors?.ageConfirmed?.map((err) => (
         <p key={err} className="-mt-3 mb-4 text-sm text-red-400">

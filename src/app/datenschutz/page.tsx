@@ -236,7 +236,7 @@ export default async function DatenschutzPage({ searchParams }: { searchParams: 
 
       <Section title="11. Alter">
         <p>
-          MarkItch ist ab 16 Jahren. Erfahren wir, dass ein Konto einer jüngeren Person gehört, löschen wir es.
+          MarkItch ist ab 14 Jahren. Erfahren wir, dass ein Konto einer jüngeren Person gehört, löschen wir es.
         </p>
       </Section>
 

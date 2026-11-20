@@ -33,7 +33,7 @@ export function TermsEn() {
 
       <Section title="2. Your account">
         <p>
-          You must be at least 16 years old. There are three account types: <B>viewer</B> (watch, vote, like, comment,
+          You must be at least 14 years old. There are three account types: <B>viewer</B> (watch, vote, like, comment,
           follow, react with your own videos), <B>business/brand</B> and <B>creator</B> (additionally post your own videos
           and compete in duels).
         </p>

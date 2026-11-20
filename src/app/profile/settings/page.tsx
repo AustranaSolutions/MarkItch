@@ -70,6 +70,7 @@ export default async function ProfileSettingsPage() {
 
       {isAdminEmail(user.email) ? (
         <SettingsSection title="Admin">
+          <SettingsRow href="/admin/users" label="Nutzer" />
           <SettingsRow href="/admin/moderation" label="Moderation" />
           <SettingsRow href="/admin/brands" label="Marken verifizieren" />
           <SettingsRow href="/admin/boosts" label="Boosts" />

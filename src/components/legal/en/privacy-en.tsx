@@ -210,7 +210,7 @@ export function PrivacyEn() {
       </Section>
 
       <Section title="11. Age">
-        <p>MarkItch is for ages 16 and up. If we learn that an account belongs to someone younger, we delete it.</p>
+        <p>MarkItch is for ages 14 and up. If we learn that an account belongs to someone younger, we delete it.</p>
       </Section>
 
       <p className="mt-8 text-xs text-zinc-600">

@@ -51,7 +51,7 @@ export default async function NutzungsbedingungenPage({ searchParams }: { search
 
       <Section title="2. Dein Konto">
         <p>
-          Du musst mindestens 16 Jahre alt sein. Es gibt drei Kontoarten: <B>Zuschauer:in</B> (ansehen, abstimmen,
+          Du musst mindestens 14 Jahre alt sein. Es gibt drei Kontoarten: <B>Zuschauer:in</B> (ansehen, abstimmen,
           liken, kommentieren, folgen, mit eigenen Videos reagieren), <B>Unternehmen/Marke</B> und <B>Creator</B>
           (zusätzlich eigene Videos posten und Duelle austragen).
         </p>
