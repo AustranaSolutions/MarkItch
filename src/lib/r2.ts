@@ -45,10 +45,15 @@ export function r2PublicPrefix(): string {
 }
 
 /** Signierte Adresse, an die App/Browser die Datei direkt per PUT schicken (Luca 13.11.: 15 Minuten gültig — der Upload startet sofort nach dem Anfordern). */
-export async function r2PresignedPut(key: string): Promise<string> {
+export async function r2PresignedPut(key: string, size?: number): Promise<string> {
   const url = new URL(objectUrl(key));
   url.searchParams.set("X-Amz-Expires", "900");
-  const signed = await r2().sign(url.toString(), { method: "PUT", aws: { signQuery: true } });
+  // Luca 20.11.: mit Größe wird Content-Length mitsigniert — R2 nimmt dann nur
+  // genau diese Datei an (keine größere Datei über dieselbe Adresse).
+  // Schalter R2_SIGN_SIZE=1 in Vercel, bis es einmal live geprüft ist.
+  const signed = size && process.env.R2_SIGN_SIZE === "1"
+    ? await r2().sign(url.toString(), { method: "PUT", headers: { "content-length": String(size) }, aws: { signQuery: true, allHeaders: true } })
+    : await r2().sign(url.toString(), { method: "PUT", aws: { signQuery: true } });
   return signed.url;
 }
 

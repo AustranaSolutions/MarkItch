@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUser } from "@/lib/session";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { createVideoUploadTarget } from "@/lib/storage";
-import { ALLOWED_VIDEO_TYPES, VIDEO_UPLOAD_FOLDERS, type VideoUploadFolder } from "@/lib/video-constants";
+import { ALLOWED_VIDEO_TYPES, MAX_VIDEO_BYTES, VIDEO_UPLOAD_FOLDERS, type VideoUploadFolder } from "@/lib/video-constants";
 import { apiError } from "@/lib/api-error";
 
 /**
@@ -20,12 +20,22 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const folder = body?.folder;
   const contentType = body?.contentType;
+  // Luca 20.11.: neue App/Web schicken die Dateigröße mit → wird in die
+  // Upload-Adresse einsigniert. Ältere Apps ohne Größe: Prüfung beim Einreichen.
+  const size = body?.size;
 
   if (typeof folder !== "string" || !VIDEO_UPLOAD_FOLDERS.includes(folder as VideoUploadFolder)) {
     return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
   }
   if (typeof contentType !== "string" || !ALLOWED_VIDEO_TYPES.includes(contentType)) {
     return await apiError({ error: "Erlaubt: MP4, WEBM oder MOV." }, { status: 400 });
+  }
+
+  if (size !== undefined && (typeof size !== "number" || !Number.isInteger(size) || size <= 0)) {
+    return await apiError({ error: "Ungültige Anfrage." }, { status: 400 });
+  }
+  if (typeof size === "number" && size > MAX_VIDEO_BYTES) {
+    return await apiError({ error: "Das Video ist zu groß (max. 100 MB)." }, { status: 413 });
   }
 
   // Audit 04.10. (H5): jede Adresse kann eine Datei im Speicher hinterlassen.
@@ -35,7 +45,7 @@ export async function POST(request: NextRequest) {
   if (!daily.allowed) return await apiError({ error: "Tageslimit für Uploads erreicht — morgen geht es weiter." }, { status: 429 });
 
   try {
-    const target = await createVideoUploadTarget(folder as VideoUploadFolder, contentType, viewer.id);
+    const target = await createVideoUploadTarget(folder as VideoUploadFolder, contentType, viewer.id, size);
     return NextResponse.json(target);
   } catch (err) {
     console.error("[upload/prepare]", err);

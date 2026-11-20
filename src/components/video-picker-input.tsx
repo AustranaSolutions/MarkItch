@@ -151,7 +151,7 @@ export function VideoPickerInput({
       const prepareRes = await fetch("/api/upload/prepare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder, contentType: file.type }),
+        body: JSON.stringify({ folder, contentType: file.type, size: file.size }),
       });
       const prepared = await prepareRes.json();
       if (!prepareRes.ok) throw new Error(prepared.error ?? t("Upload fehlgeschlagen.", "Upload failed."));

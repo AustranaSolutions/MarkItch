@@ -86,12 +86,13 @@ export async function createVideoUploadTarget(
   folder: VideoUploadFolder,
   contentType: string,
   userId: string,
+  size?: number,
 ): Promise<VideoUploadTarget> {
   const extension = VIDEO_EXTENSION_BY_MIME_TYPE[contentType] ?? "bin";
   const key = `${folder}/${userId}/${randomUUID()}.${extension}`;
 
   if (r2Enabled) {
-    return { uploadUrl: await r2PresignedPut(key), publicUrl: r2PublicUrl(key) };
+    return { uploadUrl: await r2PresignedPut(key, size), publicUrl: r2PublicUrl(key) };
   }
   if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/upload/sign/${SUPABASE_BUCKET}/${key}`, {
